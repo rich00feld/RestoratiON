@@ -1,2 +1,2 @@
 # RestoratiON
-OMNRF Landscape Ecology restoration prioritization project
+OMNR Landscape Ecology restoration prioritization project
