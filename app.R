@@ -4129,7 +4129,7 @@ ui <- shinyUI(semanticPage(
       <br><br> 
       To get and idea of connectivity for each restored pixel combination’s landscape, we measure the movement cost of serval paths across the landscape and take an average 
       of the cost of those paths as an indication of the resistance of that landscape – mean path resistance. These resistance paths are measured between all “nodes” (or clusters)
-      of either contiguous araes of natural habitat, or areas of conservation concern (depending on the focus of the analysis) that occur in the landscape.
+      of either contiguous areas of natural habitat, or areas of conservation concern (depending on the focus of the analysis) that occur in the landscape.
       <br><br> 
       The mean path resistance for each restored landscape is then subtracted from the mean path resistance of the degraded landscape 
       – to get a measure of how much resistance was reduced (or connectivity increased) by each restoration combination. Positive values = reduced resistance and better movement in a landscape,
