@@ -3819,35 +3819,22 @@ ui <- shinyUI(semanticPage(
   conditionalPanel(
     condition = "!output.showSingleLandscape && !output.showMultipleLandscapes && !output.showLandscapeVisualizer && !output.showBatchProcessing",
     segment(
-      div(style = "font-size: 18px; font-weight: bold; margin-bottom: 15px;", "Choosing an Analysis Type"),
-      p(HTML("The goal of this application is to locate areas of degraded land in a selected geographic area, 
-      and then to determine what areas, when restored to nearby natural habitat, have the greatest benefit
-      to the landscape based on various measured criteria that the user selects.
-	    First a landscape is broken down into 300 metre by 300 metre units. Each one of these units is a “pixel”.
-	    Many different data layers are incorporated in this way so that for a given 300 by 300 metre area, there 
-	    is information on the type of habitat, the environment, potential sources of degradation (e.g. light 
-	    pollution, mining activity etc.), and how easy it might be for an animal to move through that area 
-	    (“movement cost”).
-	    While this information is available for every pixel in the province, it would be impractical to run 
-	    the application on the entire province as this would be coomputationally costly, time consuming, 
-	    and be of little use to restoraton planners. As an alternative, we can select a segment of the province
-	    to analyze instead. <br><br>
-	    If you are running the app for the first time, or your goal is simply to analyze a 
-	    single landscape, the 'single landscape' option should be selected.
-	    If your goal is to compare restoration priority across multiple landscapes after having created 
-	    results .CSVs for each of them, then the 'multiple landscapes' option should be selected.
-	    If you simply want to visualize the habitat classes of a landscape based on its .CSV file, then
-	    select the 'landscape visualizer' option.")),
+      div(style = "font-size: 18px; font-weight: bold; margin-bottom: 15px;", HTML("<br><br>Choosing an Analysis Type")),
+      p(HTML("This application aims to identify degraded land areas within a chosen geographic region and determine which areas, when restored to nearby natural habitat types, will provide the greatest benefit based on user-selected criteria. <br><br>
+      The entire province is divided into 300 by 300-metre units, called 'pixels'. Each pixel contains information on habitat type, environment, potential degradation sources (e.g., light pollution, mining activity), and the ease with which animals can move through the area ('movement cost'). While data is available for every pixel in the province, analyzing the entire province at once is impractical due to high computational costs and limited usefulness for restoration planners. Instead, you can select a specific segment of the province to analyze. <br><br>
+<b>Choose an option to continue:</b><br>")),
       actionButton("single_landscape", "Calculate metrics for a single landscape"),
       br(),
+      p(HTML("<i><p style='margin-left: 25px;'>Choose this if it’s your first time using the app or if you want to analyze a single landscape.</p></i>")),
+      actionButton("multiple_landscapes", "Compare metrics across multiple landscapes"),
       br(),
-      actionButton("multiple_landscapes", "Compare metrics across multiple landscape .CSV files"),
+      p(HTML("<i><p style='margin-left: 25px;'>Select this option if you want to compare restoration priorities across multiple landscapes after creating results .csv files for more than one landscape.</p></i>")),
+      actionButton("landscape_visualizer", "Visualize landscape(s)"),
       br(),
+      p(HTML("<i><p style='margin-left: 25px;'>Use this to visualize the habitat classes of a landscape <span style='color: red;'>landscapes?</span> based on its results .csv file.</p></i>")),
+      actionButton("batch_processing", "Calculate landscape metrics for all features of a given category across Ontario"),
       br(),
-      actionButton("landscape_visualizer", "Visualize landscapes from selected .CSV files"),
-      br(),
-      br(),
-      actionButton("batch_processing", "Calculate landscape metrics for all features of a given category across Ontario")
+      p(HTML("<i><p style='margin-left: 25px;'><span style='color: red;'>NEED DESCRIPTION HERE :).</p></span></i>"))
     )
   ),
 
