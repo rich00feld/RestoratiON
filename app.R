@@ -1,5 +1,3 @@
-# EJN: I added section titles that populate the table of contents, e.g.,: 
-
 # Code to install packages ----
 # install.packages('rsconnect')
 # install.packages("sf")
