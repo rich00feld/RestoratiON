@@ -3831,10 +3831,10 @@ ui <- shinyUI(semanticPage(
       p(HTML("<i><p style='margin-left: 25px;'>Select this option if you want to compare restoration priorities across multiple landscapes after creating results .csv files for more than one landscape.</p></i>")),
       actionButton("landscape_visualizer", "Visualize landscape(s)"),
       br(),
-      p(HTML("<i><p style='margin-left: 25px;'>Use this to visualize the habitat classes of a landscape <span style='color: red;'>landscapes?</span> based on its results .csv file.</p></i>")),
+      p(HTML("<i><p style='margin-left: 25px;'>Use this to visualize the habitat classes of one or more landscapes based on results .csv files.</p></i>")),
       actionButton("batch_processing", "Calculate landscape metrics for all features of a given category across Ontario"),
       br(),
-      p(HTML("<i><p style='margin-left: 25px;'><span style='color: red;'>NEED DESCRIPTION HERE :).</p></span></i>"))
+      p(HTML("<i><p style='margin-left: 25px;'>Select this option to calculate metrics for all Ontario landscapes of a given category (e.g. all mincipalities, all provincial parks etc.).</p></i>"))
     )
   ),
 
