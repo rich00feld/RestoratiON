@@ -1006,7 +1006,7 @@ server <- function(input, output, session) {
       },
       error = function(e) {
         # Handle errors by displaying a notification to the user
-        showNotification(paste("Connectivity is measured between distinct patches, or “nodes” of suitable habitat for wildlife and plants. Connectivity metrics for areas of conservation concern may fail to be calculated for the selected landscape due to insufficient nodes (< 5 nodes triggers this warning). Depending on options you choose in the next few steps – e.g., what defines degraded land – a successful calculation may still be possible. Alternatively, please add a buffer around the selected area, select or draw a larger extent, or re-define areas of conservation concern with additional features to produce sufficient nodes. You may disregard this warning if you are only interested in connectivity between habitat nodes."), type = "error", duration = NULL)
+        showNotification(paste("Connectivity is measured between distinct patches, or “nodes” of suitable habitat for wildlife and plants. Connectivity metrics may fail to be calculated for the selected landscape due to insufficient nodes (< 5 nodes triggers this warning). Depending on options you choose in the next few steps – e.g., what defines degraded land – a successful calculation may still be possible. Alternatively, please add a buffer around the selected area, select or draw a larger extent, or re-define areas of conservation concern with additional features to produce sufficient nodes. You may disregard this warning if you are only interested in connectivity between nodes of areas of conservation concern."), type = "error", duration = NULL)
       }
     )
     removeNotification(notification_id_extent)
