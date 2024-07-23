@@ -3821,7 +3821,7 @@ ui <- shinyUI(semanticPage(
     segment(
       div(style = "font-size: 18px; font-weight: bold; margin-bottom: 15px;", HTML("<br><br>Choosing an Analysis Type")),
       p(HTML("This application aims to identify degraded land areas within a chosen geographic region and determine which areas, when restored to nearby natural habitat types, will provide the greatest benefit based on user-selected criteria. <br><br>
-      The entire province is divided into 300 by 300-metre units, called 'pixels'. Each pixel contains information on habitat type, environment, potential degradation sources (e.g., light pollution, mining activity), and the ease with which animals can move through the area ('movement cost'). While data is available for every pixel in the province, analyzing the entire province at once is impractical due to high computational costs and limited usefulness for restoration planners. Instead, you can select a specific segment of the province to analyze. <br><br>
+      The entire province is divided into 300 by 300-metre units, called 'pixels'. Each pixel contains information on habitat type, environment, potential degradation sources (e.g., light pollution, mining activity), and the ease with which animals can move through the area ('movement cost'). While data is available for every pixel in the province, analyzing the entire province at once is impractical due to high computational costs and limited usefulness for restoration planners. Instead, you may select a specific segment of the province to analyze. <br><br>
 <b>Choose an option to continue:</b><br>")),
       actionButton("single_landscape", "Calculate metrics for a single landscape"),
       br(),
@@ -3842,23 +3842,16 @@ ui <- shinyUI(semanticPage(
   conditionalPanel(
     condition = "(output.showSingleLandscape > 0 || output.showBatchProcessing > 0) && !output.showhabitat_based_calculations && !output.showprotected_based_calculations",
     segment(
-      div(style = "font-size: 18px; font-weight: bold; margin-bottom: 15px;", "Decision to Focus on All Habitat, or Only Areas of Conservation Concern"),
-      p(HTML("Before actually selecting the geographic area of the landscape to be analyzed, a decision must be made
-      on what the focus of the some of the measured criteria should be, and there are two options: <br><br>
-      The first is to look at the impact of restoring degraded pixels just in terms of natural 	habitat – for example,
-      to measure how that might create more habitat of a given type for instance, or measure how it affects how connected
-      areas of habitat are to one another. <br><br>
-	    The second option is to focus on areas of conservation concern – which is created from a list of many area types which the
-	    user can select to include. For example: provincial parks, 	conservation reserves, or municipal heritage areas (or any combination
-	    of these which 	the user selects to include). In this case, the impact of restoring degraded pixels is 	measured in terms of how it
-	    might affect the size of areas of conservation concern, and their connectedness.
-      If the second option is selected, then a checkbox appears for the user to select which types of areas to include in their 
-      ‘areas of conservation concern’ definition.")),
+      div(style = "font-size: 18px; font-weight: bold; margin-bottom: 15px;", "Select what areas to consider when measuring connectivity and area of restored habitat"),
+      p(HTML("In the application, you will simulate restoring different degraded target areas. Multiple criteria are used to determine which target areas have the greatest overall benefit when restored. One such criterion is connectivity, which refers to how connected different habitat patches are. Patches that have greater connectivity typically exhibit landscape characteristics such as good vegetation cover or less anthropogenic disturbance that allow wildlife or plants to move among patches. A second criterion is the size of a particular habitat type once a degraded target area is restored; for example, restoration might increase the overall area of a wetland.<br><br>
+Depending on your goals, you may wish to calculate connectivity and habitat patch size in one of two ways.<br><br> 
+<b>Choose an option below to continue:</b><br>
+")),
+      actionButton("habitat_based_calculations", "Focus on entire landscape"),
       br(),
-      actionButton("habitat_based_calculations", "Calculate connectivity for habitat pixels"),
-      br(),
-      br(),
-      actionButton("protected_based_calculations", "Calculate connectivity for areas of conservation concern")
+      p(HTML("<i><p style='margin-left: 25px;'>This option will measure the effect of restoring degraded land on the entire selected landscape.</p></i>")),
+      actionButton("protected_based_calculations", "Focus on areas of conservation concern"),
+      p(HTML("<i><p style='margin-left: 25px;'>This option will measure the effect of restoring degraded land in areas of conservation concern only. In the next step, you can choose to include one or more categories of conservation concern, such as provincial parks, conservation reserves, or municipal heritage areas. Calculations will measure the impact of restoring degraded target areas on the size and connectedness of habitat within these focal categories.</p></i>"))
     )
   ),
 
