@@ -3883,7 +3883,7 @@ Depending on your goals, you may wish to calculate connectivity and habitat patc
     condition = "input.protected_based_calculations > 0",
     segment(
       div(style = "font-size: 18px; font-weight: bold; margin-bottom: 15px;", "Defining Areas of Conservation Concern"),
-      p("Select what features should be included in areas of conservation concern for the analysis (a minimum of 1 feature must be selected)."),
+      p("Select what features should be included in areas of conservation concern. A minimum of 1 feature must be selected."),
       br(),
       uiOutput("protected_checkboxes"),
     )
