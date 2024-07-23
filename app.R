@@ -775,11 +775,6 @@ server <- function(input, output, session) {
     extent_coord <- raster::extend(extent_coord, buffer_value())
     output_extent(extent_coord)
 
-    # prints the set extent to the UI
-    output$extent_values <- renderPrint({
-      extent_coord
-    })
-
     # Crop rasters to target landscape extent ----
     # All rasters used in subsequent steps in the app are cropped to selected landscape extent
     # Cropped layers are reactive values, which have already been defined 
@@ -3890,38 +3885,25 @@ Depending on your goals, you may wish to calculate connectivity and habitat patc
   conditionalPanel(
     condition = "(input.habitat_based_calculations > 0 || input.protected_based_calculations > 0) && output.showSingleLandscape > 0",
     segment(
-      div(style = "font-size: 18px; font-weight: bold; margin-bottom: 15px;", "Choosing a Landscape"),
-      p(HTML("At this stage you are ready to select a landscape for analysis. This can be done a few ways:
-      <br><br>
-	    The first is by clicking on existing features in the map, and then clicking the 'set extent' button. The interactive map can be used
-	    to select particular features (e.g. municipalities, parks, 	conservation areas) by turning on visibility of those features via the 
-	    map legend checkbox, clicking on an associated feature displayed in the map, and then clicking the 'set extent' button below. 
-	    This selects the smallest rectangular space of land that, at the same time, contains the whole selected feature (municipality, 
-	    park, etc.).
-	    <br><br>
-	    The second method is to draw a rectangular bounding box or polygon on the map using the draw tools available (located at the
-	    top left of the map beow the zoom buttons), and then to click the ‘set extent’ button. Polygons are created by clicking to set
-	    points that connect an enclosed space, and bounding boxes are created by clicking and dragging.
-	    <br><br>
-	    The option to create a buffer around a landscape is also present. A buffer could be defined as an area that extends outward from a particular
-	    feature (in this case the selected landscape). Simply, buffers may be useful in reducing the influence of distortions or artifacats
-	    that may arise in some calculations because the edge of the dataset (i.e. landscape) doesn’t accurately reflect the reality outside that boundary.
-	    A landscape buffer can be set by entering a number in the text box below the map *prior* to clicking the 'set extent' button. Since the pixel 
-	    units are 300 by 300 metres, any number entered gets rounded down to the nearest multiple of 300. 
-	    <br><br>
-	    In all cases, after the ‘set extent’ button is clicked, images of the selected landscape are displayed for the user to review, 
-	    with a breakdown of the respective proportion of habitat types it contains (as a percentage of pixels present). In the case of 
-	    the areas of conservation concern choice being previously selected, a map displaying any areas of conservation concern and their
-	    percentage breakdown in the landscape is also produced.
-      <br><br>
-	    When the landscape extent is set, a test is also run on that landscape to see if it has sufficient nodes to calculate connectivity
-	    metrics at a later stage (this will be explained in more detail later at that step).")),
+      div(style = "font-size: 18px; font-weight: bold; margin-bottom: 15px;", "Choosing a landscape"),
+      p(HTML("You are ready to select a target landscape for analysis. You can choose to either draw or select the landscape:<br><br>
+<b>Option 1: Choose landscape extent by drawing a shape</b><br>
+Ensure the “Drawn extent” selection is checked in the map checkbox panel on the righthand side of the map. Set a custom extent using the draw tools located at the top left of the map below the zoom buttons. Create a custom shape by first selecting the pentagon icon, then clicking the map to drop points that define a target landscape. Or, create a rectangle by clicking the square icon, then dropping a single point and dragging to define a target landscape.<br><br>
+<b>Option 2: Choose landscape extent by selecting individual map features</b><br>
+Turn on the visibility of map feature groups such as provincial parks or national wildlife areas using the checkboxes panel on the righthand side of the map. Hover over the map to view the names of individual features within the group. Then, select a single feature by clicking on it (e.g., a single provincial park).<br>"
+)),
       leafletOutput("map", height = 600),
       br(),
       br(),
-      numericInput("buffer_unit_value", "(Optional) Enter an extent buffer value in metres:", value = 0),
+      p(HTML("<b>Add a buffer around the target landscape</b><br>
+We recommend adding a buffer to the selected landscape. A buffer is an area that extends outward from your target landscape by a specified number of metres. Buffers are useful in reducing the influence of distortions or artefacts that may arise because features outside your selected landscape are not included in application calculations. If you are considering restoration projects that may benefit more mobile species, your buffer size should be larger. Since the pixel units are 300 by 300 metres, any number entered here will be rounded down to the nearest multiple of 300.<br>")),
+      numericInput("buffer_unit_value", "Enter an extent buffer value in metres (optional but recommended):", value = 1200),
       br(),
       br(),
+      p(HTML("<b>Set the final extent</b><br>
+               Finally, press “Set Extent” to confirm the final target landscape for analysis. No matter your extent selection method, the smallest rectangular space of land that contains the entire selected landscape is displayed. An image of the selected landscape is displayed for you to review, with a breakdown of the respective proportion of habitat types it contains. If you chose to focus on areas of conservation concern, a map displaying any areas of conservation concern and which areas are included in the analysis is also displayed.<br><br>
+             When the landscape extent is set, a test is run on that landscape to see if it is large enough to calculate connectivity metrics. This will be explained in more detail as you progress through the application.<br>
+               ")),
       actionButton("set_extent", "Set Extent"),
       br(),
       verbatimTextOutput("extent_values"),
