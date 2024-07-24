@@ -143,7 +143,17 @@ export_sf <- reactiveVal(NULL)
 KML_output_react <- reactiveVal()
 selected_sf_react <- reactiveVal()
 temp_dir_react <- reactiveVal()
-
+land_cover_labels_react<- reactiveVal()
+land_cover_labels <- data.frame(
+        Value = c(11, 12, 13, 14, 15, 16, 17, 18, 21, 22, 23, 24, 25, 31, 32, 33, 34, 35, 36, 37, 38, 41, 51, 52, 53, 54, 55, 99, 100, 101, 204, 205, 250, 0, 1),
+        Land_Class = c(
+          "Prairie", "Savannah", "Alvar", "Dune", "Meadow", "Shrubland", "Barren", "Sparse treed",
+          "Coniferous forest", "Mixedwood forest", "Deciduous forest", "Transitional forest", "Hedge row",
+          "Coniferous treed swamp", "Mixedwood treed swamp", "Deciduous treed swamp", "Transitional treed swamp",
+          "Thicket swamp", "Bog", "Fen", "Marsh", "Water", "Built up area-pervious", "Anthropogenic", "Cropland",
+          "Hay/pasture", "Transportation", "Unclassified", "Degraded", "Priority pixels", "Aggregate extraction", 
+          "Topsoil/Peat extraction", "Undifferentiated", "Not included", "Included"))
+land_cover_labels_react(land_cover_labels)
 
 # BatchloopFinished <- reactiveVal(FALSE)
 
@@ -821,15 +831,7 @@ server <- function(input, output, session) {
     # This plots the cropped landscape with habitat classes
     output$rasterPlot <- renderPlot({
       #Creates a table to map land class labels to numeric values in 'Ontario_land_cover' (for the plot legend essentially)
-      land_cover_labels <- data.frame(
-        Value = c(11, 12, 13, 14, 15, 16, 17, 18, 21, 22, 23, 24, 25, 31, 32, 33, 34, 35, 36, 37, 38, 41, 51, 52, 53, 54, 55, 99, 100, 101, 204, 205, 250, 0, 1),
-        Land_Class = c(
-          "Prairie", "Savannah", "Alvar", "Dune", "Meadow", "Shrubland", "Barren", "Sparse treed",
-          "Coniferous forest", "Mixedwood forest", "Deciduous forest", "Transitional forest", "Hedge row",
-          "Coniferous treed swamp", "Mixedwood treed swamp", "Deciduous treed swamp", "Transitional treed swamp",
-          "Thicket swamp", "Bog", "Fen", "Marsh", "Water", "Built up area-pervious", "Anthropogenic", "Cropland",
-          "Hay/pasture", "Transportation", "Unclassified", "Degraded", "Priority pixels", "Aggregate extraction", 
-          "Topsoil/Peat extraction", "Undifferentiated", "Not included", "Included"))
+      land_cover_labels <- land_cover_labels_react()
       
       # Maps the numeric values in 'Ontario_land_cover' to their corresponding labels
       mapped_values <- land_cover_labels$Land_Class[match(values(cropped_Ontario_land_cover), land_cover_labels$Value)]
@@ -864,17 +866,7 @@ server <- function(input, output, session) {
     output$protectedPlot <- renderPlot({
       req(input$protected_based_calculations > 0)
       # Create a table to map land class labels to numeric values in 'Ontario_land_cover'
-      land_cover_labels <- data.frame(
-        Value = c(11, 12, 13, 14, 15, 16, 17, 18, 21, 22, 23, 24, 25, 31, 32, 33, 34, 35, 36, 37, 38, 41, 51, 52, 53, 54, 55, 99, 100, 101, 204, 205, 250, 0, 1),
-        Land_Class = c(
-          "Prairie", "Savannah", "Alvar", "Dune", "Meadow", "Shrubland", "Barren", "Sparse treed",
-          "Coniferous forest", "Mixedwood forest", "Deciduous forest", "Transitional forest", "Hedge row",
-          "Coniferous treed swamp", "Mixedwood treed swamp", "Deciduous treed swamp", "Transitional treed swamp",
-          "Thicket swamp", "Bog", "Fen", "Marsh", "Water", "Built up area-pervious", "Anthropogenic", "Cropland",
-          "Hay/pasture", "Transportation", "Unclassified", "Degraded", "Priority pixels", "Aggregate extraction",
-          "Topsoil/Peat extraction", "Undifferentiated", "Not included", "Included"
-        )
-      )
+      land_cover_labels <- land_cover_labels_react()
 
       # Match raster values to land cover classes and convert to factor
       mapped_values <- factor(land_cover_labels$Land_Class[match(values(Protected_areas_plot), land_cover_labels$Value)])
@@ -1147,18 +1139,7 @@ server <- function(input, output, session) {
     # Plot target landscape with degraded pixels ----
     # a plot is output showing the landscape with non-tolerable pixels excluded and degraded pixels in orange
     output$degradedPlot <- renderPlot({
-      land_cover_labels <- data.frame(
-        Value = c(11, 12, 13, 14, 15, 16, 17, 18, 21, 22, 23, 24, 25, 31, 32, 33, 34, 35, 36, 37, 38, 41, 51, 52, 53, 54, 55, 99, 100, 101, 204, 205, 250, 0, 1),
-        Land_Class = c(
-          "Prairie", "Savannah", "Alvar", "Dune", "Meadow", "Shrubland", "Barren", "Sparse treed",
-          "Coniferous forest", "Mixedwood forest", "Deciduous forest", "Transitional forest", "Hedge row",
-          "Coniferous treed swamp", "Mixedwood treed swamp", "Deciduous treed swamp", "Transitional treed swamp",
-          "Thicket swamp", "Bog", "Fen", "Marsh", "Water", "Built up area-pervious", "Anthropogenic", "Cropland",
-          "Hay/pasture", "Transportation", "Unclassified", "Degraded", "Priority pixels", "Aggregate extraction",
-          "Topsoil/Peat extraction", "Undifferentiated", "Not included", "Included"
-        )
-      )
-
+	land_cover_labels <- land_cover_labels_react()
 
       # Match raster values to land cover classes and convert to factor
       mapped_values <- factor(land_cover_labels$Land_Class[match(values(plot_degraded_pixels), land_cover_labels$Value)])
@@ -1183,18 +1164,7 @@ server <- function(input, output, session) {
     # A version for 'areas of conservation concern' if that option is selected in UI segment 2
     output$degradedprotectedPlot <- renderPlot({
       req(input$protected_based_calculations > 0)
-      land_cover_labels <- data.frame(
-        Value = c(11, 12, 13, 14, 15, 16, 17, 18, 21, 22, 23, 24, 25, 31, 32, 33, 34, 35, 36, 37, 38, 41, 51, 52, 53, 54, 55, 99, 100, 101, 204, 205, 250, 0, 1),
-        Land_Class = c(
-          "Prairie", "Savannah", "Alvar", "Dune", "Meadow", "Shrubland", "Barren", "Sparse treed",
-          "Coniferous forest", "Mixedwood forest", "Deciduous forest", "Transitional forest", "Hedge row",
-          "Coniferous treed swamp", "Mixedwood treed swamp", "Deciduous treed swamp", "Transitional treed swamp",
-          "Thicket swamp", "Bog", "Fen", "Marsh", "Water", "Built up area-pervious", "Anthropogenic", "Cropland",
-          "Hay/pasture", "Transportation", "Unclassified", "Degraded", "Priority pixels", "Aggregate extraction",
-          "Topsoil/Peat extraction", "Undifferentiated", "Not included", "Included"
-        )
-      )
-
+	land_cover_labels <- land_cover_labels_react()
 
       # Match raster values to land cover classes and convert to factor
       mapped_values <- factor(land_cover_labels$Land_Class[match(values(degraded_protected), land_cover_labels$Value)])
@@ -1311,17 +1281,7 @@ server <- function(input, output, session) {
 
     # Plot the restored landscape
     output$restorationPlot <- renderPlot({
-      land_cover_labels <- data.frame(
-        Value = c(11, 12, 13, 14, 15, 16, 17, 18, 21, 22, 23, 24, 25, 31, 32, 33, 34, 35, 36, 37, 38, 41, 51, 52, 53, 54, 55, 99, 100, 101, 204, 205, 250, 0, 1),
-        Land_Class = c(
-          "Prairie", "Savannah", "Alvar", "Dune", "Meadow", "Shrubland", "Barren", "Sparse treed",
-          "Coniferous forest", "Mixedwood forest", "Deciduous forest", "Transitional forest", "Hedge row",
-          "Coniferous treed swamp", "Mixedwood treed swamp", "Deciduous treed swamp", "Transitional treed swamp",
-          "Thicket swamp", "Bog", "Fen", "Marsh", "Water", "Built up area-pervious", "Anthropogenic", "Cropland",
-          "Hay/pasture", "Transportation", "Unclassified", "Degraded", "Priority pixels", "Aggregate extraction",
-          "Topsoil/Peat extraction", "Undifferentiated", "Not included", "Included"
-        )
-      )
+	land_cover_labels <- land_cover_labels_react()
 
       mapped_values <- land_cover_labels$Land_Class[match(values(restored_land_plot), land_cover_labels$Value)]
       values(restored_land_plot) <- mapped_values
@@ -2245,17 +2205,7 @@ server <- function(input, output, session) {
       # Generate unique output ID for each plot
       output_id <- paste0("plot_", i)
       
-      land_cover_labels <- data.frame(
-        Value = c(11, 12, 13, 14, 15, 16, 17, 18, 21, 22, 23, 24, 25, 31, 32, 33, 34, 35, 36, 37, 38, 41, 51, 52, 53, 54, 55, 99, 100, 101, 204, 205, 250, 0, 1),
-        Land_Class = c(
-          "Prairie", "Savannah", "Alvar", "Dune", "Meadow", "Shrubland", "Barren", "Sparse treed",
-          "Coniferous forest", "Mixedwood forest", "Deciduous forest", "Transitional forest", "Hedge row",
-          "Coniferous treed swamp", "Mixedwood treed swamp", "Deciduous treed swamp", "Transitional treed swamp",
-          "Thicket swamp", "Bog", "Fen", "Marsh", "Water", "Built up area-pervious", "Anthropogenic", "Cropland",
-          "Hay/pasture", "Transportation", "Unclassified", "Degraded", "Priority pixels", "Aggregate extraction",
-          "Topsoil/Peat extraction", "Undifferentiated", "Not included", "Included"
-        )
-      )
+	land_cover_labels <- land_cover_labels_react()
       
       # Extract pixel indices from the combination string
       best_combination_indices <- as.numeric(strsplit(comb, "-")[[1]])
@@ -2639,18 +2589,8 @@ server <- function(input, output, session) {
 
       # Generate unique output ID for each plot
       output_id <- paste0("plot_", i)
-
-      land_cover_labels <- data.frame(
-        Value = c(11, 12, 13, 14, 15, 16, 17, 18, 21, 22, 23, 24, 25, 31, 32, 33, 34, 35, 36, 37, 38, 41, 51, 52, 53, 54, 55, 99, 100, 101, 204, 205, 250, 0, 1),
-        Land_Class = c(
-          "Prairie", "Savannah", "Alvar", "Dune", "Meadow", "Shrubland", "Barren", "Sparse treed",
-          "Coniferous forest", "Mixedwood forest", "Deciduous forest", "Transitional forest", "Hedge row",
-          "Coniferous treed swamp", "Mixedwood treed swamp", "Deciduous treed swamp", "Transitional treed swamp",
-          "Thicket swamp", "Bog", "Fen", "Marsh", "Water", "Built up area-pervious", "Anthropogenic", "Cropland",
-          "Hay/pasture", "Transportation", "Unclassified", "Degraded", "Priority pixels", "Aggregate extraction",
-          "Topsoil/Peat extraction", "Undifferentiated", "Not included", "Included"
-        )
-      )
+	    
+	land_cover_labels <- land_cover_labels_react()
 
       # Extract pixel indices from the combination string
       best_combination_indices <- as.numeric(strsplit(comb, "-")[[1]])
@@ -2789,17 +2729,7 @@ server <- function(input, output, session) {
       # Generate unique output ID for each plot
       output_id <- paste0("plot_", landscape)
 
-      land_cover_labels <- data.frame(
-        Value = c(11, 12, 13, 14, 15, 16, 17, 18, 21, 22, 23, 24, 25, 31, 32, 33, 34, 35, 36, 37, 38, 41, 51, 52, 53, 54, 55, 99, 100, 101, 204, 205, 250, 0, 1),
-        Land_Class = c(
-          "Prairie", "Savannah", "Alvar", "Dune", "Meadow", "Shrubland", "Barren", "Sparse treed",
-          "Coniferous forest", "Mixedwood forest", "Deciduous forest", "Transitional forest", "Hedge row",
-          "Coniferous treed swamp", "Mixedwood treed swamp", "Deciduous treed swamp", "Transitional treed swamp",
-          "Thicket swamp", "Bog", "Fen", "Marsh", "Water", "Built up area-pervious", "Anthropogenic", "Cropland",
-          "Hay/pasture", "Transportation", "Unclassified", "Degraded", "Priority pixels", "Aggregate extraction",
-          "Topsoil/Peat extraction", "Undifferentiated", "Not included", "Included"
-        )
-      )
+	land_cover_labels <- land_cover_labels_react()
 
       # Match raster values to land cover classes and convert to factor
       mapped_values <- factor(land_cover_labels$Land_Class[match(values(cropped_raster), land_cover_labels$Value)])
