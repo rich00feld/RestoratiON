@@ -3811,7 +3811,7 @@ ui <- shinyUI(semanticPage(
   conditionalPanel(
     condition = "!output.showSingleLandscape && !output.showMultipleLandscapes && !output.showLandscapeVisualizer && !output.showBatchProcessing",
     segment(
-      div(style = "font-size: 18px; font-weight: bold; margin-bottom: 15px;", HTML("<br><br>Choosing an Analysis Type")),
+      div(style = "font-size: 18px; font-weight: bold; margin-bottom: 15px;", HTML("<br><br>Choosing an analysis type")),
       p(HTML("This application aims to identify degraded land areas within a chosen geographic region and determine which areas, when restored to nearby natural habitat types, will provide the greatest benefit based on user-selected criteria. <br><br>
       The entire province is divided into 300 by 300-metre units, called 'pixels'. Each pixel contains information on habitat type, environment, potential degradation sources (e.g., light pollution, mining activity), and the ease with which animals can move through the area ('movement cost'). While data is available for every pixel in the province, analyzing the entire province at once is impractical due to high computational costs and limited usefulness for restoration planners. Instead, you may select a specific segment of the province to analyze. <br><br>
 <b>Choose an option to continue:</b><br>")),
@@ -3874,7 +3874,7 @@ Depending on your goals, you may wish to calculate connectivity and habitat patc
   conditionalPanel(
     condition = "input.protected_based_calculations > 0",
     segment(
-      div(style = "font-size: 18px; font-weight: bold; margin-bottom: 15px;", "Defining Areas of Conservation Concern"),
+      div(style = "font-size: 18px; font-weight: bold; margin-bottom: 15px;", "Defining areas of conservation concern"),
       p("Select what features should be included in areas of conservation concern. A minimum of 1 feature must be selected."),
       br(),
       uiOutput("protected_checkboxes"),
@@ -3904,7 +3904,7 @@ We recommend adding a buffer to the selected landscape. A buffer is an area that
                Finally, press “Set Extent” to confirm the final target landscape for analysis. No matter your extent selection method, the smallest rectangular space of land that contains the entire selected landscape is displayed. An image of the selected landscape is displayed for you to review, with a breakdown of the respective proportion of habitat types it contains. If you chose to focus on areas of conservation concern, a map displaying any areas of conservation concern and which areas are included in the analysis is also displayed.<br><br>
              When the landscape extent is set, a test is run on that landscape to see if it is large enough to calculate connectivity metrics. This will be explained in more detail as you progress through the application.<br>
                ")),
-      actionButton("set_extent", "Set Extent"),
+      actionButton("set_extent", "Set extent"),
       br(),
       verbatimTextOutput("extent_values"),
       br(),
@@ -3922,7 +3922,7 @@ We recommend adding a buffer to the selected landscape. A buffer is an area that
   conditionalPanel(
     condition = "input.set_extent > 0",
     segment(
-      div(style = "font-size: 18px; font-weight: bold; margin-bottom: 15px;", "Defining Degraded Pixels"),
+      div(style = "font-size: 18px; font-weight: bold; margin-bottom: 15px;", "Defining degraded pixels"),
       p(HTML("The next step is to use several sliders to define degraded land based several threshold conditions. Using sliders, set a 
       combination of conditions defining which pixels are degraded. Conditions include active mines, abandoned mines (AMIS),
       night lights, oil/gas extraction, aggregate extraction, topsoil extraction, and marginal farmland. Slider values indicate the level of
@@ -3952,7 +3952,7 @@ We recommend adding a buffer to the selected landscape. A buffer is an area that
   conditionalPanel(
     condition = "input.preview > 0",
     segment(
-      div(style = "font-size: 18px; font-weight: bold; margin-bottom: 15px;", "Simulating Restoration"),
+      div(style = "font-size: 18px; font-weight: bold; margin-bottom: 15px;", "Simulating restoration"),
       p(HTML("The next step is to simulate the restoration of pixels that are defined as degraded. When 'simulate restoration' is clicked, degraded pixels
       are replaced with the most prevalent natural habitat around them (i.e. a 3x3 pixel neighbourhood with that given degraded pixel at the centre). <br><br> 
       This process starts with a 3x3 neighbourhood and for any pixel that is not restored because there are no nearby habitat pixels (as may be the case with 
@@ -3971,7 +3971,7 @@ We recommend adding a buffer to the selected landscape. A buffer is an area that
   conditionalPanel(
     condition = "input.simulate_restoration > 0 && !output.showAutoCombo && !output.showManualCombo",
     segment(
-      div(style = "font-size: 18px; font-weight: bold; margin-bottom: 15px;", "Choosing How to Evaluate Combinations of Restored Pixels"),
+      div(style = "font-size: 18px; font-weight: bold; margin-bottom: 15px;", "Choosing how to evaluate combinations of restored pixels"),
       p(HTML("The next step is to make a choice on how to combine restored pixels in groups (i.e. combinations) to
       evaluate which group of pixels has the greatest positive impact after restoration. Groups of 1 are also possible.
       The user has two main options:
@@ -3997,11 +3997,11 @@ We recommend adding a buffer to the selected landscape. A buffer is an area that
     )
   ),
 
-  ## Segment 8: Calculate Number of Combinations (only occurs if manual_combination choice is selected) ----
+  ## Segment 8: Calculate number of combinations (only occurs if manual_combination choice is selected) ----
   conditionalPanel(
     condition = "input.manual_combination > 0",
     segment(
-      div(style = "font-size: 18px; font-weight: bold; margin-bottom: 15px;", "Pixels to Evaluate for Restoration"),
+      div(style = "font-size: 18px; font-weight: bold; margin-bottom: 15px;", "Pixels to evaluate for restoration"),
       p("Set the number of pixels used in each unique combination (i.e. the size of the pixel group to prioritize for restoration).
     The resulting number of unique combinations based on the number of degraded pixels and the selected number of combined
     pixels will be output below. This setting has a strong bearing on calculation time. For example, in a sample landscape
@@ -4010,7 +4010,7 @@ We recommend adding a buffer to the selected landscape. A buffer is an area that
       br(),
       numericInput("num_combined_pixels", "Size of pixel group:", value = 1, min = 1),
       br(),
-      actionButton("calculate_combinations", "Calculate Combinations"),
+      actionButton("calculate_combinations", "Calculate combinations"),
       br(),
       br(),
       div(style = "font-size: 20px;", textOutput("numCombinations"))
@@ -4021,7 +4021,7 @@ We recommend adding a buffer to the selected landscape. A buffer is an area that
   conditionalPanel(
     condition = "input.calculate_combinations > 0 || input.automatic_combination > 0",
     segment(
-      div(style = "font-size: 18px; font-weight: bold; margin-bottom: 15px;", "Calculating Patch-Size Metrics"),
+      div(style = "font-size: 18px; font-weight: bold; margin-bottom: 15px;", "Calculating patch-size metrics"),
       p(HTML("Now we can start the process of calculating the impact of groups of restored pixels (i.e. combinations) on
       habitat patch size. Patch size can be described as the mean size of an area of particular habitat type in the
       landscape. This is measured by comparing patch size of the completely degraded landscape with no pixels restored,
@@ -4040,7 +4040,7 @@ We recommend adding a buffer to the selected landscape. A buffer is an area that
       br(),
       uiOutput("dynamic_checkboxes"),
       br(),
-      actionButton("calculate_metrics", "Calculate Habitat Metrics"),
+      actionButton("calculate_metrics", "Calculate habitat metrics"),
       br(),
       br(),
       textOutput("elapsedTime")
@@ -4052,7 +4052,7 @@ We recommend adding a buffer to the selected landscape. A buffer is an area that
   conditionalPanel(
     condition = "input.calculate_metrics > 0",
     segment(
-      div(style = "font-size: 18px; font-weight: bold; margin-bottom: 15px;", "Choosing to Merge Patch-Size Results?"),
+      div(style = "font-size: 18px; font-weight: bold; margin-bottom: 15px;", "Choosing to merge patch-size results?"),
       p("This is an option to merge patch size results across all habitat types, or keep results separate for each habitat type.
         If patch size results are merged, the sum of patch size results are combined. If they are not merged, they are kept as calculated.
         If patch size for one habitat type is considered more valuable for the purposes of restoration than another, 
@@ -4074,7 +4074,7 @@ We recommend adding a buffer to the selected landscape. A buffer is an area that
   conditionalPanel(
     condition = "input.perform_merge > 0",
     segment(
-      div(style = "font-size: 18px; font-weight: bold; margin-bottom: 15px;", "Calculating Connectivity Metrics"),
+      div(style = "font-size: 18px; font-weight: bold; margin-bottom: 15px;", "Calculating connectivity metrics"),
       p(HTML("Connectivity metrics for each combination can be calculated. Connectivity here can be defined as the ease of movement across a landscape due to connectedness
       – another way to view this is the amount of resistance a landscape has to movement. To carry out this analysis we have movement cost data for each 300 by 300 metre pixel,
       and this data covers the entire province. This data was created Pither et al. 2023, and a full breakdown of the cost values for each pixel type are given
@@ -4091,7 +4091,7 @@ We recommend adding a buffer to the selected landscape. A buffer is an area that
       The mean path resistance for each restored landscape is then subtracted from the mean path resistance of the degraded landscape 
       – to get a measure of how much resistance was reduced (or connectivity increased) by each restoration combination. Positive values = reduced resistance and better movement in a landscape,
       negative values = increased resistance and more difficult movement. Results for each combination are output in a table.")),
-      actionButton("calculate_connectivity", "Calculate Connectivity", style = "margin-top: 15px;"),
+      actionButton("calculate_connectivity", "Calculate connectivity", style = "margin-top: 15px;"),
       br(),
       br(),
       textOutput("conTime"),
@@ -4106,7 +4106,7 @@ We recommend adding a buffer to the selected landscape. A buffer is an area that
   conditionalPanel(
     condition = "input.calculate_connectivity > 0",
     segment(
-      div(style = "font-size: 18px; font-weight: bold; margin-bottom: 15px;", "Creating the Principal Component Data Layers"),
+      div(style = "font-size: 18px; font-weight: bold; margin-bottom: 15px;", "Creating the principal component data layers"),
       p(HTML("Principal Component Analysis (PCA) is a statistical method designed to simplify and reveal patterns in complex datasets. With the environment,
       there are a large set of variables, such as temperature, precipitation, and soil types. PCA takes all this information and creates multiple new variables,
       called principal components, which capture the most significant variations in the data. By focusing on these components, PCA helps reduce the complexity of
@@ -4118,7 +4118,7 @@ We recommend adding a buffer to the selected landscape. A buffer is an area that
 	    explained by each principal component, are displayed in a summary table. This information provides insights into the importance of each principal component in 
 	    explaining the variability in the environmental data. Using these principal component layers, we will measure environmental heterogeneity in each of the restored
 	    pixel combination landscapes, comparing them against the degraded landscape.")),
-      actionButton("calculate_pca", "Calculate PCA and Print Summary"),
+      actionButton("calculate_pca", "Calculate PCA and print summary"),
       br(),
       br(),
       dataTableOutput("pcaSummary"),
@@ -4130,7 +4130,7 @@ We recommend adding a buffer to the selected landscape. A buffer is an area that
   conditionalPanel(
     condition = "input.calculate_pca > 0",
     segment(
-      div(style = "font-size: 18px; font-weight: bold; margin-bottom: 15px;", "Calculating Environmental Heterogeneity"),
+      div(style = "font-size: 18px; font-weight: bold; margin-bottom: 15px;", "Calculating environmental heterogeneity"),
       p(HTML("Here we measure the difference in environmental heterogeneity between each the restored landscapes 
       and the degraded landscape – using the principal component data layers created previously. Degraded pixels are
       treated as if they have no environmental value (NA) in the principal component layers, while restored pixels are
@@ -4146,11 +4146,11 @@ We recommend adding a buffer to the selected landscape. A buffer is an area that
       many of the principal component layers to run through this process with – the default being the first two principal components
       as they typically contain > 99% of the environmental variation during testing. Results are output in a table for each combination with results
       for the number of principal component layers selected.")),
-      numericInput("num_pcs", "Number of Principal Components:",
+      numericInput("num_pcs", "Number of principal components:",
         value = 2, min = 1, max = 22
       ),
       br(),
-      actionButton("calculate_env_metrics", "Calculate Environmental Metrics"),
+      actionButton("calculate_env_metrics", "Calculate environmental metrics"),
       br(),
       br(),
       dataTableOutput("environmentTable"),
@@ -4162,13 +4162,13 @@ We recommend adding a buffer to the selected landscape. A buffer is an area that
   conditionalPanel(
     condition = "input.calculate_env_metrics > 0",
     segment(
-      div(style = "font-size: 18px; font-weight: bold; margin-bottom: 15px;", "Merging and Scaling Results"),
+      div(style = "font-size: 18px; font-weight: bold; margin-bottom: 15px;", "Merging and scaling results"),
       p("Results from all previous calculations are merged together in single table in preparation for finding the best combination.
       The values for each metric are also scaled so that they are on a standardized scale (i.e. an equivalent, comparable scale) for
       weighting purposes in the next step. The exact method of scaling is 'Z-Score Scaling' which transforms values by subtracting
       the mean and dividing by the standard deviation. After this transformation, values express the number of standard deviations 
       a data point is from the mean for that metric."),
-      actionButton("merge_and_display", "Merge and Scale Results"),
+      actionButton("merge_and_display", "Merge and scale results"),
       br(),
       br(),
       dataTableOutput("mergedResultsTable")
@@ -4179,7 +4179,7 @@ We recommend adding a buffer to the selected landscape. A buffer is an area that
   conditionalPanel(
     condition = "input.merge_and_display > 0",
     segment(
-      div(style = "font-size: 18px; font-weight: bold; margin-bottom: 15px;", "Weighting and Finding the Best Pixel Combinations"),
+      div(style = "font-size: 18px; font-weight: bold; margin-bottom: 15px;", "Weighting and finding the best pixel combinations"),
       p(HTML("We are now at the final stage of the app for a single landscape, which is weighting metrics and plotting the best combination
       of pixels based on those weighted metrics. Here weights (corresponding to a multiplier - with '1' as the default) can be assigned to the
       various environmental, habitat, and connectivity metrics calculated previously. Weights can be assigned to different metrics to influence
@@ -4187,7 +4187,7 @@ We recommend adding a buffer to the selected landscape. A buffer is an area that
       may also be specified here. For example, if a user sets the number of top combinations to 5, the best 5 pixel combinations will be displayed
       in descending order of importance (i.e., 1 being the best performing pixel combination, and 5 being the 5th best). 
       <br><br>
-      When the 'Find Best Combinations' button is clicked, values for each metric are adjusted based on the user-provided weights, the sum of weighted values
+      When the 'Find best combinations' button is clicked, values for each metric are adjusted based on the user-provided weights, the sum of weighted values
       is calculated for each combination, and the combination with the maximum sum is identified (i.e. the “best combination”). Two figures are created:
       an interactive map highlighting the pixels corresponding to the best combinations, and another showing where those pixels occur in respect to natural habitat.
       The latter includes an option for displaying the best pixel combination in conjunction with areas of conservation concern if the option to focus on areas of 
@@ -4195,7 +4195,7 @@ We recommend adding a buffer to the selected landscape. A buffer is an area that
       uiOutput("weights_ui"),
       br(),
       numericInput("num_top_combinations", "Number of top combinations to display:", value = 1, min = 1, step = 1),
-      actionButton("find_best_comb", "Find Best Combinations"),
+      actionButton("find_best_comb", "Find best combinations"),
       uiOutput("bestCombinationName", class = "ui message"),
       leafletOutput("map_best_comb", height = 600),
       uiOutput("plotsContainer")
@@ -4213,7 +4213,7 @@ We recommend adding a buffer to the selected landscape. A buffer is an area that
       br(),
       textInput("landscape_name", "Enter a unique landscape identifier:"),
       br(),
-      actionButton("add_column", "Set Landscape Identifier")
+      actionButton("add_column", "Set landscape ldentifier")
     )
   ),
 
@@ -4221,9 +4221,9 @@ We recommend adding a buffer to the selected landscape. A buffer is an area that
   conditionalPanel(
     condition = "output.landscape_added",
     segment(
-      downloadButton("download_data", "Save Landscape Metics and Combinaton Performance", style = "height:60px; width:300px; font-size:25px;")),
+      downloadButton("download_data", "Save landscape metics and combinaton performance", style = "height:60px; width:300px; font-size:25px;")),
       segment(
-        downloadButton("downloadKML", "Save Best Combination .KML", style = "height:60px; width:300px; font-size:25px;")
+        downloadButton("downloadKML", "Save best combination .KML", style = "height:60px; width:300px; font-size:25px;")
     )
   ),
 
@@ -4231,7 +4231,7 @@ We recommend adding a buffer to the selected landscape. A buffer is an area that
   conditionalPanel(
     condition = "output.showMultipleLandscapes > 0",
     segment(
-      div(style = "font-size: 18px; font-weight: bold; margin-bottom: 15px;", "Load and Merge Combination Metrics from Multiple Landscapes"),
+      div(style = "font-size: 18px; font-weight: bold; margin-bottom: 15px;", "Load and merge combination metrics from multiple landscapes"),
       p("Here multiple .CSV files containing landscape data (created at the conclusion of the single landscape analysis) can be uploaded, with each file representing a distinct landscape.
 	    The code reads these .CSV files, extracts information such as the extent (i.e. spatial boundaries) and landscape name, and joins data from these files together to form a unified dataset
 	    for multi-landscape analysis. The spatial extents of each landscape are visualized on a map, providing an overview of the coverage of the uploaded landscapes."),
@@ -4247,7 +4247,7 @@ We recommend adding a buffer to the selected landscape. A buffer is an area that
   conditionalPanel(
     condition = "output.fileSelected > 0",
     segment(
-      div(style = "font-size: 18px; font-weight: bold; margin-bottom: 15px;", "Weighting and Ranking"),
+      div(style = "font-size: 18px; font-weight: bold; margin-bottom: 15px;", "Weighting and ranking"),
       p("Similar to single landscape analysis, weights can be assigned to different metrics for multi-landscape analysis.
         The best restored pixel combinations across all landscapes, are ranked using the weighted metrics, and displayed showing the
         corresponding landscape name and combination indices (for that particular landscape). Individual plots for each of the top 
@@ -4255,10 +4255,10 @@ We recommend adding a buffer to the selected landscape. A buffer is an area that
       uiOutput("landscape_weights_ui"),
       br(),
       br(),
-      numericInput("topNCombinations", "Number of Top Combinations to Display:", value = 1, min = 1),
+      numericInput("topNCombinations", "Number of top combinations to display:", value = 1, min = 1),
       br(),
       br(),
-      actionButton("lands_best_comb", "Find Best Combination"),
+      actionButton("lands_best_comb", "Find best combination"),
       br(),
       br(),
       uiOutput("topCombinations", class = "ui message"),
@@ -4273,7 +4273,7 @@ We recommend adding a buffer to the selected landscape. A buffer is an area that
   conditionalPanel(
     condition = "input.lands_best_comb > 0",
     segment(
-      downloadButton("download_multiple_data", "Save Restored Pixel Metrics", style = "height:60px; width:300px; font-size:25px;")),
+      downloadButton("download_multiple_data", "Save restored pixel metrics", style = "height:60px; width:300px; font-size:25px;")),
       segment(
         downloadButton("download_multiple_KML", "Save KML files of top combinations", style = "height:60px; width:300px; font-size:25px;"))
   ),
@@ -4289,7 +4289,7 @@ We recommend adding a buffer to the selected landscape. A buffer is an area that
       fileInput("vis_fileInput", "Choose .csv files", multiple = TRUE, accept = c("text/csv", "text/comma-separated-values,text/plain", ".csv")),
       br(),
       br(),
-      actionButton("view_landscapes", "View Landscapes"),
+      actionButton("view_landscapes", "View landscapes"),
       br(),
       br(),
       uiOutput("vis_dynamicPlots")
@@ -4301,7 +4301,7 @@ We recommend adding a buffer to the selected landscape. A buffer is an area that
   conditionalPanel(
     condition = "(input.habitat_based_calculations > 0 || input.protected_based_calculations > 0) && output.showBatchProcessing > 0",
     segment(
-      div(style = "font-size: 18px; font-weight: bold; margin-bottom: 15px;", "Batch Processing for All landscapes of a Given Type"),
+      div(style = "font-size: 18px; font-weight: bold; margin-bottom: 15px;", "Batch processing for all landscapes of a given type"),
       br(),
       selectInput(
         inputId = "sf_object_selection",
@@ -4365,7 +4365,7 @@ We recommend adding a buffer to the selected landscape. A buffer is an area that
 conditionalPanel(
   condition = "input.run_batch > 0",
     segment(
-      downloadButton("download_data_batch", "Save Landscape Metics and Combinaton Performance", style = "height:60px; width:300px; font-size:25px;")),
+      downloadButton("download_data_batch", "Save landscape metics and combinaton performance", style = "height:60px; width:300px; font-size:25px;")),
     )
 ))
 
