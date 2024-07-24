@@ -154,6 +154,7 @@ land_cover_labels <- data.frame(
           "Hay/pasture", "Transportation", "Unclassified", "Degraded", "Priority pixels", "Aggregate extraction", 
           "Topsoil/Peat extraction", "Undifferentiated", "Not included", "Included"))
 land_cover_labels_react(land_cover_labels)
+polyrast_plot<- reactiveVal()
 
 # BatchloopFinished <- reactiveVal(FALSE)
 
@@ -826,7 +827,7 @@ server <- function(input, output, session) {
     croppedProtected_areas(crop(Protected_areas(), cropped_Ontario_land_cover))
     croppedmovement_cost_protected(crop(movement_cost_protected(), cropped_Ontario_land_cover))
 
-
+	  cropped_polyrast_plot_temp <- ifel(!is.na(cropped_polyrast()), croppedOntario(), cropped_polyrast())
 
     # This plots the cropped landscape with habitat classes
     output$rasterPlot <- renderPlot({
@@ -834,10 +835,11 @@ server <- function(input, output, session) {
       land_cover_labels <- land_cover_labels_react()
       
       # Maps the numeric values in 'Ontario_land_cover' to their corresponding labels
-      mapped_values <- land_cover_labels$Land_Class[match(values(cropped_Ontario_land_cover), land_cover_labels$Value)]
+      mapped_values <- land_cover_labels$Land_Class[match(values(cropped_polyrast_plot_temp), land_cover_labels$Value)]
       mapped_val_react(mapped_values)
-      values(cropped_Ontario_land_cover) <- mapped_values
-      plot(cropped_Ontario_land_cover, main="Cropped Landscape", col=viridis(32, direction = -1))
+      values(cropped_polyrast_plot_temp) <- mapped_values
+      polyrast_plot(cropped_polyrast_plot_temp)
+      plot(cropped_polyrast_plot_temp, main="Cropped Landscape", col=viridis(32, direction = -1))
     })
     
     #This outputs a simple breakdown of the land classes in a landscape
