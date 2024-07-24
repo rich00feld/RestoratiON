@@ -402,7 +402,7 @@ server <- function(input, output, session) {
         fillColor = "springgreen",
         fillOpacity = 0.7,
         color = "black",
-        weight = 0.5,
+        weight = 2,
         layerId = ~PROTECTE_1,
         label = ~PROTECTE_1
       ) %>%
@@ -412,7 +412,7 @@ server <- function(input, output, session) {
         fillColor = "magenta",
         fillOpacity = 0.7,
         color = "black",
-        weight = 0.5,
+        weight = 2,
         layerId = ~AREA_NAME,
         label = ~AREA_NAME
       ) %>%
@@ -422,7 +422,7 @@ server <- function(input, output, session) {
         fillColor = "limegreen",
         fillOpacity = 0.7,
         color = "black",
-        weight = 0.5,
+        weight = 2,
         layerId = ~OGF_ID,
         label = ~ENABLING_P
       ) %>%
@@ -432,7 +432,7 @@ server <- function(input, output, session) {
         fillColor = "purple",
         fillOpacity = 0.7,
         color = "black",
-        weight = 0.5,
+        weight = 2,
         layerId = ~OBJECTID,
         label = ~NAME_E
       ) %>%
@@ -442,7 +442,7 @@ server <- function(input, output, session) {
         fillColor = "turquoise",
         fillOpacity = 0.7,
         color = "black",
-        weight = 0.5,
+        weight = 2,
         layerId = ~PROTECTE_1,
         label = ~PROTECTE_1
       ) %>%
@@ -452,7 +452,7 @@ server <- function(input, output, session) {
         fillColor = "red",
         fillOpacity = 0.7,
         color = "black",
-        weight = 0.5,
+        weight = 2,
         layerId = ~OGF_ID,
         label = ~MUN_NAME
       ) %>%
@@ -462,7 +462,7 @@ server <- function(input, output, session) {
         fillColor = "orange",
         fillOpacity = 0.7,
         color = "black",
-        weight = 0.5,
+        weight = 2,
         layerId = ~OGF_ID,
         label = ~MUN_NAME
       ) %>%
@@ -472,7 +472,7 @@ server <- function(input, output, session) {
         fillColor = "royalblue",
         fillOpacity = 0.7,
         color = "black",
-        weight = 0.5,
+        weight = 2,
         layerId = ~NAME_E,
         label = ~NAME_E
       ) %>%
@@ -482,7 +482,7 @@ server <- function(input, output, session) {
         fillColor = "lawngreen",
         fillOpacity = 0.7,
         color = "black",
-        weight = 0.5,
+        weight = 2,
         layerId = ~OBJECTID,
         label = ~NAME_E
       ) %>%
@@ -492,7 +492,7 @@ server <- function(input, output, session) {
         fillColor = "deepskyblue",
         fillOpacity = 0.7,
         color = "black",
-        weight = 0.5,
+        weight = 2,
         layerId = ~NAME_E,
         label = ~NAME_E
       ) %>%
@@ -502,7 +502,7 @@ server <- function(input, output, session) {
         fillColor = "hotpink",
         fillOpacity = 0.7,
         color = "black",
-        weight = 0.5,
+        weight = 2,
         layerId = ~OBJECTID,
         label = ~NAME_E
       ) %>%
@@ -512,7 +512,7 @@ server <- function(input, output, session) {
         fillColor = "yellow",
         fillOpacity = 0.7,
         color = "black",
-        weight = 0.5,
+        weight = 2,
         layerId = ~OBJECTID,
         label = ~NAME_E
       ) %>%
@@ -522,7 +522,7 @@ server <- function(input, output, session) {
         fillColor = "orangered",
         fillOpacity = 0.7,
         color = "black",
-        weight = 0.5,
+        weight = 2,
         layerId = ~OBJECTID,
         label = ~NAME_E
       ) %>%
@@ -532,7 +532,7 @@ server <- function(input, output, session) {
         fillColor = "darkgreen",
         fillOpacity = 0.7,
         color = "black",
-        weight = 0.5,
+        weight = 2,
         layerId = ~OBJECTID,
         label = ~NAME_E
       ) %>%
@@ -542,7 +542,7 @@ server <- function(input, output, session) {
         fillColor = "lightseagreen",
         fillOpacity = 0.7,
         color = "black",
-        weight = 0.5,
+        weight = 2,
         layerId = ~OBJECTID,
         label = ~NAME_E
       ) %>%
@@ -552,7 +552,7 @@ server <- function(input, output, session) {
         fillColor = "yellowgreen",
         fillOpacity = 0.7,
         color = "black",
-        weight = 0.5,
+        weight = 2,
         layerId = ~OBJECTID,
         label = ~NAME_E
       ) %>%
@@ -562,7 +562,7 @@ server <- function(input, output, session) {
         fillColor = "palegreen",
         fillOpacity = 0.7,
         color = "black",
-        weight = 0.5,
+        weight = 2,
         layerId = ~OBJECTID,
         label = ~NAME_E
       ) %>%
@@ -572,7 +572,7 @@ server <- function(input, output, session) {
         fillColor = "maroon",
         fillOpacity = 0.7,
         color = "black",
-        weight = 0.5,
+        weight = 2,
         layerId = ~OBJECTID,
         label = ~NAME_E
       ) %>%
