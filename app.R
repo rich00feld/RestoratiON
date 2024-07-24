@@ -778,7 +778,7 @@ server <- function(input, output, session) {
     # Crop rasters to target landscape extent ----
     # All rasters used in subsequent steps in the app are cropped to selected landscape extent
     # Cropped layers are reactive values, which have already been defined 
-    pre_cropped_polyrast<-selected_polygon()
+    pre_cropped_polyrast <- selected_polygon()
     cropped_Ontario_land_cover <- raster::crop(Ontario_land_cover, extent_coord)
     cropped_Ontario_land_cover <- rast(cropped_Ontario_land_cover)
     croppedOntario(cropped_Ontario_land_cover)
