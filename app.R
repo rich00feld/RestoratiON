@@ -761,7 +761,7 @@ server <- function(input, output, session) {
 
   observeEvent(input$buffer_unit_value, {
     # Code to ensure a valid buffer value always exists to prevent crashing
-    if (!is.null(input$buffer_unit_value) && input$buffer_unit_value >= 1200) {
+    if (!is.null(input$buffer_unit_value) && input$buffer_unit_value >= 0) {
       buffer_value(input$buffer_unit_value)
     } else {
       buffer_value(1200)
