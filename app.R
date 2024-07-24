@@ -279,10 +279,10 @@ server <- function(input, output, session) {
 
   output$protected_checkboxes <- renderUI({
     checkbox_data <- c(
-      "Provincial parks", "National parks", "Conservation reserves", "Conservation areas", "NGO reserves",
+      "Provincial parks", "National parks", "Conservation reserves", "Conservation areas", "Non-governmental organization reserves",
       "Municipal heritage areas", "Natural heritage system areas", "Natural heritage value areas",
       "Far North protected areas", "Wilderness areas", "Migratory bird sanctuaries", "National wildlife areas",
-      "National capital valued ecosystems", "Provincial planned protected areas", "Crown plan protected areas", "OECMs"
+      "National capital valued ecosystems", "Provincial planned protected areas", "Crown plan protected areas", "Other effective area-based conservation measures"
     )
     # Generate a check-box of features using multiple_checkbox
     multiple_checkbox("protected_checkboxes", " ", choices = checkbox_data, selected = "Provincial parks") # Provincial parks is the default selection
@@ -307,7 +307,7 @@ server <- function(input, output, session) {
       defined_protected_areas[CRR_raster == 1] <- 1
     }
     
-    if ("NGO reserves" %in% input$protected_checkboxes) {
+    if ("Non-governmental organization reserves" %in% input$protected_checkboxes) {
       defined_protected_areas[NGO_raster == 1] <- 1
     }
     
@@ -363,7 +363,7 @@ server <- function(input, output, session) {
       defined_protected_areas[Crown_plan_protected_raster == 1] <- 1
     }
     
-    if ("OECMs" %in% input$protected_checkboxes) {
+    if ("Other effective area-based conservation measures" %in% input$protected_checkboxes) {
       defined_protected_areas[OECM_raster == 1] <- 1
     }
     
@@ -428,7 +428,7 @@ server <- function(input, output, session) {
       ) %>%
       addPolygons(
         data = NGO_reserves,
-        group = "NGO reserves",
+        group = "Non-governmental organization<br>reserves",
         fillColor = "purple",
         fillOpacity = 0.7,
         color = "black",
@@ -568,7 +568,7 @@ server <- function(input, output, session) {
       ) %>%
       addPolygons(
         data = Other_effective_area_based_conservation_measures,
-        group = "OECMs",
+        group = "Other effective area-based<br>conservation measures",
         fillColor = "maroon",
         fillOpacity = 0.7,
         color = "black",
@@ -591,10 +591,10 @@ server <- function(input, output, session) {
         baseGroups = c("Map View", "Satellite View"),
         overlayGroups = c(
           "Drawn extent", "Lower / single-tier municipalities", "Upper municipalities / districts", "Provincial parks", "National parks",
-          "Conservation reserves", "Conservation areas", "NGO reserves", "Natural heritage value areas", "Natural heritage system areas",
+          "Conservation reserves", "Conservation areas", "Non-governmental organization<br>reserves", "Natural heritage value areas", "Natural heritage system areas",
           "Far North protected areas", "Municipal heritage areas", "Migratory bird sanctuaries", "National wildlife areas", "Wilderness areas",
           "Crown plan protected areas", "Provincial planned protected areas", "National capital valued ecosystem",
-          "OECMs"
+          "Other effective area-based<br>conservation measures"
         ),
         options = layersControlOptions(collapsed = FALSE)
       ) %>%
@@ -603,7 +603,7 @@ server <- function(input, output, session) {
       hideGroup(group = "Conservation reserves") %>%
       hideGroup(group = "Natural heritage value areas") %>%
       hideGroup(group = "Natural heritage system areas") %>%
-      hideGroup(group = "NGO reserves") %>%
+      hideGroup(group = "Non-governmental organization<br>reserves") %>%
       hideGroup(group = "Provincial parks") %>%
       hideGroup(group = "Conservation areas") %>%
       hideGroup(group = "Far North protected areas") %>%
@@ -614,7 +614,7 @@ server <- function(input, output, session) {
       hideGroup(group = "Crown plan protected areas") %>%
       hideGroup(group = "Provincial planned protected areas") %>%
       hideGroup(group = "National capital valued ecosystem") %>%
-      hideGroup(group = "OECMs") %>%
+      hideGroup(group = "Other effective area-based<br>conservation measures") %>%
       hideGroup(group = "National parks")
   })
 
@@ -4237,24 +4237,24 @@ We recommend adding a buffer to the selected landscape. A buffer is an area that
         inputId = "sf_object_selection",
         label = "Select a group of landscapes to analyze:",
         choices = list(
-          "Conservation Reserves" = "Conservation_reserves",
-          "Natural Heritage Value Areas" = "Natural_heritage_value_areas",
-          "Natural Heritage System Areas" = "Natural_heritage_system_areas",
-          "NGO Reserves" = "NGO_reserves",
-          "Provincial Parks" = "Provincial_parks",
-          "Lower Municipalities" = "Lower_municipality",
-          "Upper Municipalities" = "Upper_municipality",
-          "National Parks" = "National_parks",
-          "Conservation Areas" = "Conservation_areas",
-          "Far North Protected Areas" = "Far_North_protected_areas",
-          "Municipal Heritage Areas" = "Municipal_Heritage_areas",
-          "Migratory Bird Sanctuaries" = "Migratory_Bird_sanctuaries",
-          "National Wildlife Areas" = "National_Wildlife_areas",
-          "Wilderness Areas" = "Wilderness_areas",
-          "National Capital Valued Ecosystems or Habitats" = "National_capital_valued_ecosystem_or_habitat",
-          "Provincial Planned Protected Areas" = "Provincial_planned_protected_area",
-          "Crown Plan Protected Areas" = "Crown_plan_protected_area",
-          "Other Effective Area-Based Conservation Measures" = "Other_effective_area_based_conservation_measures"
+          "Conservation reserves" = "Conservation_reserves",
+          "Natural heritage value areas" = "Natural_heritage_value_areas",
+          "Natural heritage system areas" = "Natural_heritage_system_areas",
+          "Non-governmental organization reserves" = "NGO_reserves",
+          "Provincial parks" = "Provincial_parks",
+          "Lower municipalities" = "Lower_municipality",
+          "Upper municipalities" = "Upper_municipality",
+          "National parks" = "National_parks",
+          "Conservation areas" = "Conservation_areas",
+          "Far North protected areas" = "Far_North_protected_areas",
+          "Municipal heritage areas" = "Municipal_Heritage_areas",
+          "Migratory bird sanctuaries" = "Migratory_Bird_sanctuaries",
+          "National wildlife areas" = "National_Wildlife_areas",
+          "Wilderness areas" = "Wilderness_areas",
+          "National capital valued ecosystems or habitats" = "National_capital_valued_ecosystem_or_habitat",
+          "Provincial planned protected areas" = "Provincial_planned_protected_area",
+          "Crown plan protected areas" = "Crown_plan_protected_area",
+          "Other effective area-based conservation measures" = "Other_effective_area_based_conservation_measures"
         )
       ),
       br(),
