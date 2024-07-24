@@ -827,7 +827,29 @@ server <- function(input, output, session) {
     croppedProtected_areas(crop(Protected_areas(), cropped_Ontario_land_cover))
     croppedmovement_cost_protected(crop(movement_cost_protected(), cropped_Ontario_land_cover))
 
-	  cropped_polyrast_plot_temp <- ifel(!is.na(cropped_polyrast()), croppedOntario(), cropped_polyrast())
+    # Define function to buffer the cells for plotting
+    buffer_plot_cells <- function(raster_obj, buffer_size) {
+      # Create a mask for cells with value 1
+      mask <- raster_obj == 1
+      # Use focal function to create the buffer
+      expanded_mask <- focal(mask, w = matrix(1, nrow = 2 * buffer_size + 1, ncol = 2 * buffer_size + 1), fun = max, na.rm = TRUE, pad = TRUE, padValue = 0)
+      # Apply the expanded mask to the original raster, preserving NA values
+      buffered_raster <- ifel(expanded_mask == 1, 1, NA)
+      return(buffered_raster)
+    }
+    
+    # Get the buffer size (in cells)
+    plot_buffer_size <- buffer_value()/300
+    plot_buffer_size <-floor(plot_buffer_size)
+    
+    plot_buffered_raster<-cropped_polyrast()
+    
+    # Apply the buffer function (if a buffer exists)
+    if (plot_buffer_size > 0) {
+      plot_buffered_raster <- buffer_plot_cells(plot_buffered_raster, plot_buffer_size)
+    }
+    
+    plot_buffered_raster <- ifel(!is.na(plot_buffered_raster), croppedOntario(), plot_buffered_raster)
 
     # This plots the cropped landscape with habitat classes
     output$rasterPlot <- renderPlot({
@@ -835,11 +857,11 @@ server <- function(input, output, session) {
       land_cover_labels <- land_cover_labels_react()
       
       # Maps the numeric values in 'Ontario_land_cover' to their corresponding labels
-      mapped_values <- land_cover_labels$Land_Class[match(values(cropped_polyrast_plot_temp), land_cover_labels$Value)]
+      mapped_values <- land_cover_labels$Land_Class[match(values(plot_buffered_raster), land_cover_labels$Value)]
       mapped_val_react(mapped_values)
-      values(cropped_polyrast_plot_temp) <- mapped_values
-      polyrast_plot(cropped_polyrast_plot_temp)
-      plot(cropped_polyrast_plot_temp, main="Cropped Landscape", col=viridis(32, direction = -1))
+      values(plot_buffered_raster) <- mapped_values
+      polyrast_plot(plot_buffered_raster) # Pass to a reactive value
+      plot(plot_buffered_raster, main="Cropped Landscape", col=viridis(32, direction = -1))
     })
     
     #This outputs a simple breakdown of the land classes in a landscape
