@@ -756,15 +756,15 @@ server <- function(input, output, session) {
   # This value can be from 0 up, with 0 as a default. The code below is just a simple check to prevent errors that would result
   # if non-valid values are entered, e.g. the input box is cleared but no replacement value is given
 
-  # Create a reactive value to store a default buffer_unit_value of 0
-  buffer_value <- reactiveVal(0)
+  # Create a reactive value to store a default buffer_unit_value of 1200
+  buffer_value <- reactiveVal(1200)
 
   observeEvent(input$buffer_unit_value, {
     # Code to ensure a valid buffer value always exists to prevent crashing
-    if (!is.null(input$buffer_unit_value) && input$buffer_unit_value >= 0) {
+    if (!is.null(input$buffer_unit_value) && input$buffer_unit_value >= 1200) {
       buffer_value(input$buffer_unit_value)
     } else {
-      buffer_value(0)
+      buffer_value(1200)
     }
   })
 
