@@ -155,6 +155,8 @@ land_cover_labels <- data.frame(
           "Topsoil/Peat extraction", "Undifferentiated", "Not included", "Included"))
 land_cover_labels_react(land_cover_labels)
 polyrast_plot<- reactiveVal()
+buffer_value <- reactiveVal()
+buffer_value(1200)
 
 # BatchloopFinished <- reactiveVal(FALSE)
 
@@ -755,16 +757,23 @@ server <- function(input, output, session) {
   # The UI contains the option for the user to set a buffer value in metres around their selected extent via a text input.
   # This value can be from 0 up, with 0 as a default. The code below is just a simple check to prevent errors that would result
   # if non-valid values are entered, e.g. the input box is cleared but no replacement value is given
-
-  # Create a reactive value to store a default buffer_unit_value of 1200
-  buffer_value <- reactiveVal(1200)
-
+  
+  
+  input_use_counter <- reactiveVal(0)
+  
+  # Increment the counter each time the buffer input changes
   observeEvent(input$buffer_unit_value, {
-    # Code to ensure a valid buffer value always exists to prevent crashing
+    input_use_counter(input_use_counter() + 1)
+  })
+  
+  # Code to ensure a valid buffer value always exists to prevent crashing
+  observeEvent(input$buffer_unit_value, {
+    if (input_use_counter() > 1) {
     if (!is.null(input$buffer_unit_value) && input$buffer_unit_value >= 0) {
       buffer_value(input$buffer_unit_value)
     } else {
       buffer_value(1200)
+    }
     }
   })
 
@@ -781,7 +790,6 @@ server <- function(input, output, session) {
 
     # A notification to display until this code is finished running
     notification_id_extent <- showNotification("Setting extent and testing calculation viability...", type = "message", duration = NULL)
-
     # Create a buffer around the extent_coord, 0 if no value was input
     extent_coord <- raster::extend(extent_coord, buffer_value())
     output_extent(extent_coord)
@@ -826,17 +834,22 @@ server <- function(input, output, session) {
     croppedSOLRIS_Undifferentiated_250(crop(SOLRIS_Undifferentiated_250, cropped_Ontario_land_cover))
     croppedProtected_areas(crop(Protected_areas(), cropped_Ontario_land_cover))
     croppedmovement_cost_protected(crop(movement_cost_protected(), cropped_Ontario_land_cover))
-
+    
+    
     # Define function to buffer the cells for plotting
     buffer_plot_cells <- function(raster_obj, buffer_size) {
       # Create a mask for cells with value 1
       mask <- raster_obj == 1
+      
       # Use focal function to create the buffer
       expanded_mask <- focal(mask, w = matrix(1, nrow = 2 * buffer_size + 1, ncol = 2 * buffer_size + 1), fun = max, na.rm = TRUE, pad = TRUE, padValue = 0)
+      
       # Apply the expanded mask to the original raster, preserving NA values
       buffered_raster <- ifel(expanded_mask == 1, 1, NA)
+      
       return(buffered_raster)
     }
+    
     
     # Get the buffer size (in cells)
     plot_buffer_size <- buffer_value()/300
@@ -844,7 +857,7 @@ server <- function(input, output, session) {
     
     plot_buffered_raster<-cropped_polyrast()
     
-    # Apply the buffer function (if a buffer exists)
+    # Apply the buffer function if a buffer exists
     if (plot_buffer_size > 0) {
       plot_buffered_raster <- buffer_plot_cells(plot_buffered_raster, plot_buffer_size)
     }
@@ -860,7 +873,7 @@ server <- function(input, output, session) {
       mapped_values <- land_cover_labels$Land_Class[match(values(plot_buffered_raster), land_cover_labels$Value)]
       mapped_val_react(mapped_values)
       values(plot_buffered_raster) <- mapped_values
-      polyrast_plot(plot_buffered_raster) # Pass to a reactive value
+      polyrast_plot(plot_buffered_raster)
       plot(plot_buffered_raster, main="Cropped Landscape", col=viridis(32, direction = -1))
     })
     
@@ -886,7 +899,7 @@ server <- function(input, output, session) {
 
     # If the 'areas of conservation concern' option is selected in the previous UI Segment 2,
     # then an 'areas of conservation concern' plot is also created using the definitions the user selected previously
-    Protected_areas_plot <- croppedProtected_areas()
+    Protected_areas_plot <- ifel(!is.na(plot_buffered_raster), croppedProtected_areas(), plot_buffered_raster)
     output$protectedPlot <- renderPlot({
       req(input$protected_based_calculations > 0)
       # Create a table to map land class labels to numeric values in 'Ontario_land_cover'
@@ -1135,7 +1148,11 @@ server <- function(input, output, session) {
     degraded_protected[final_condition] <- 100 # an areas of conservation concern version of this is done as well (mainly for plotting)
     degraded_protected[is.na(degraded_pixels_temp)] <- NA
 
+    plot_degraded_protected<-degraded_protected
+    plot_degraded_protected <- ifel(!is.na(polyrast_plot()), plot_degraded_protected, polyrast_plot())
+    
     plot_degraded_pixels <- degraded_pixels_temp
+    plot_degraded_pixels <- ifel(!is.na(polyrast_plot()), plot_degraded_pixels, polyrast_plot())
 
     # These reactive values are used to store the degraded pixels for plotting later
     plot1(plot_degraded_pixels)
@@ -1191,10 +1208,10 @@ server <- function(input, output, session) {
 	land_cover_labels <- land_cover_labels_react()
 
       # Match raster values to land cover classes and convert to factor
-      mapped_values <- factor(land_cover_labels$Land_Class[match(values(degraded_protected), land_cover_labels$Value)])
+      mapped_values <- factor(land_cover_labels$Land_Class[match(values(plot_degraded_protected), land_cover_labels$Value)])
 
       # Create a categorical raster and set its categories
-      cat_raster <- rast(degraded_protected)
+      cat_raster <- rast(plot_degraded_protected)
       values(cat_raster) <- mapped_values
       levels(cat_raster) <- data.frame(ID = 1:length(levels(mapped_values)), LC = levels(mapped_values))
 
@@ -1287,7 +1304,7 @@ server <- function(input, output, session) {
         # If no more 100 values to replace, exit the loop
         replacements_made <- FALSE
       }
-      # Plot the modified raster for this iteration - maybe no necessary anymore? Originally I used this for diagnostic purposes
+      # Plot the modified raster for this iteration - maybe not necessary anymore? Originally I used this for diagnostic purposes
       output$restorationPlot <- renderPlot({
         plot(restored_land, main = paste("Iteration:", iteration), col = viridis(20, direction = -1))
       })
@@ -1298,6 +1315,7 @@ server <- function(input, output, session) {
     }
 
     restored_land_plot <- rast(restored_land)
+    restored_land_plot <- ifel(!is.na(polyrast_plot()), restored_land_plot, polyrast_plot())
 
     restored_land(restored_land)
 
@@ -1929,7 +1947,6 @@ server <- function(input, output, session) {
 
   result_env_data <- reactiveVal(data.frame()) # to store results
   observeEvent(input$calculate_env_metrics, {
-    # browser()
     # lockout buttons
     shinyjs::disable("merge_and_display")
     shinyjs::disable("calculate_env_metrics")
@@ -2104,7 +2121,6 @@ server <- function(input, output, session) {
 
 
   observeEvent(input$find_best_comb, {
-    # browser()
     # Merging the data sets
     merged_data <- merge(result_habitat_data_updated(), result_env_data(), by = "combination")
     merged_data <- merge(result_connectivity(), merged_data, by = "combination")
@@ -2158,7 +2174,6 @@ server <- function(input, output, session) {
     
     for (i in 1:nrow(top_combinations)) {
       comb <- unlist(strsplit(as.character(top_combinations[i, "combination"]), "-"))
-      
       # Subset the pixels for the current combination
       comb_pixels <- plot_pixels
       comb_pixels[-as.integer(comb)] <- NA
@@ -2177,7 +2192,7 @@ server <- function(input, output, session) {
       comb_pixels_sf <- st_as_sf(comb_pixels_stars, merge = FALSE, as_points = FALSE, na.rm = TRUE)
       
       # Assign labels to each polygon
-      comb_pixels_sf$label <- as.character(i)
+      comb_pixels_sf$label <- as.character(i) #Warning: Error in [[<-.data.frame: replacement has 1 row, data has 0 sometimes occurs
       
       # Store polygons in the list
       plot_polygons[[i]] <- comb_pixels_sf
@@ -2224,12 +2239,13 @@ server <- function(input, output, session) {
       comb <- top_combinations$combination[i]
       
       # Crop the 'Ontario_land_cover' raster to the specified extent
-      cropped_raster <- croppedOntario()
+      cropped_raster <- cropped_polyrast()
+      cropped_raster <- ifel(!is.na(cropped_raster), croppedOntario(), cropped_raster)
       
       # Generate unique output ID for each plot
       output_id <- paste0("plot_", i)
       
-	land_cover_labels <- land_cover_labels_react()
+	    land_cover_labels <- land_cover_labels_react()
       
       # Extract pixel indices from the combination string
       best_combination_indices <- as.numeric(strsplit(comb, "-")[[1]])
@@ -2810,15 +2826,23 @@ server <- function(input, output, session) {
   
 #Linked to UI Segment 22, Batch Processing-----
   
-  # Create a reactive value to store a default batch_buffer_unit_value of 0
-  buffer_value <- reactiveVal(0)
+  # Create a reactive value to store a default batch_buffer_unit_value of 1200
+  
+  batch_input_use_counter <- reactiveVal(0)
+  
+  # Increment the counter each time the buffer input changes
+  observeEvent(input$batch_buffer_unit_value, {
+    batch_input_use_counter(batch_input_use_counter() + 1)
+  })
   
   observeEvent(input$batch_buffer_unit_value, {
+    if (batch_input_use_counter() > 1) {
     # Code to ensure a valid buffer value always exists to prevent crashing
     if (!is.null(input$batch_buffer_unit_value) && input$batch_buffer_unit_value >= 0) {
       buffer_value(input$batch_buffer_unit_value)
     } else {
-      buffer_value(0)
+      buffer_value(1200)
+    }
     }
   })
   
@@ -4285,7 +4309,7 @@ We recommend adding a buffer to the selected landscape. A buffer is an area that
       br(),
       p(HTML("Below, a landscape buffer can be set by entering a number in the text box. Since the pixel 
 	    units are 300 by 300 metres, any number entered gets rounded down to the nearest multiple of 300.")),
-      numericInput("batch_buffer_unit_value", "(Optional) Enter a landscape buffer value in metres:", value = 0),
+      numericInput("batch_buffer_unit_value", "(Optional) Enter a landscape buffer value in metres:", value = 1200),
       br(),
       br(),
       p(HTML("Below, set a combination of conditions defining which pixels are degraded using sliders. Conditions include active mines, abandoned mines (AMIS),
