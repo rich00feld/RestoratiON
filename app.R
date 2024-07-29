@@ -143,7 +143,20 @@ export_sf <- reactiveVal(NULL)
 KML_output_react <- reactiveVal()
 selected_sf_react <- reactiveVal()
 temp_dir_react <- reactiveVal()
-
+land_cover_labels_react<- reactiveVal()
+land_cover_labels <- data.frame(
+        Value = c(11, 12, 13, 14, 15, 16, 17, 18, 21, 22, 23, 24, 25, 31, 32, 33, 34, 35, 36, 37, 38, 41, 51, 52, 53, 54, 55, 99, 100, 101, 204, 205, 250, 0, 1),
+        Land_Class = c(
+          "Prairie", "Savannah", "Alvar", "Dune", "Meadow", "Shrubland", "Barren", "Sparse treed",
+          "Coniferous forest", "Mixedwood forest", "Deciduous forest", "Transitional forest", "Hedge row",
+          "Coniferous treed swamp", "Mixedwood treed swamp", "Deciduous treed swamp", "Transitional treed swamp",
+          "Thicket swamp", "Bog", "Fen", "Marsh", "Water", "Built up area-pervious", "Anthropogenic", "Cropland",
+          "Hay/pasture", "Transportation", "Unclassified", "Degraded", "Priority pixels", "Aggregate extraction", 
+          "Topsoil/Peat extraction", "Undifferentiated", "Not included", "Included"))
+land_cover_labels_react(land_cover_labels)
+polyrast_plot<- reactiveVal()
+buffer_value <- reactiveVal()
+buffer_value(1200)
 
 # BatchloopFinished <- reactiveVal(FALSE)
 
@@ -269,10 +282,10 @@ server <- function(input, output, session) {
 
   output$protected_checkboxes <- renderUI({
     checkbox_data <- c(
-      "Provincial parks", "National parks", "Conservation reserves", "Conservation areas", "NGO reserves",
+      "Provincial parks", "National parks", "Conservation reserves", "Conservation areas", "Non-governmental organization reserves",
       "Municipal heritage areas", "Natural heritage system areas", "Natural heritage value areas",
       "Far North protected areas", "Wilderness areas", "Migratory bird sanctuaries", "National wildlife areas",
-      "National capital valued ecosystems", "Provincial planned protected areas", "Crown plan protected areas", "OECMs"
+      "National capital valued ecosystems", "Provincial planned protected areas", "Crown plan protected areas", "Other effective area-based conservation measures"
     )
     # Generate a check-box of features using multiple_checkbox
     multiple_checkbox("protected_checkboxes", " ", choices = checkbox_data, selected = "Provincial parks") # Provincial parks is the default selection
@@ -297,7 +310,7 @@ server <- function(input, output, session) {
       defined_protected_areas[CRR_raster == 1] <- 1
     }
     
-    if ("NGO reserves" %in% input$protected_checkboxes) {
+    if ("Non-governmental organization reserves" %in% input$protected_checkboxes) {
       defined_protected_areas[NGO_raster == 1] <- 1
     }
     
@@ -353,7 +366,7 @@ server <- function(input, output, session) {
       defined_protected_areas[Crown_plan_protected_raster == 1] <- 1
     }
     
-    if ("OECMs" %in% input$protected_checkboxes) {
+    if ("Other effective area-based conservation measures" %in% input$protected_checkboxes) {
       defined_protected_areas[OECM_raster == 1] <- 1
     }
     
@@ -392,7 +405,7 @@ server <- function(input, output, session) {
         fillColor = "springgreen",
         fillOpacity = 0.7,
         color = "black",
-        weight = 0.5,
+        weight = 2,
         layerId = ~PROTECTE_1,
         label = ~PROTECTE_1
       ) %>%
@@ -402,7 +415,7 @@ server <- function(input, output, session) {
         fillColor = "magenta",
         fillOpacity = 0.7,
         color = "black",
-        weight = 0.5,
+        weight = 2,
         layerId = ~AREA_NAME,
         label = ~AREA_NAME
       ) %>%
@@ -412,17 +425,17 @@ server <- function(input, output, session) {
         fillColor = "limegreen",
         fillOpacity = 0.7,
         color = "black",
-        weight = 0.5,
+        weight = 2,
         layerId = ~OGF_ID,
         label = ~ENABLING_P
       ) %>%
       addPolygons(
         data = NGO_reserves,
-        group = "NGO reserves",
+        group = "Non-governmental organization<br>reserves",
         fillColor = "purple",
         fillOpacity = 0.7,
         color = "black",
-        weight = 0.5,
+        weight = 2,
         layerId = ~OBJECTID,
         label = ~NAME_E
       ) %>%
@@ -432,7 +445,7 @@ server <- function(input, output, session) {
         fillColor = "turquoise",
         fillOpacity = 0.7,
         color = "black",
-        weight = 0.5,
+        weight = 2,
         layerId = ~PROTECTE_1,
         label = ~PROTECTE_1
       ) %>%
@@ -442,7 +455,7 @@ server <- function(input, output, session) {
         fillColor = "red",
         fillOpacity = 0.7,
         color = "black",
-        weight = 0.5,
+        weight = 2,
         layerId = ~OGF_ID,
         label = ~MUN_NAME
       ) %>%
@@ -452,7 +465,7 @@ server <- function(input, output, session) {
         fillColor = "orange",
         fillOpacity = 0.7,
         color = "black",
-        weight = 0.5,
+        weight = 2,
         layerId = ~OGF_ID,
         label = ~MUN_NAME
       ) %>%
@@ -462,7 +475,7 @@ server <- function(input, output, session) {
         fillColor = "royalblue",
         fillOpacity = 0.7,
         color = "black",
-        weight = 0.5,
+        weight = 2,
         layerId = ~NAME_E,
         label = ~NAME_E
       ) %>%
@@ -472,7 +485,7 @@ server <- function(input, output, session) {
         fillColor = "lawngreen",
         fillOpacity = 0.7,
         color = "black",
-        weight = 0.5,
+        weight = 2,
         layerId = ~OBJECTID,
         label = ~NAME_E
       ) %>%
@@ -482,7 +495,7 @@ server <- function(input, output, session) {
         fillColor = "deepskyblue",
         fillOpacity = 0.7,
         color = "black",
-        weight = 0.5,
+        weight = 2,
         layerId = ~NAME_E,
         label = ~NAME_E
       ) %>%
@@ -492,7 +505,7 @@ server <- function(input, output, session) {
         fillColor = "hotpink",
         fillOpacity = 0.7,
         color = "black",
-        weight = 0.5,
+        weight = 2,
         layerId = ~OBJECTID,
         label = ~NAME_E
       ) %>%
@@ -502,7 +515,7 @@ server <- function(input, output, session) {
         fillColor = "yellow",
         fillOpacity = 0.7,
         color = "black",
-        weight = 0.5,
+        weight = 2,
         layerId = ~OBJECTID,
         label = ~NAME_E
       ) %>%
@@ -512,7 +525,7 @@ server <- function(input, output, session) {
         fillColor = "orangered",
         fillOpacity = 0.7,
         color = "black",
-        weight = 0.5,
+        weight = 2,
         layerId = ~OBJECTID,
         label = ~NAME_E
       ) %>%
@@ -522,7 +535,7 @@ server <- function(input, output, session) {
         fillColor = "darkgreen",
         fillOpacity = 0.7,
         color = "black",
-        weight = 0.5,
+        weight = 2,
         layerId = ~OBJECTID,
         label = ~NAME_E
       ) %>%
@@ -532,7 +545,7 @@ server <- function(input, output, session) {
         fillColor = "lightseagreen",
         fillOpacity = 0.7,
         color = "black",
-        weight = 0.5,
+        weight = 2,
         layerId = ~OBJECTID,
         label = ~NAME_E
       ) %>%
@@ -542,7 +555,7 @@ server <- function(input, output, session) {
         fillColor = "yellowgreen",
         fillOpacity = 0.7,
         color = "black",
-        weight = 0.5,
+        weight = 2,
         layerId = ~OBJECTID,
         label = ~NAME_E
       ) %>%
@@ -552,17 +565,17 @@ server <- function(input, output, session) {
         fillColor = "palegreen",
         fillOpacity = 0.7,
         color = "black",
-        weight = 0.5,
+        weight = 2,
         layerId = ~OBJECTID,
         label = ~NAME_E
       ) %>%
       addPolygons(
         data = Other_effective_area_based_conservation_measures,
-        group = "OECMs",
+        group = "Other effective area-based<br>conservation measures",
         fillColor = "maroon",
         fillOpacity = 0.7,
         color = "black",
-        weight = 0.5,
+        weight = 2,
         layerId = ~OBJECTID,
         label = ~NAME_E
       ) %>%
@@ -581,10 +594,10 @@ server <- function(input, output, session) {
         baseGroups = c("Map View", "Satellite View"),
         overlayGroups = c(
           "Drawn extent", "Lower / single-tier municipalities", "Upper municipalities / districts", "Provincial parks", "National parks",
-          "Conservation reserves", "Conservation areas", "NGO reserves", "Natural heritage value areas", "Natural heritage system areas",
+          "Conservation reserves", "Conservation areas", "Non-governmental organization<br>reserves", "Natural heritage value areas", "Natural heritage system areas",
           "Far North protected areas", "Municipal heritage areas", "Migratory bird sanctuaries", "National wildlife areas", "Wilderness areas",
           "Crown plan protected areas", "Provincial planned protected areas", "National capital valued ecosystem",
-          "OECMs"
+          "Other effective area-based<br>conservation measures"
         ),
         options = layersControlOptions(collapsed = FALSE)
       ) %>%
@@ -593,7 +606,7 @@ server <- function(input, output, session) {
       hideGroup(group = "Conservation reserves") %>%
       hideGroup(group = "Natural heritage value areas") %>%
       hideGroup(group = "Natural heritage system areas") %>%
-      hideGroup(group = "NGO reserves") %>%
+      hideGroup(group = "Non-governmental organization<br>reserves") %>%
       hideGroup(group = "Provincial parks") %>%
       hideGroup(group = "Conservation areas") %>%
       hideGroup(group = "Far North protected areas") %>%
@@ -604,7 +617,7 @@ server <- function(input, output, session) {
       hideGroup(group = "Crown plan protected areas") %>%
       hideGroup(group = "Provincial planned protected areas") %>%
       hideGroup(group = "National capital valued ecosystem") %>%
-      hideGroup(group = "OECMs") %>%
+      hideGroup(group = "Other effective area-based<br>conservation measures") %>%
       hideGroup(group = "National parks")
   })
 
@@ -744,16 +757,23 @@ server <- function(input, output, session) {
   # The UI contains the option for the user to set a buffer value in metres around their selected extent via a text input.
   # This value can be from 0 up, with 0 as a default. The code below is just a simple check to prevent errors that would result
   # if non-valid values are entered, e.g. the input box is cleared but no replacement value is given
-
-  # Create a reactive value to store a default buffer_unit_value of 0
-  buffer_value <- reactiveVal(0)
-
+  
+  
+  input_use_counter <- reactiveVal(0)
+  
+  # Increment the counter each time the buffer input changes
   observeEvent(input$buffer_unit_value, {
-    # Code to ensure a valid buffer value always exists to prevent crashing
+    input_use_counter(input_use_counter() + 1)
+  })
+  
+  # Code to ensure a valid buffer value always exists to prevent crashing
+  observeEvent(input$buffer_unit_value, {
+    if (input_use_counter() > 1) {
     if (!is.null(input$buffer_unit_value) && input$buffer_unit_value >= 0) {
       buffer_value(input$buffer_unit_value)
     } else {
-      buffer_value(0)
+      buffer_value(1200)
+    }
     }
   })
 
@@ -770,20 +790,14 @@ server <- function(input, output, session) {
 
     # A notification to display until this code is finished running
     notification_id_extent <- showNotification("Setting extent and testing calculation viability...", type = "message", duration = NULL)
-
     # Create a buffer around the extent_coord, 0 if no value was input
     extent_coord <- raster::extend(extent_coord, buffer_value())
     output_extent(extent_coord)
 
-    # prints the set extent to the UI
-    output$extent_values <- renderPrint({
-      extent_coord
-    })
-
     # Crop rasters to target landscape extent ----
     # All rasters used in subsequent steps in the app are cropped to selected landscape extent
     # Cropped layers are reactive values, which have already been defined 
-    pre_cropped_polyrast<-selected_polygon()
+    pre_cropped_polyrast <- selected_polygon()
     cropped_Ontario_land_cover <- raster::crop(Ontario_land_cover, extent_coord)
     cropped_Ontario_land_cover <- rast(cropped_Ontario_land_cover)
     croppedOntario(cropped_Ontario_land_cover)
@@ -820,27 +834,47 @@ server <- function(input, output, session) {
     croppedSOLRIS_Undifferentiated_250(crop(SOLRIS_Undifferentiated_250, cropped_Ontario_land_cover))
     croppedProtected_areas(crop(Protected_areas(), cropped_Ontario_land_cover))
     croppedmovement_cost_protected(crop(movement_cost_protected(), cropped_Ontario_land_cover))
-
-
+    
+    
+    # Define function to buffer the cells for plotting
+    buffer_plot_cells <- function(raster_obj, buffer_size) {
+      # Create a mask for cells with value 1
+      mask <- raster_obj == 1
+      
+      # Use focal function to create the buffer
+      expanded_mask <- focal(mask, w = matrix(1, nrow = 2 * buffer_size + 1, ncol = 2 * buffer_size + 1), fun = max, na.rm = TRUE, pad = TRUE, padValue = 0)
+      
+      # Apply the expanded mask to the original raster, preserving NA values
+      buffered_raster <- ifel(expanded_mask == 1, 1, NA)
+      
+      return(buffered_raster)
+    }
+    
+    
+    # Get the buffer size (in cells)
+    plot_buffer_size <- buffer_value()/300
+    plot_buffer_size <-floor(plot_buffer_size)
+    
+    plot_buffered_raster<-cropped_polyrast()
+    
+    # Apply the buffer function if a buffer exists
+    if (plot_buffer_size > 0) {
+      plot_buffered_raster <- buffer_plot_cells(plot_buffered_raster, plot_buffer_size)
+    }
+    
+    plot_buffered_raster <- ifel(!is.na(plot_buffered_raster), croppedOntario(), plot_buffered_raster)
 
     # This plots the cropped landscape with habitat classes
     output$rasterPlot <- renderPlot({
       #Creates a table to map land class labels to numeric values in 'Ontario_land_cover' (for the plot legend essentially)
-      land_cover_labels <- data.frame(
-        Value = c(11, 12, 13, 14, 15, 16, 17, 18, 21, 22, 23, 24, 25, 31, 32, 33, 34, 35, 36, 37, 38, 41, 51, 52, 53, 54, 55, 99, 100, 101, 204, 205, 250, 0, 1),
-        Land_Class = c(
-          "Prairie", "Savannah", "Alvar", "Dune", "Meadow", "Shrubland", "Barren", "Sparse treed",
-          "Coniferous forest", "Mixedwood forest", "Deciduous forest", "Transitional forest", "Hedge row",
-          "Coniferous treed swamp", "Mixedwood treed swamp", "Deciduous treed swamp", "Transitional treed swamp",
-          "Thicket swamp", "Bog", "Fen", "Marsh", "Water", "Built up area-pervious", "Anthropogenic", "Cropland",
-          "Hay/pasture", "Transportation", "Unclassified", "Degraded", "Priority pixels", "Aggregate extraction", 
-          "Topsoil/Peat extraction", "Undifferentiated", "Not included", "Included"))
+      land_cover_labels <- land_cover_labels_react()
       
       # Maps the numeric values in 'Ontario_land_cover' to their corresponding labels
-      mapped_values <- land_cover_labels$Land_Class[match(values(cropped_Ontario_land_cover), land_cover_labels$Value)]
+      mapped_values <- land_cover_labels$Land_Class[match(values(plot_buffered_raster), land_cover_labels$Value)]
       mapped_val_react(mapped_values)
-      values(cropped_Ontario_land_cover) <- mapped_values
-      plot(cropped_Ontario_land_cover, main="Cropped Landscape", col=viridis(32, direction = -1))
+      values(plot_buffered_raster) <- mapped_values
+      polyrast_plot(plot_buffered_raster)
+      plot(plot_buffered_raster, main="Cropped Landscape", col=viridis(32, direction = -1))
     })
     
     #This outputs a simple breakdown of the land classes in a landscape
@@ -865,21 +899,11 @@ server <- function(input, output, session) {
 
     # If the 'areas of conservation concern' option is selected in the previous UI Segment 2,
     # then an 'areas of conservation concern' plot is also created using the definitions the user selected previously
-    Protected_areas_plot <- croppedProtected_areas()
+    Protected_areas_plot <- ifel(!is.na(plot_buffered_raster), croppedProtected_areas(), plot_buffered_raster)
     output$protectedPlot <- renderPlot({
       req(input$protected_based_calculations > 0)
       # Create a table to map land class labels to numeric values in 'Ontario_land_cover'
-      land_cover_labels <- data.frame(
-        Value = c(11, 12, 13, 14, 15, 16, 17, 18, 21, 22, 23, 24, 25, 31, 32, 33, 34, 35, 36, 37, 38, 41, 51, 52, 53, 54, 55, 99, 100, 101, 204, 205, 250, 0, 1),
-        Land_Class = c(
-          "Prairie", "Savannah", "Alvar", "Dune", "Meadow", "Shrubland", "Barren", "Sparse treed",
-          "Coniferous forest", "Mixedwood forest", "Deciduous forest", "Transitional forest", "Hedge row",
-          "Coniferous treed swamp", "Mixedwood treed swamp", "Deciduous treed swamp", "Transitional treed swamp",
-          "Thicket swamp", "Bog", "Fen", "Marsh", "Water", "Built up area-pervious", "Anthropogenic", "Cropland",
-          "Hay/pasture", "Transportation", "Unclassified", "Degraded", "Priority pixels", "Aggregate extraction",
-          "Topsoil/Peat extraction", "Undifferentiated", "Not included", "Included"
-        )
-      )
+      land_cover_labels <- land_cover_labels_react()
 
       # Match raster values to land cover classes and convert to factor
       mapped_values <- factor(land_cover_labels$Land_Class[match(values(Protected_areas_plot), land_cover_labels$Value)])
@@ -1006,10 +1030,7 @@ server <- function(input, output, session) {
       },
       error = function(e) {
         # Handle errors by displaying a notification to the user
-        showNotification(paste("Habitat connectivity metrics may not be able to be calculated for the selected landscape due to insufficient nodes (< 5 nodes triggers this warning).
-                              Depending on chosen options (degraded land definition and combination type) a successful calculation may still be possible.
-                              Alternatively, please add a buffer or select/draw a larger extent so as to encompass additional habitat nodes. You may disregard this warning if only interested
-                              in connectivity between nodes of areas of conservation concern."), type = "error", duration = NULL)
+        showNotification(paste("Connectivity is measured between distinct patches, or “nodes” of suitable habitat for wildlife and plants. Connectivity metrics may fail to be calculated for the selected landscape due to insufficient nodes (< 5 nodes triggers this warning). Depending on options you choose in the next few steps – e.g., what defines degraded land – a successful calculation may still be possible. Alternatively, please add a buffer around the selected area, select or draw a larger extent, or re-define areas of conservation concern with additional features to produce sufficient nodes. You may disregard this warning if you are only interested in connectivity between nodes of areas of conservation concern."), type = "error", duration = NULL)
       }
     )
     removeNotification(notification_id_extent)
@@ -1127,7 +1148,11 @@ server <- function(input, output, session) {
     degraded_protected[final_condition] <- 100 # an areas of conservation concern version of this is done as well (mainly for plotting)
     degraded_protected[is.na(degraded_pixels_temp)] <- NA
 
+    plot_degraded_protected<-degraded_protected
+    plot_degraded_protected <- ifel(!is.na(polyrast_plot()), plot_degraded_protected, polyrast_plot())
+    
     plot_degraded_pixels <- degraded_pixels_temp
+    plot_degraded_pixels <- ifel(!is.na(polyrast_plot()), plot_degraded_pixels, polyrast_plot())
 
     # These reactive values are used to store the degraded pixels for plotting later
     plot1(plot_degraded_pixels)
@@ -1155,18 +1180,7 @@ server <- function(input, output, session) {
     # Plot target landscape with degraded pixels ----
     # a plot is output showing the landscape with non-tolerable pixels excluded and degraded pixels in orange
     output$degradedPlot <- renderPlot({
-      land_cover_labels <- data.frame(
-        Value = c(11, 12, 13, 14, 15, 16, 17, 18, 21, 22, 23, 24, 25, 31, 32, 33, 34, 35, 36, 37, 38, 41, 51, 52, 53, 54, 55, 99, 100, 101, 204, 205, 250, 0, 1),
-        Land_Class = c(
-          "Prairie", "Savannah", "Alvar", "Dune", "Meadow", "Shrubland", "Barren", "Sparse treed",
-          "Coniferous forest", "Mixedwood forest", "Deciduous forest", "Transitional forest", "Hedge row",
-          "Coniferous treed swamp", "Mixedwood treed swamp", "Deciduous treed swamp", "Transitional treed swamp",
-          "Thicket swamp", "Bog", "Fen", "Marsh", "Water", "Built up area-pervious", "Anthropogenic", "Cropland",
-          "Hay/pasture", "Transportation", "Unclassified", "Degraded", "Priority pixels", "Aggregate extraction",
-          "Topsoil/Peat extraction", "Undifferentiated", "Not included", "Included"
-        )
-      )
-
+	land_cover_labels <- land_cover_labels_react()
 
       # Match raster values to land cover classes and convert to factor
       mapped_values <- factor(land_cover_labels$Land_Class[match(values(plot_degraded_pixels), land_cover_labels$Value)])
@@ -1191,24 +1205,13 @@ server <- function(input, output, session) {
     # A version for 'areas of conservation concern' if that option is selected in UI segment 2
     output$degradedprotectedPlot <- renderPlot({
       req(input$protected_based_calculations > 0)
-      land_cover_labels <- data.frame(
-        Value = c(11, 12, 13, 14, 15, 16, 17, 18, 21, 22, 23, 24, 25, 31, 32, 33, 34, 35, 36, 37, 38, 41, 51, 52, 53, 54, 55, 99, 100, 101, 204, 205, 250, 0, 1),
-        Land_Class = c(
-          "Prairie", "Savannah", "Alvar", "Dune", "Meadow", "Shrubland", "Barren", "Sparse treed",
-          "Coniferous forest", "Mixedwood forest", "Deciduous forest", "Transitional forest", "Hedge row",
-          "Coniferous treed swamp", "Mixedwood treed swamp", "Deciduous treed swamp", "Transitional treed swamp",
-          "Thicket swamp", "Bog", "Fen", "Marsh", "Water", "Built up area-pervious", "Anthropogenic", "Cropland",
-          "Hay/pasture", "Transportation", "Unclassified", "Degraded", "Priority pixels", "Aggregate extraction",
-          "Topsoil/Peat extraction", "Undifferentiated", "Not included", "Included"
-        )
-      )
-
+	land_cover_labels <- land_cover_labels_react()
 
       # Match raster values to land cover classes and convert to factor
-      mapped_values <- factor(land_cover_labels$Land_Class[match(values(degraded_protected), land_cover_labels$Value)])
+      mapped_values <- factor(land_cover_labels$Land_Class[match(values(plot_degraded_protected), land_cover_labels$Value)])
 
       # Create a categorical raster and set its categories
-      cat_raster <- rast(degraded_protected)
+      cat_raster <- rast(plot_degraded_protected)
       values(cat_raster) <- mapped_values
       levels(cat_raster) <- data.frame(ID = 1:length(levels(mapped_values)), LC = levels(mapped_values))
 
@@ -1301,7 +1304,7 @@ server <- function(input, output, session) {
         # If no more 100 values to replace, exit the loop
         replacements_made <- FALSE
       }
-      # Plot the modified raster for this iteration - maybe no necessary anymore? Originally I used this for diagnostic purposes
+      # Plot the modified raster for this iteration - maybe not necessary anymore? Originally I used this for diagnostic purposes
       output$restorationPlot <- renderPlot({
         plot(restored_land, main = paste("Iteration:", iteration), col = viridis(20, direction = -1))
       })
@@ -1312,6 +1315,7 @@ server <- function(input, output, session) {
     }
 
     restored_land_plot <- rast(restored_land)
+    restored_land_plot <- ifel(!is.na(polyrast_plot()), restored_land_plot, polyrast_plot())
 
     restored_land(restored_land)
 
@@ -1319,17 +1323,7 @@ server <- function(input, output, session) {
 
     # Plot the restored landscape
     output$restorationPlot <- renderPlot({
-      land_cover_labels <- data.frame(
-        Value = c(11, 12, 13, 14, 15, 16, 17, 18, 21, 22, 23, 24, 25, 31, 32, 33, 34, 35, 36, 37, 38, 41, 51, 52, 53, 54, 55, 99, 100, 101, 204, 205, 250, 0, 1),
-        Land_Class = c(
-          "Prairie", "Savannah", "Alvar", "Dune", "Meadow", "Shrubland", "Barren", "Sparse treed",
-          "Coniferous forest", "Mixedwood forest", "Deciduous forest", "Transitional forest", "Hedge row",
-          "Coniferous treed swamp", "Mixedwood treed swamp", "Deciduous treed swamp", "Transitional treed swamp",
-          "Thicket swamp", "Bog", "Fen", "Marsh", "Water", "Built up area-pervious", "Anthropogenic", "Cropland",
-          "Hay/pasture", "Transportation", "Unclassified", "Degraded", "Priority pixels", "Aggregate extraction",
-          "Topsoil/Peat extraction", "Undifferentiated", "Not included", "Included"
-        )
-      )
+	land_cover_labels <- land_cover_labels_react()
 
       mapped_values <- land_cover_labels$Land_Class[match(values(restored_land_plot), land_cover_labels$Value)]
       values(restored_land_plot) <- mapped_values
@@ -1953,7 +1947,6 @@ server <- function(input, output, session) {
 
   result_env_data <- reactiveVal(data.frame()) # to store results
   observeEvent(input$calculate_env_metrics, {
-    # browser()
     # lockout buttons
     shinyjs::disable("merge_and_display")
     shinyjs::disable("calculate_env_metrics")
@@ -2128,7 +2121,6 @@ server <- function(input, output, session) {
 
 
   observeEvent(input$find_best_comb, {
-    # browser()
     # Merging the data sets
     merged_data <- merge(result_habitat_data_updated(), result_env_data(), by = "combination")
     merged_data <- merge(result_connectivity(), merged_data, by = "combination")
@@ -2182,7 +2174,6 @@ server <- function(input, output, session) {
     
     for (i in 1:nrow(top_combinations)) {
       comb <- unlist(strsplit(as.character(top_combinations[i, "combination"]), "-"))
-      
       # Subset the pixels for the current combination
       comb_pixels <- plot_pixels
       comb_pixels[-as.integer(comb)] <- NA
@@ -2201,7 +2192,7 @@ server <- function(input, output, session) {
       comb_pixels_sf <- st_as_sf(comb_pixels_stars, merge = FALSE, as_points = FALSE, na.rm = TRUE)
       
       # Assign labels to each polygon
-      comb_pixels_sf$label <- as.character(i)
+      comb_pixels_sf$label <- as.character(i) #Warning: Error in [[<-.data.frame: replacement has 1 row, data has 0 sometimes occurs
       
       # Store polygons in the list
       plot_polygons[[i]] <- comb_pixels_sf
@@ -2248,22 +2239,13 @@ server <- function(input, output, session) {
       comb <- top_combinations$combination[i]
       
       # Crop the 'Ontario_land_cover' raster to the specified extent
-      cropped_raster <- croppedOntario()
+      cropped_raster <- cropped_polyrast()
+      cropped_raster <- ifel(!is.na(cropped_raster), croppedOntario(), cropped_raster)
       
       # Generate unique output ID for each plot
       output_id <- paste0("plot_", i)
       
-      land_cover_labels <- data.frame(
-        Value = c(11, 12, 13, 14, 15, 16, 17, 18, 21, 22, 23, 24, 25, 31, 32, 33, 34, 35, 36, 37, 38, 41, 51, 52, 53, 54, 55, 99, 100, 101, 204, 205, 250, 0, 1),
-        Land_Class = c(
-          "Prairie", "Savannah", "Alvar", "Dune", "Meadow", "Shrubland", "Barren", "Sparse treed",
-          "Coniferous forest", "Mixedwood forest", "Deciduous forest", "Transitional forest", "Hedge row",
-          "Coniferous treed swamp", "Mixedwood treed swamp", "Deciduous treed swamp", "Transitional treed swamp",
-          "Thicket swamp", "Bog", "Fen", "Marsh", "Water", "Built up area-pervious", "Anthropogenic", "Cropland",
-          "Hay/pasture", "Transportation", "Unclassified", "Degraded", "Priority pixels", "Aggregate extraction",
-          "Topsoil/Peat extraction", "Undifferentiated", "Not included", "Included"
-        )
-      )
+	    land_cover_labels <- land_cover_labels_react()
       
       # Extract pixel indices from the combination string
       best_combination_indices <- as.numeric(strsplit(comb, "-")[[1]])
@@ -2647,18 +2629,8 @@ server <- function(input, output, session) {
 
       # Generate unique output ID for each plot
       output_id <- paste0("plot_", i)
-
-      land_cover_labels <- data.frame(
-        Value = c(11, 12, 13, 14, 15, 16, 17, 18, 21, 22, 23, 24, 25, 31, 32, 33, 34, 35, 36, 37, 38, 41, 51, 52, 53, 54, 55, 99, 100, 101, 204, 205, 250, 0, 1),
-        Land_Class = c(
-          "Prairie", "Savannah", "Alvar", "Dune", "Meadow", "Shrubland", "Barren", "Sparse treed",
-          "Coniferous forest", "Mixedwood forest", "Deciduous forest", "Transitional forest", "Hedge row",
-          "Coniferous treed swamp", "Mixedwood treed swamp", "Deciduous treed swamp", "Transitional treed swamp",
-          "Thicket swamp", "Bog", "Fen", "Marsh", "Water", "Built up area-pervious", "Anthropogenic", "Cropland",
-          "Hay/pasture", "Transportation", "Unclassified", "Degraded", "Priority pixels", "Aggregate extraction",
-          "Topsoil/Peat extraction", "Undifferentiated", "Not included", "Included"
-        )
-      )
+	    
+	land_cover_labels <- land_cover_labels_react()
 
       # Extract pixel indices from the combination string
       best_combination_indices <- as.numeric(strsplit(comb, "-")[[1]])
@@ -2797,17 +2769,7 @@ server <- function(input, output, session) {
       # Generate unique output ID for each plot
       output_id <- paste0("plot_", landscape)
 
-      land_cover_labels <- data.frame(
-        Value = c(11, 12, 13, 14, 15, 16, 17, 18, 21, 22, 23, 24, 25, 31, 32, 33, 34, 35, 36, 37, 38, 41, 51, 52, 53, 54, 55, 99, 100, 101, 204, 205, 250, 0, 1),
-        Land_Class = c(
-          "Prairie", "Savannah", "Alvar", "Dune", "Meadow", "Shrubland", "Barren", "Sparse treed",
-          "Coniferous forest", "Mixedwood forest", "Deciduous forest", "Transitional forest", "Hedge row",
-          "Coniferous treed swamp", "Mixedwood treed swamp", "Deciduous treed swamp", "Transitional treed swamp",
-          "Thicket swamp", "Bog", "Fen", "Marsh", "Water", "Built up area-pervious", "Anthropogenic", "Cropland",
-          "Hay/pasture", "Transportation", "Unclassified", "Degraded", "Priority pixels", "Aggregate extraction",
-          "Topsoil/Peat extraction", "Undifferentiated", "Not included", "Included"
-        )
-      )
+	land_cover_labels <- land_cover_labels_react()
 
       # Match raster values to land cover classes and convert to factor
       mapped_values <- factor(land_cover_labels$Land_Class[match(values(cropped_raster), land_cover_labels$Value)])
@@ -2864,15 +2826,23 @@ server <- function(input, output, session) {
   
 #Linked to UI Segment 22, Batch Processing-----
   
-  # Create a reactive value to store a default batch_buffer_unit_value of 0
-  buffer_value <- reactiveVal(0)
+  # Create a reactive value to store a default batch_buffer_unit_value of 1200
+  
+  batch_input_use_counter <- reactiveVal(0)
+  
+  # Increment the counter each time the buffer input changes
+  observeEvent(input$batch_buffer_unit_value, {
+    batch_input_use_counter(batch_input_use_counter() + 1)
+  })
   
   observeEvent(input$batch_buffer_unit_value, {
+    if (batch_input_use_counter() > 1) {
     # Code to ensure a valid buffer value always exists to prevent crashing
     if (!is.null(input$batch_buffer_unit_value) && input$batch_buffer_unit_value >= 0) {
       buffer_value(input$batch_buffer_unit_value)
     } else {
-      buffer_value(0)
+      buffer_value(1200)
+    }
     }
   })
   
@@ -3819,16 +3789,16 @@ ui <- shinyUI(semanticPage(
   conditionalPanel(
     condition = "!output.showSingleLandscape && !output.showMultipleLandscapes && !output.showLandscapeVisualizer && !output.showBatchProcessing",
     segment(
-      div(style = "font-size: 18px; font-weight: bold; margin-bottom: 15px;", HTML("<br><br>Choosing an Analysis Type")),
+      div(style = "font-size: 18px; font-weight: bold; margin-bottom: 15px;", HTML("<br><br>Choosing an analysis type")),
       p(HTML("This application aims to identify degraded land areas within a chosen geographic region and determine which areas, when restored to nearby natural habitat types, will provide the greatest benefit based on user-selected criteria. <br><br>
-      The entire province is divided into 300 by 300-metre units, called 'pixels'. Each pixel contains information on habitat type, environment, potential degradation sources (e.g., light pollution, mining activity), and the ease with which animals can move through the area ('movement cost'). While data is available for every pixel in the province, analyzing the entire province at once is impractical due to high computational costs and limited usefulness for restoration planners. Instead, you can select a specific segment of the province to analyze. <br><br>
+      The entire province is divided into 300 by 300-metre units, called 'pixels'. Each pixel contains information on habitat type, environment, potential degradation sources (e.g., light pollution, mining activity), and the ease with which animals can move through the area ('movement cost'). While data is available for every pixel in the province, analyzing the entire province at once is impractical due to high computational costs and limited usefulness for restoration planners. Instead, you may select a specific segment of the province to analyze. <br><br>
 <b>Choose an option to continue:</b><br>")),
       actionButton("single_landscape", "Calculate metrics for a single landscape"),
       br(),
-      p(HTML("<i><p style='margin-left: 25px;'>Choose this if it’s your first time using the app or if you want to analyze a single landscape.</p></i>")),
+      p(HTML("<i><p style='margin-left: 25px;'>Choose this if it’s your first time using the app or if you want to analyze a single landscape. This option will output app results in a single .csv file for review.</p></i>")),
       actionButton("multiple_landscapes", "Compare metrics across multiple landscapes"),
       br(),
-      p(HTML("<i><p style='margin-left: 25px;'>Select this option if you want to compare restoration priorities across multiple landscapes after creating results .csv files for more than one landscape.</p></i>")),
+      p(HTML("<i><p style='margin-left: 25px;'>Select this option if you want to compare restoration priorities across multiple landscapes. You must first create at least two results .csv files using the option above to compare multiple landscapes.</p></i>")),
       actionButton("landscape_visualizer", "Visualize landscape(s)"),
       br(),
       p(HTML("<i><p style='margin-left: 25px;'>Use this to visualize the habitat classes of one or more landscapes based on results .csv files.</p></i>")),
@@ -3842,23 +3812,16 @@ ui <- shinyUI(semanticPage(
   conditionalPanel(
     condition = "(output.showSingleLandscape > 0 || output.showBatchProcessing > 0) && !output.showhabitat_based_calculations && !output.showprotected_based_calculations",
     segment(
-      div(style = "font-size: 18px; font-weight: bold; margin-bottom: 15px;", "Decision to Focus on All Habitat, or Only Areas of Conservation Concern"),
-      p(HTML("Before actually selecting the geographic area of the landscape to be analyzed, a decision must be made
-      on what the focus of the some of the measured criteria should be, and there are two options: <br><br>
-      The first is to look at the impact of restoring degraded pixels just in terms of natural 	habitat – for example,
-      to measure how that might create more habitat of a given type for instance, or measure how it affects how connected
-      areas of habitat are to one another. <br><br>
-	    The second option is to focus on areas of conservation concern – which is created from a list of many area types which the
-	    user can select to include. For example: provincial parks, 	conservation reserves, or municipal heritage areas (or any combination
-	    of these which 	the user selects to include). In this case, the impact of restoring degraded pixels is 	measured in terms of how it
-	    might affect the size of areas of conservation concern, and their connectedness.
-      If the second option is selected, then a checkbox appears for the user to select which types of areas to include in their 
-      ‘areas of conservation concern’ definition.")),
+      div(style = "font-size: 18px; font-weight: bold; margin-bottom: 15px;", "Select what areas to consider when measuring connectivity and area of restored habitat"),
+      p(HTML("In the application, you will simulate restoring different degraded target areas. Multiple criteria are used to determine which target areas have the greatest overall benefit when restored. One such criterion is connectivity, which refers to how connected different habitat patches are. Patches that have greater connectivity typically exhibit landscape characteristics such as good vegetation cover or less anthropogenic disturbance that allow wildlife or plants to move among patches. A second criterion is the size of a particular habitat type once a degraded target area is restored; for example, restoration might increase the overall area of a wetland.<br><br>
+Depending on your goals, you may wish to calculate connectivity and habitat patch size in one of two ways.<br><br> 
+<b>Choose an option below to continue:</b><br>
+")),
+      actionButton("habitat_based_calculations", "Focus on entire landscape"),
       br(),
-      actionButton("habitat_based_calculations", "Calculate connectivity for habitat pixels"),
-      br(),
-      br(),
-      actionButton("protected_based_calculations", "Calculate connectivity for areas of conservation concern")
+      p(HTML("<i><p style='margin-left: 25px;'>This option will measure the effect of restoring degraded land on the entire selected landscape.</p></i>")),
+      actionButton("protected_based_calculations", "Focus on areas of conservation concern"),
+      p(HTML("<i><p style='margin-left: 25px;'>This option will measure the effect of restoring degraded land in areas of conservation concern only. In the next step, you can choose to include one or more categories of conservation concern, such as provincial parks, conservation reserves, or municipal heritage areas. Calculations will measure the impact of restoring degraded target areas on the size and connectedness of habitat within these focal categories.</p></i>"))
     )
   ),
 
@@ -3889,8 +3852,8 @@ ui <- shinyUI(semanticPage(
   conditionalPanel(
     condition = "input.protected_based_calculations > 0",
     segment(
-      div(style = "font-size: 18px; font-weight: bold; margin-bottom: 15px;", "Defining Areas of Conservation Concern"),
-      p("Select what features should be included in areas of conservation concern for the analysis (a minimum of 1 feature must be selected)."),
+      div(style = "font-size: 18px; font-weight: bold; margin-bottom: 15px;", "Defining areas of conservation concern"),
+      p("Select what features should be included in areas of conservation concern. A minimum of 1 feature must be selected."),
       br(),
       uiOutput("protected_checkboxes"),
     )
@@ -3900,39 +3863,26 @@ ui <- shinyUI(semanticPage(
   conditionalPanel(
     condition = "(input.habitat_based_calculations > 0 || input.protected_based_calculations > 0) && output.showSingleLandscape > 0",
     segment(
-      div(style = "font-size: 18px; font-weight: bold; margin-bottom: 15px;", "Choosing a Landscape"),
-      p(HTML("At this stage you are ready to select a landscape for analysis. This can be done a few ways:
-      <br><br>
-	    The first is by clicking on existing features in the map, and then clicking the 'set extent' button. The interactive map can be used
-	    to select particular features (e.g. municipalities, parks, 	conservation areas) by turning on visibility of those features via the 
-	    map legend checkbox, clicking on an associated feature displayed in the map, and then clicking the 'set extent' button below. 
-	    This selects the smallest rectangular space of land that, at the same time, contains the whole selected feature (municipality, 
-	    park, etc.).
-	    <br><br>
-	    The second method is to draw a rectangular bounding box or polygon on the map using the draw tools available (located at the
-	    top left of the map beow the zoom buttons), and then to click the ‘set extent’ button. Polygons are created by clicking to set
-	    points that connect an enclosed space, and bounding boxes are created by clicking and dragging.
-	    <br><br>
-	    The option to create a buffer around a landscape is also present. A buffer could be defined as an area that extends outward from a particular
-	    feature (in this case the selected landscape). Simply, buffers may be useful in reducing the influence of distortions or artifacats
-	    that may arise in some calculations because the edge of the dataset (i.e. landscape) doesn’t accurately reflect the reality outside that boundary.
-	    A landscape buffer can be set by entering a number in the text box below the map *prior* to clicking the 'set extent' button. Since the pixel 
-	    units are 300 by 300 metres, any number entered gets rounded down to the nearest multiple of 300. 
-	    <br><br>
-	    In all cases, after the ‘set extent’ button is clicked, images of the selected landscape are displayed for the user to review, 
-	    with a breakdown of the respective proportion of habitat types it contains (as a percentage of pixels present). In the case of 
-	    the areas of conservation concern choice being previously selected, a map displaying any areas of conservation concern and their
-	    percentage breakdown in the landscape is also produced.
-      <br><br>
-	    When the landscape extent is set, a test is also run on that landscape to see if it has sufficient nodes to calculate connectivity
-	    metrics at a later stage (this will be explained in more detail later at that step).")),
+      div(style = "font-size: 18px; font-weight: bold; margin-bottom: 15px;", "Choosing a landscape"),
+      p(HTML("You are ready to select a target landscape for analysis. You can choose to either draw or select the landscape:<br><br>
+<b>Option 1: Choose landscape extent by drawing a shape</b><br>
+Ensure the “Drawn extent” selection is checked in the map checkbox panel on the righthand side of the map. Set a custom extent using the draw tools located at the top left of the map below the zoom buttons. Create a custom shape by first selecting the pentagon icon, then clicking the map to drop points that define a target landscape. Or, create a rectangle by clicking the square icon, then dropping a single point and dragging to define a target landscape.<br><br>
+<b>Option 2: Choose landscape extent by selecting individual map features</b><br>
+Turn on the visibility of map feature groups such as provincial parks or national wildlife areas using the checkboxes panel on the righthand side of the map. Hover over the map to view the names of individual features within the group. Then, select a single feature by clicking on it (e.g., a single provincial park).<br>"
+)),
       leafletOutput("map", height = 600),
       br(),
       br(),
-      numericInput("buffer_unit_value", "(Optional) Enter an extent buffer value in metres:", value = 0),
+      p(HTML("<b>Add a buffer around the target landscape</b><br>
+We recommend adding a buffer to the selected landscape. A buffer is an area that extends outward from your target landscape by a specified number of metres. Buffers are useful in reducing the influence of distortions or artefacts that may arise because features outside your selected landscape are not included in application calculations. If you are considering restoration projects that may benefit more mobile species, your buffer size should be larger. Since the pixel units are 300 by 300 metres, any number entered here will be rounded down to the nearest multiple of 300.<br>")),
+      numericInput("buffer_unit_value", "Enter an extent buffer value in metres (optional but recommended):", value = 1200),
       br(),
       br(),
-      actionButton("set_extent", "Set Extent"),
+      p(HTML("<b>Set the final extent</b><br>
+               Finally, press “Set Extent” to confirm the final target landscape for analysis. No matter your extent selection method, the smallest rectangular space of land that contains the entire selected landscape is displayed. An image of the selected landscape is displayed for you to review, with a breakdown of the respective proportion of habitat types it contains. If you chose to focus on areas of conservation concern, a map displaying any areas of conservation concern and which areas are included in the analysis is also displayed.<br><br>
+             When the landscape extent is set, a test is run on that landscape to see if it is large enough to calculate connectivity metrics. This will be explained in more detail as you progress through the application.<br>
+               ")),
+      actionButton("set_extent", "Set extent"),
       br(),
       verbatimTextOutput("extent_values"),
       br(),
@@ -3950,7 +3900,7 @@ ui <- shinyUI(semanticPage(
   conditionalPanel(
     condition = "input.set_extent > 0",
     segment(
-      div(style = "font-size: 18px; font-weight: bold; margin-bottom: 15px;", "Defining Degraded Pixels"),
+      div(style = "font-size: 18px; font-weight: bold; margin-bottom: 15px;", "Defining degraded pixels"),
       p(HTML("The next step is to use several sliders to define degraded land based several threshold conditions. Using sliders, set a 
       combination of conditions defining which pixels are degraded. Conditions include active mines, abandoned mines (AMIS),
       night lights, oil/gas extraction, aggregate extraction, topsoil extraction, and marginal farmland. Slider values indicate the level of
@@ -3980,7 +3930,7 @@ ui <- shinyUI(semanticPage(
   conditionalPanel(
     condition = "input.preview > 0",
     segment(
-      div(style = "font-size: 18px; font-weight: bold; margin-bottom: 15px;", "Simulating Restoration"),
+      div(style = "font-size: 18px; font-weight: bold; margin-bottom: 15px;", "Simulating restoration"),
       p(HTML("The next step is to simulate the restoration of pixels that are defined as degraded. When 'simulate restoration' is clicked, degraded pixels
       are replaced with the most prevalent natural habitat around them (i.e. a 3x3 pixel neighbourhood with that given degraded pixel at the centre). <br><br> 
       This process starts with a 3x3 neighbourhood and for any pixel that is not restored because there are no nearby habitat pixels (as may be the case with 
@@ -3999,7 +3949,7 @@ ui <- shinyUI(semanticPage(
   conditionalPanel(
     condition = "input.simulate_restoration > 0 && !output.showAutoCombo && !output.showManualCombo",
     segment(
-      div(style = "font-size: 18px; font-weight: bold; margin-bottom: 15px;", "Choosing How to Evaluate Combinations of Restored Pixels"),
+      div(style = "font-size: 18px; font-weight: bold; margin-bottom: 15px;", "Choosing how to evaluate combinations of restored pixels"),
       p(HTML("The next step is to make a choice on how to combine restored pixels in groups (i.e. combinations) to
       evaluate which group of pixels has the greatest positive impact after restoration. Groups of 1 are also possible.
       The user has two main options:
@@ -4025,11 +3975,11 @@ ui <- shinyUI(semanticPage(
     )
   ),
 
-  ## Segment 8: Calculate Number of Combinations (only occurs if manual_combination choice is selected) ----
+  ## Segment 8: Calculate number of combinations (only occurs if manual_combination choice is selected) ----
   conditionalPanel(
     condition = "input.manual_combination > 0",
     segment(
-      div(style = "font-size: 18px; font-weight: bold; margin-bottom: 15px;", "Pixels to Evaluate for Restoration"),
+      div(style = "font-size: 18px; font-weight: bold; margin-bottom: 15px;", "Pixels to evaluate for restoration"),
       p("Set the number of pixels used in each unique combination (i.e. the size of the pixel group to prioritize for restoration).
     The resulting number of unique combinations based on the number of degraded pixels and the selected number of combined
     pixels will be output below. This setting has a strong bearing on calculation time. For example, in a sample landscape
@@ -4038,7 +3988,7 @@ ui <- shinyUI(semanticPage(
       br(),
       numericInput("num_combined_pixels", "Size of pixel group:", value = 1, min = 1),
       br(),
-      actionButton("calculate_combinations", "Calculate Combinations"),
+      actionButton("calculate_combinations", "Calculate combinations"),
       br(),
       br(),
       div(style = "font-size: 20px;", textOutput("numCombinations"))
@@ -4049,7 +3999,7 @@ ui <- shinyUI(semanticPage(
   conditionalPanel(
     condition = "input.calculate_combinations > 0 || input.automatic_combination > 0",
     segment(
-      div(style = "font-size: 18px; font-weight: bold; margin-bottom: 15px;", "Calculating Patch-Size Metrics"),
+      div(style = "font-size: 18px; font-weight: bold; margin-bottom: 15px;", "Calculating patch-size metrics"),
       p(HTML("Now we can start the process of calculating the impact of groups of restored pixels (i.e. combinations) on
       habitat patch size. Patch size can be described as the mean size of an area of particular habitat type in the
       landscape. This is measured by comparing patch size of the completely degraded landscape with no pixels restored,
@@ -4068,7 +4018,7 @@ ui <- shinyUI(semanticPage(
       br(),
       uiOutput("dynamic_checkboxes"),
       br(),
-      actionButton("calculate_metrics", "Calculate Habitat Metrics"),
+      actionButton("calculate_metrics", "Calculate habitat metrics"),
       br(),
       br(),
       textOutput("elapsedTime")
@@ -4080,7 +4030,7 @@ ui <- shinyUI(semanticPage(
   conditionalPanel(
     condition = "input.calculate_metrics > 0",
     segment(
-      div(style = "font-size: 18px; font-weight: bold; margin-bottom: 15px;", "Choosing to Merge Patch-Size Results?"),
+      div(style = "font-size: 18px; font-weight: bold; margin-bottom: 15px;", "Choosing to merge patch-size results?"),
       p("This is an option to merge patch size results across all habitat types, or keep results separate for each habitat type.
         If patch size results are merged, the sum of patch size results are combined. If they are not merged, they are kept as calculated.
         If patch size for one habitat type is considered more valuable for the purposes of restoration than another, 
@@ -4102,7 +4052,7 @@ ui <- shinyUI(semanticPage(
   conditionalPanel(
     condition = "input.perform_merge > 0",
     segment(
-      div(style = "font-size: 18px; font-weight: bold; margin-bottom: 15px;", "Calculating Connectivity Metrics"),
+      div(style = "font-size: 18px; font-weight: bold; margin-bottom: 15px;", "Calculating connectivity metrics"),
       p(HTML("Connectivity metrics for each combination can be calculated. Connectivity here can be defined as the ease of movement across a landscape due to connectedness
       – another way to view this is the amount of resistance a landscape has to movement. To carry out this analysis we have movement cost data for each 300 by 300 metre pixel,
       and this data covers the entire province. This data was created Pither et al. 2023, and a full breakdown of the cost values for each pixel type are given
@@ -4119,7 +4069,7 @@ ui <- shinyUI(semanticPage(
       The mean path resistance for each restored landscape is then subtracted from the mean path resistance of the degraded landscape 
       – to get a measure of how much resistance was reduced (or connectivity increased) by each restoration combination. Positive values = reduced resistance and better movement in a landscape,
       negative values = increased resistance and more difficult movement. Results for each combination are output in a table.")),
-      actionButton("calculate_connectivity", "Calculate Connectivity", style = "margin-top: 15px;"),
+      actionButton("calculate_connectivity", "Calculate connectivity", style = "margin-top: 15px;"),
       br(),
       br(),
       textOutput("conTime"),
@@ -4134,7 +4084,7 @@ ui <- shinyUI(semanticPage(
   conditionalPanel(
     condition = "input.calculate_connectivity > 0",
     segment(
-      div(style = "font-size: 18px; font-weight: bold; margin-bottom: 15px;", "Creating the Principal Component Data Layers"),
+      div(style = "font-size: 18px; font-weight: bold; margin-bottom: 15px;", "Creating the principal component data layers"),
       p(HTML("Principal Component Analysis (PCA) is a statistical method designed to simplify and reveal patterns in complex datasets. With the environment,
       there are a large set of variables, such as temperature, precipitation, and soil types. PCA takes all this information and creates multiple new variables,
       called principal components, which capture the most significant variations in the data. By focusing on these components, PCA helps reduce the complexity of
@@ -4146,7 +4096,7 @@ ui <- shinyUI(semanticPage(
 	    explained by each principal component, are displayed in a summary table. This information provides insights into the importance of each principal component in 
 	    explaining the variability in the environmental data. Using these principal component layers, we will measure environmental heterogeneity in each of the restored
 	    pixel combination landscapes, comparing them against the degraded landscape.")),
-      actionButton("calculate_pca", "Calculate PCA and Print Summary"),
+      actionButton("calculate_pca", "Calculate PCA and print summary"),
       br(),
       br(),
       dataTableOutput("pcaSummary"),
@@ -4158,7 +4108,7 @@ ui <- shinyUI(semanticPage(
   conditionalPanel(
     condition = "input.calculate_pca > 0",
     segment(
-      div(style = "font-size: 18px; font-weight: bold; margin-bottom: 15px;", "Calculating Environmental Heterogeneity"),
+      div(style = "font-size: 18px; font-weight: bold; margin-bottom: 15px;", "Calculating environmental heterogeneity"),
       p(HTML("Here we measure the difference in environmental heterogeneity between each the restored landscapes 
       and the degraded landscape – using the principal component data layers created previously. Degraded pixels are
       treated as if they have no environmental value (NA) in the principal component layers, while restored pixels are
@@ -4174,11 +4124,11 @@ ui <- shinyUI(semanticPage(
       many of the principal component layers to run through this process with – the default being the first two principal components
       as they typically contain > 99% of the environmental variation during testing. Results are output in a table for each combination with results
       for the number of principal component layers selected.")),
-      numericInput("num_pcs", "Number of Principal Components:",
+      numericInput("num_pcs", "Number of principal components:",
         value = 2, min = 1, max = 22
       ),
       br(),
-      actionButton("calculate_env_metrics", "Calculate Environmental Metrics"),
+      actionButton("calculate_env_metrics", "Calculate environmental metrics"),
       br(),
       br(),
       dataTableOutput("environmentTable"),
@@ -4190,13 +4140,13 @@ ui <- shinyUI(semanticPage(
   conditionalPanel(
     condition = "input.calculate_env_metrics > 0",
     segment(
-      div(style = "font-size: 18px; font-weight: bold; margin-bottom: 15px;", "Merging and Scaling Results"),
+      div(style = "font-size: 18px; font-weight: bold; margin-bottom: 15px;", "Merging and scaling results"),
       p("Results from all previous calculations are merged together in single table in preparation for finding the best combination.
       The values for each metric are also scaled so that they are on a standardized scale (i.e. an equivalent, comparable scale) for
       weighting purposes in the next step. The exact method of scaling is 'Z-Score Scaling' which transforms values by subtracting
       the mean and dividing by the standard deviation. After this transformation, values express the number of standard deviations 
       a data point is from the mean for that metric."),
-      actionButton("merge_and_display", "Merge and Scale Results"),
+      actionButton("merge_and_display", "Merge and scale results"),
       br(),
       br(),
       dataTableOutput("mergedResultsTable")
@@ -4207,7 +4157,7 @@ ui <- shinyUI(semanticPage(
   conditionalPanel(
     condition = "input.merge_and_display > 0",
     segment(
-      div(style = "font-size: 18px; font-weight: bold; margin-bottom: 15px;", "Weighting and Finding the Best Pixel Combinations"),
+      div(style = "font-size: 18px; font-weight: bold; margin-bottom: 15px;", "Weighting and finding the best pixel combinations"),
       p(HTML("We are now at the final stage of the app for a single landscape, which is weighting metrics and plotting the best combination
       of pixels based on those weighted metrics. Here weights (corresponding to a multiplier - with '1' as the default) can be assigned to the
       various environmental, habitat, and connectivity metrics calculated previously. Weights can be assigned to different metrics to influence
@@ -4215,7 +4165,7 @@ ui <- shinyUI(semanticPage(
       may also be specified here. For example, if a user sets the number of top combinations to 5, the best 5 pixel combinations will be displayed
       in descending order of importance (i.e., 1 being the best performing pixel combination, and 5 being the 5th best). 
       <br><br>
-      When the 'Find Best Combinations' button is clicked, values for each metric are adjusted based on the user-provided weights, the sum of weighted values
+      When the 'Find best combinations' button is clicked, values for each metric are adjusted based on the user-provided weights, the sum of weighted values
       is calculated for each combination, and the combination with the maximum sum is identified (i.e. the “best combination”). Two figures are created:
       an interactive map highlighting the pixels corresponding to the best combinations, and another showing where those pixels occur in respect to natural habitat.
       The latter includes an option for displaying the best pixel combination in conjunction with areas of conservation concern if the option to focus on areas of 
@@ -4223,7 +4173,7 @@ ui <- shinyUI(semanticPage(
       uiOutput("weights_ui"),
       br(),
       numericInput("num_top_combinations", "Number of top combinations to display:", value = 1, min = 1, step = 1),
-      actionButton("find_best_comb", "Find Best Combinations"),
+      actionButton("find_best_comb", "Find best combinations"),
       uiOutput("bestCombinationName", class = "ui message"),
       leafletOutput("map_best_comb", height = 600),
       uiOutput("plotsContainer")
@@ -4241,7 +4191,7 @@ ui <- shinyUI(semanticPage(
       br(),
       textInput("landscape_name", "Enter a unique landscape identifier:"),
       br(),
-      actionButton("add_column", "Set Landscape Identifier")
+      actionButton("add_column", "Set landscape ldentifier")
     )
   ),
 
@@ -4249,9 +4199,9 @@ ui <- shinyUI(semanticPage(
   conditionalPanel(
     condition = "output.landscape_added",
     segment(
-      downloadButton("download_data", "Save Landscape Metics and Combinaton Performance", style = "height:60px; width:300px; font-size:25px;")),
+      downloadButton("download_data", "Save landscape metics and combinaton performance", style = "height:60px; width:300px; font-size:25px;")),
       segment(
-        downloadButton("downloadKML", "Save Best Combination .KML", style = "height:60px; width:300px; font-size:25px;")
+        downloadButton("downloadKML", "Save best combination .KML", style = "height:60px; width:300px; font-size:25px;")
     )
   ),
 
@@ -4259,7 +4209,7 @@ ui <- shinyUI(semanticPage(
   conditionalPanel(
     condition = "output.showMultipleLandscapes > 0",
     segment(
-      div(style = "font-size: 18px; font-weight: bold; margin-bottom: 15px;", "Load and Merge Combination Metrics from Multiple Landscapes"),
+      div(style = "font-size: 18px; font-weight: bold; margin-bottom: 15px;", "Load and merge combination metrics from multiple landscapes"),
       p("Here multiple .CSV files containing landscape data (created at the conclusion of the single landscape analysis) can be uploaded, with each file representing a distinct landscape.
 	    The code reads these .CSV files, extracts information such as the extent (i.e. spatial boundaries) and landscape name, and joins data from these files together to form a unified dataset
 	    for multi-landscape analysis. The spatial extents of each landscape are visualized on a map, providing an overview of the coverage of the uploaded landscapes."),
@@ -4275,7 +4225,7 @@ ui <- shinyUI(semanticPage(
   conditionalPanel(
     condition = "output.fileSelected > 0",
     segment(
-      div(style = "font-size: 18px; font-weight: bold; margin-bottom: 15px;", "Weighting and Ranking"),
+      div(style = "font-size: 18px; font-weight: bold; margin-bottom: 15px;", "Weighting and ranking"),
       p("Similar to single landscape analysis, weights can be assigned to different metrics for multi-landscape analysis.
         The best restored pixel combinations across all landscapes, are ranked using the weighted metrics, and displayed showing the
         corresponding landscape name and combination indices (for that particular landscape). Individual plots for each of the top 
@@ -4283,10 +4233,10 @@ ui <- shinyUI(semanticPage(
       uiOutput("landscape_weights_ui"),
       br(),
       br(),
-      numericInput("topNCombinations", "Number of Top Combinations to Display:", value = 1, min = 1),
+      numericInput("topNCombinations", "Number of top combinations to display:", value = 1, min = 1),
       br(),
       br(),
-      actionButton("lands_best_comb", "Find Best Combination"),
+      actionButton("lands_best_comb", "Find best combination"),
       br(),
       br(),
       uiOutput("topCombinations", class = "ui message"),
@@ -4301,7 +4251,7 @@ ui <- shinyUI(semanticPage(
   conditionalPanel(
     condition = "input.lands_best_comb > 0",
     segment(
-      downloadButton("download_multiple_data", "Save Restored Pixel Metrics", style = "height:60px; width:300px; font-size:25px;")),
+      downloadButton("download_multiple_data", "Save restored pixel metrics", style = "height:60px; width:300px; font-size:25px;")),
       segment(
         downloadButton("download_multiple_KML", "Save KML files of top combinations", style = "height:60px; width:300px; font-size:25px;"))
   ),
@@ -4317,7 +4267,7 @@ ui <- shinyUI(semanticPage(
       fileInput("vis_fileInput", "Choose .csv files", multiple = TRUE, accept = c("text/csv", "text/comma-separated-values,text/plain", ".csv")),
       br(),
       br(),
-      actionButton("view_landscapes", "View Landscapes"),
+      actionButton("view_landscapes", "View landscapes"),
       br(),
       br(),
       uiOutput("vis_dynamicPlots")
@@ -4329,37 +4279,37 @@ ui <- shinyUI(semanticPage(
   conditionalPanel(
     condition = "(input.habitat_based_calculations > 0 || input.protected_based_calculations > 0) && output.showBatchProcessing > 0",
     segment(
-      div(style = "font-size: 18px; font-weight: bold; margin-bottom: 15px;", "Batch Processing for All landscapes of a Given Type"),
+      div(style = "font-size: 18px; font-weight: bold; margin-bottom: 15px;", "Batch processing for all landscapes of a given type"),
       br(),
       selectInput(
         inputId = "sf_object_selection",
         label = "Select a group of landscapes to analyze:",
         choices = list(
-          "Conservation Reserves" = "Conservation_reserves",
-          "Natural Heritage Value Areas" = "Natural_heritage_value_areas",
-          "Natural Heritage System Areas" = "Natural_heritage_system_areas",
-          "NGO Reserves" = "NGO_reserves",
-          "Provincial Parks" = "Provincial_parks",
-          "Lower Municipalities" = "Lower_municipality",
-          "Upper Municipalities" = "Upper_municipality",
-          "National Parks" = "National_parks",
-          "Conservation Areas" = "Conservation_areas",
-          "Far North Protected Areas" = "Far_North_protected_areas",
-          "Municipal Heritage Areas" = "Municipal_Heritage_areas",
-          "Migratory Bird Sanctuaries" = "Migratory_Bird_sanctuaries",
-          "National Wildlife Areas" = "National_Wildlife_areas",
-          "Wilderness Areas" = "Wilderness_areas",
-          "National Capital Valued Ecosystems or Habitats" = "National_capital_valued_ecosystem_or_habitat",
-          "Provincial Planned Protected Areas" = "Provincial_planned_protected_area",
-          "Crown Plan Protected Areas" = "Crown_plan_protected_area",
-          "Other Effective Area-Based Conservation Measures" = "Other_effective_area_based_conservation_measures"
+          "Conservation reserves" = "Conservation_reserves",
+          "Natural heritage value areas" = "Natural_heritage_value_areas",
+          "Natural heritage system areas" = "Natural_heritage_system_areas",
+          "Non-governmental organization reserves" = "NGO_reserves",
+          "Provincial parks" = "Provincial_parks",
+          "Lower municipalities" = "Lower_municipality",
+          "Upper municipalities" = "Upper_municipality",
+          "National parks" = "National_parks",
+          "Conservation areas" = "Conservation_areas",
+          "Far North protected areas" = "Far_North_protected_areas",
+          "Municipal heritage areas" = "Municipal_Heritage_areas",
+          "Migratory bird sanctuaries" = "Migratory_Bird_sanctuaries",
+          "National wildlife areas" = "National_Wildlife_areas",
+          "Wilderness areas" = "Wilderness_areas",
+          "National capital valued ecosystems or habitats" = "National_capital_valued_ecosystem_or_habitat",
+          "Provincial planned protected areas" = "Provincial_planned_protected_area",
+          "Crown plan protected areas" = "Crown_plan_protected_area",
+          "Other effective area-based conservation measures" = "Other_effective_area_based_conservation_measures"
         )
       ),
       br(),
       br(),
       p(HTML("Below, a landscape buffer can be set by entering a number in the text box. Since the pixel 
 	    units are 300 by 300 metres, any number entered gets rounded down to the nearest multiple of 300.")),
-      numericInput("batch_buffer_unit_value", "(Optional) Enter a landscape buffer value in metres:", value = 0),
+      numericInput("batch_buffer_unit_value", "(Optional) Enter a landscape buffer value in metres:", value = 1200),
       br(),
       br(),
       p(HTML("Below, set a combination of conditions defining which pixels are degraded using sliders. Conditions include active mines, abandoned mines (AMIS),
@@ -4393,7 +4343,7 @@ ui <- shinyUI(semanticPage(
 conditionalPanel(
   condition = "input.run_batch > 0",
     segment(
-      downloadButton("download_data_batch", "Save Landscape Metics and Combinaton Performance", style = "height:60px; width:300px; font-size:25px;")),
+      downloadButton("download_data_batch", "Save landscape metics and combinaton performance", style = "height:60px; width:300px; font-size:25px;")),
     )
 ))
 
