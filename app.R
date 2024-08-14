@@ -63,6 +63,13 @@ library(leaflet.extras)
 library(leaflet.providers)
 library(stars)
 library(readr)
+library(tidyverse)
+library(plotly)
+library(tidyterra)
+library(cowplot)
+library(grid)
+library(gridExtra)
+
 
 
 # setting the working directory to the location of the script
@@ -132,8 +139,8 @@ pca_result <- reactiveVal()
 result_habitat_data_updated <- reactiveVal()
 landscape_added <- reactiveVal(FALSE)
 merged_data_reactive <- reactiveVal()
-plot1 <- reactiveVal()
-plot2 <- reactiveVal()
+plot_degraded <- reactiveVal()
+degraded_protected_react <- reactiveVal()
 best_comb_react <- reactiveVal()
 output_extent <- reactiveVal()
 combinations_react <- reactiveVal()
@@ -145,18 +152,69 @@ selected_sf_react <- reactiveVal()
 temp_dir_react <- reactiveVal()
 land_cover_labels_react<- reactiveVal()
 land_cover_labels <- data.frame(
-        Value = c(11, 12, 13, 14, 15, 16, 17, 18, 21, 22, 23, 24, 25, 31, 32, 33, 34, 35, 36, 37, 38, 41, 51, 52, 53, 54, 55, 99, 100, 101, 204, 205, 250, 0, 1),
-        Land_Class = c(
-          "Prairie", "Savannah", "Alvar", "Dune", "Meadow", "Shrubland", "Barren", "Sparse treed",
-          "Coniferous forest", "Mixedwood forest", "Deciduous forest", "Transitional forest", "Hedge row",
-          "Coniferous treed swamp", "Mixedwood treed swamp", "Deciduous treed swamp", "Transitional treed swamp",
-          "Thicket swamp", "Bog", "Fen", "Marsh", "Water", "Built up area-pervious", "Anthropogenic", "Cropland",
-          "Hay/pasture", "Transportation", "Unclassified", "Degraded", "Priority pixels", "Aggregate extraction", 
-          "Topsoil/Peat extraction", "Undifferentiated", "Not included", "Included"))
+  Value = c(
+    13, 52, 17, 
+    36, 51, 21, 
+    31, 53, 23, 
+    33, 14, 37, 
+    54, 25, 38, 
+    15, 22, 32, 
+    11, 12, 16, 
+    18, 35, 24, 
+    34, 55, 99, 
+    41),
+  Land_Class = c(
+    "Alvar", "Anthropogenic", "Barren", 
+    "Bog", "Built up area-pervious", "Coniferous forest", 
+    "Coniferous treed swamp", "Cropland", "Deciduous forest", 
+    "Deciduous treed swamp", "Dune", "Fen", 
+    "Hay/pasture", "Hedge row", "Marsh", 
+    "Meadow", "Mixedwood forest", "Mixedwood treed swamp", 
+    "Prairie", "Savannah", "Shrubland", 
+    "Sparse treed", "Thicket swamp", "Transitional forest", 
+    "Transitional treed swamp", "Transportation", "Unclassified", 
+    "Water")
+) %>% 
+  mutate(color = c(
+    # The first set are the official colors for the OLC layer from LIO:
+    colors <- c(
+      "#FDD18D", "#767168", "#DEEFC9",
+      "#9ECEC9", "#70834A", "#329700",
+      "#009377", "#CDA666", "#B9F500",
+      "#6DF1B2", "#EAE312", "#8EB1D4",
+      "#BE7F5F", "#357839", "#4D86C4",
+      "#B3B300", "#45D000", "#00C595",
+      "#D7D69E", "#E7C0F8", "#ECB9B6",
+      "#579B36", "#82F1D5", "#AFAF00",
+      "#C8FFCB", "#090000", "#FF0000",
+      "#185A93"
+    ))) %>% 
+  # Add our own classes
+  bind_rows(data.frame(
+    Value = c(
+      100, 101, 204, 
+      205, 250, 0, 1),
+    # These are custom colors we define  (I just threw these in, they are not necessarily "good"):
+    color = c(
+      "#FF33B5", "#33FFF3", "#FF8333",
+      "#8D33FF", "#3333FF", "#8B0000", 
+      "#FFD700"),
+    Land_Class = c("Degraded", "Priority pixels", "Aggregate extraction", 
+                   "Topsoil/Peat extraction", "Undifferentiated", "Not included", "Included")
+  ))
 land_cover_labels_react(land_cover_labels)
 polyrast_plot<- reactiveVal()
 buffer_value <- reactiveVal()
 buffer_value(1200)
+sp_plot_polygon <-reactiveVal()
+legend_plot1_react <-reactiveVal()
+legend_plot2_react <-reactiveVal()
+legend_plot3_react <-reactiveVal()
+legend_plot4_react <-reactiveVal()
+legend_plot5_react <-reactiveVal()
+plot_degraded_react <-reactiveVal()
+plot_degraded_protected_react <-reactiveVal()
+restored_land_plot_react <-reactiveVal()
 
 # BatchloopFinished <- reactiveVal(FALSE)
 
@@ -666,7 +724,10 @@ server <- function(input, output, session) {
         values$extent <- extent_val_3162
         
         polygon_geometry <- clicked_polygon$geometry
+        polygon_geometry <- st_sf(geometry = polygon_geometry)
+        
         sp_polygon_3162 <- sf::st_transform(polygon_geometry, crs = 3162)
+        sp_plot_polygon(sf::st_transform(polygon_geometry, crs = st_crs(OLC)))
         ras_resolution <- terra::res(OLC)
         template <- terra::rast(terra::vect(sp_polygon_3162), res = ras_resolution, ext = OLC)
         poly_raster <- terra::rasterize(terra::vect(sp_polygon_3162), template)
@@ -740,7 +801,10 @@ server <- function(input, output, session) {
       # Set the target CRS
       target_crs <- sf::st_crs(3162)
       
+      sf_polygon <- st_sf(geometry = sf_polygon)
+      
       sp_polygon_3162 <- sf::st_transform(sf_polygon, crs = target_crs)
+      sp_plot_polygon(sf::st_transform(sf_polygon, crs = st_crs(OLC)))
       ras_resolution <- terra::res(OLC)
       template <- terra::rast(terra::vect(sp_polygon_3162), res = ras_resolution, ext = OLC)
       poly_raster <- terra::rasterize(terra::vect(sp_polygon_3162), template)
@@ -835,121 +899,220 @@ server <- function(input, output, session) {
     croppedProtected_areas(crop(Protected_areas(), cropped_Ontario_land_cover))
     croppedmovement_cost_protected(crop(movement_cost_protected(), cropped_Ontario_land_cover))
     
-    
-    # Define function to buffer the cells for plotting
-    buffer_plot_cells <- function(raster_obj, buffer_size) {
-      # Create a mask for cells with value 1
-      mask <- raster_obj == 1
-      
-      # Use focal function to create the buffer
-      expanded_mask <- focal(mask, w = matrix(1, nrow = 2 * buffer_size + 1, ncol = 2 * buffer_size + 1), fun = max, na.rm = TRUE, pad = TRUE, padValue = 0)
-      
-      # Apply the expanded mask to the original raster, preserving NA values
-      buffered_raster <- ifel(expanded_mask == 1, 1, NA)
-      
-      return(buffered_raster)
-    }
-    
-    
-    # Get the buffer size (in cells)
-    plot_buffer_size <- buffer_value()/300
-    plot_buffer_size <-floor(plot_buffer_size)
-    
-    plot_buffered_raster<-cropped_polyrast()
-    
-    # Apply the buffer function if a buffer exists
-    if (plot_buffer_size > 0) {
-      plot_buffered_raster <- buffer_plot_cells(plot_buffered_raster, plot_buffer_size)
-    }
-    
-    plot_buffered_raster <- ifel(!is.na(plot_buffered_raster), croppedOntario(), plot_buffered_raster)
 
+    # buffer the raster for plotting
+    sp_polygon_3162_buffered <- st_buffer(sp_plot_polygon(), buffer_value())
+    plot_buffered_raster <- crop(croppedOntario(), sp_polygon_3162_buffered, mask = TRUE)
+    polyrast_plot(plot_buffered_raster)
+    
     # This plots the cropped landscape with habitat classes
-    output$rasterPlot <- renderPlot({
+    output$rasterPlot <-  renderPlotly({
       #Creates a table to map land class labels to numeric values in 'Ontario_land_cover' (for the plot legend essentially)
       land_cover_labels <- land_cover_labels_react()
       
-      # Maps the numeric values in 'Ontario_land_cover' to their corresponding labels
-      mapped_values <- land_cover_labels$Land_Class[match(values(plot_buffered_raster), land_cover_labels$Value)]
-      mapped_val_react(mapped_values)
-      values(plot_buffered_raster) <- mapped_values
-      polyrast_plot(plot_buffered_raster)
-      plot(plot_buffered_raster, main="Cropped Landscape", col=viridis(32, direction = -1))
+      # Determine percentage of each land cover class in the *buffered* landscape, since this is what readers will see
+      percent_landcover <- plot_buffered_raster %>% 
+        data.frame() %>% 
+        rename(value = 1) %>% 
+        group_by(value) %>% 
+        tally() %>% 
+        mutate(percentage = round(n/sum(n)*100, 2)) %>% 
+        dplyr::select(-n)
+      
+      #Extract unique values from the SpatRaster for the legend of the plot
+      unique_values <- as.vector(unique(values(plot_buffered_raster)))
+      
+      # Make a map of colors and labels to raster values in cropped landscape
+      df_joined <- data.frame(value = unique_values) %>%
+        left_join(land_cover_labels, by = c("value" = "Value"))
+      
+      # Make a sf points feature (I previously used it to create labels for the map - so this code is likely overkill for what I end up doing...)
+      label_points_sf <- as.data.frame(plot_buffered_raster, xy = TRUE, cells = TRUE) %>% 
+        rename(value = 4) %>% 
+        st_as_sf(coords = c("x", "y"), 
+                 crs = crs(plot_buffered_raster)) %>% 
+        left_join(df_joined, by = "value") %>% 
+        # Add percentage of each Land Class in the map
+        left_join(percent_landcover, by = "value") %>% 
+        # some land classes have 0 percent coverage in the TARGET landscape
+        # but are present in the buffer.
+        mutate(percentage = if_else(is.na(percentage), 0, percentage)) %>% 
+        # Create a new label for each class
+        mutate(Label = paste0(Land_Class, " (", percentage, "%)"),
+               # arrange the Land Class labels by percentage
+               Label = fct_infreq(Label))
+      
+      # get colors for plot
+      plot_colors <- label_points_sf %>% 
+        st_drop_geometry() %>% 
+        arrange(Label) %>% 
+        dplyr::select(value, color, Label, percentage) %>%
+        arrange(desc(percentage)) %>% 
+        distinct()
+      
+      # Ready the raster for plotting - assign colors
+      plot_buffered_raster <- as.factor(plot_buffered_raster)
+      
+      levels(plot_buffered_raster) = data.frame(value = plot_colors$value, 
+                                          Label = plot_colors$Label)
+      
+      # plot in ggplot first
+      my_ggplot <- ggplot() +
+        geom_spatraster(data = plot_buffered_raster) +
+        scale_fill_manual(name = "Land class and percent cover\n",
+                          values = plot_colors$color,
+                          na.value = "white") +
+        geom_sf(data = sp_polygon_3162_buffered,
+                aes(color = "Buffer extent"), fill = NA, linewidth = 1) +
+        geom_sf(data = sp_plot_polygon(), aes(color = "Target landscape"),
+                fill = NA, linewidth = 1) +
+        scale_color_manual(name = "", values = c("lightgrey", "black")) +
+        # Old line of code to get labels - not needed anymore
+        # geom_sf(data = label_points_sf,
+        #         aes(text = Label, color = Label), alpha = 0) +
+        theme_minimal() + 
+        theme(panel.grid = element_blank(), legend.margin = margin(c(0,0,0,0)),
+              legend.key.size = unit(1.5, "cm"), # Adjust legend key size
+              legend.text = element_text(size = 12, face = "bold"), # Adjust legend text size
+              legend.title = element_text(size = 18, face = "bold"), # Adjust legend title size
+              legend.box.spacing = unit(0.5, "cm")) + # Adjust spacing
+      guides(fill = guide_legend(
+        label.position = "left",
+        label.hjust = 1),
+        color = guide_legend(
+          direction = "horizontal",
+          label.position = "right",
+          label.hjust = 0))
+      
+      # strip out the legend - this makes it easier to format and put it where you might want it - whether above, below, or beside plotly interactive plot
+      legend_plot1 <- cowplot::get_plot_component(my_ggplot, 'guide-box-right', return_all = TRUE)
+      grid.newpage()
+      grid.draw(legend_plot1)
+      legend_plot1_react(legend_plot1)
+      
+
+      
+      # Users can hover over the map output below and the raster value will appear.
+      # I'm not totally happy with this - sometimes hover doesn't work.
+      ggplotly(my_ggplot + theme(legend.position = "none",
+                                 axis.text = element_blank()), 
+               tooltip = "value")
+      
     })
     
-    #This outputs a simple breakdown of the land classes in a landscape
-    output$habitatBreakdown <- renderTable({
-      # Calculates the percentage breakdown of habitat classes
-      mapped_values<-mapped_val_react()
-      habitat_counts <- table(mapped_values)
-      habitat_percentages <- prop.table(habitat_counts) * 100
-      
-      # Create a data frame with the breakdown
-      breakdown_df <- data.frame(
-        Habitat_Class = names(habitat_counts),
-        Percentage = habitat_percentages
-      )
-      names(breakdown_df)[ncol(breakdown_df)] <- "% of landscape"
-      names(breakdown_df)[1] <- "Habitat class"
-      breakdown_df$Percentage.mapped_values <- NULL
-      # Return the breakdown table
-      breakdown_df
+    output$rasterPlot1legend <- renderPlot({
+      legend_plot1<-legend_plot1_react()
+      grid.newpage()
+      grid.draw(legend_plot1)
     })
+  
 
 
     # If the 'areas of conservation concern' option is selected in the previous UI Segment 2,
     # then an 'areas of conservation concern' plot is also created using the definitions the user selected previously
-    Protected_areas_plot <- ifel(!is.na(plot_buffered_raster), croppedProtected_areas(), plot_buffered_raster)
-    output$protectedPlot <- renderPlot({
+    output$protectedPlot <- renderPlotly({
       req(input$protected_based_calculations > 0)
-      # Create a table to map land class labels to numeric values in 'Ontario_land_cover'
-      land_cover_labels <- land_cover_labels_react()
-
-      # Match raster values to land cover classes and convert to factor
-      mapped_values <- factor(land_cover_labels$Land_Class[match(values(Protected_areas_plot), land_cover_labels$Value)])
-
-      # Create a categorical raster and set its categories
-      cat_raster <- rast(Protected_areas_plot)
-      values(cat_raster) <- mapped_values
-      levels(cat_raster) <- data.frame(ID = 1:length(levels(mapped_values)), LC = levels(mapped_values))
-
-      # Define colors
-      num_classes <- length(levels(mapped_values))
-      color_palette <- viridis(num_classes, direction = -1)
-
-      # This sets colours for specific pixel classes
-      protected_idx <- which(levels(mapped_values) == "Included")
-      if (length(protected_idx) > 0) color_palette[protected_idx] <- "lightseagreen"
-
-      not_protected_idx <- which(levels(mapped_values) == "Not included")
-      if (length(not_protected_idx) > 0) color_palette[not_protected_idx] <- "yellow2"
-
-
-      mapped_val_react_pro(mapped_values)
-      values(Protected_areas_plot) <- mapped_values
-      plot(Protected_areas_plot, main = "Areas of conservation concern", col = color_palette)
-    })
-
-    output$protectedBreakdown <- renderTable({
-      req(input$protected_based_calculations > 0)
-      # Calculate the percentage breakdown of habitat classes
-      mapped_values <- mapped_val_react_pro()
-      protected_counts <- table(mapped_values)
-
-      # Calculate percentages
-      protected_percentages <- prop.table(protected_counts) * 100
-
-      # Create a data frame with the breakdown
-      breakdown_df <- data.frame(
-        Protected_Class = names(protected_counts),
-        Percentage = protected_percentages
-      )
-      names(breakdown_df)[ncol(breakdown_df)] <- "% of landscape"
-      names(breakdown_df)[1] <- "Area of conservation concern breakdown"
-      breakdown_df$Percentage.mapped_values <- NULL
-      # Return the breakdown table
-      breakdown_df
-    })
+      Protected_areas_plot <- ifel(!is.na(plot_buffered_raster), croppedProtected_areas(), plot_buffered_raster)
+  
+        #Creates a table to map land class labels to numeric values in 'Ontario_land_cover' (for the plot legend essentially)
+        land_cover_labels <- land_cover_labels_react()
+        
+        # Determine percentage of each land cover class in the *buffered* landscape, since this is what readers will see
+        percent_landcover <- Protected_areas_plot %>% 
+          data.frame() %>% 
+          rename(value = 1) %>% 
+          group_by(value) %>% 
+          tally() %>% 
+          mutate(percentage = round(n/sum(n)*100, 2)) %>% 
+          dplyr::select(-n)
+        
+        #Extract unique values from the SpatRaster for the legend of the plot
+        unique_values <- as.vector(unique(values(Protected_areas_plot)))
+        
+        # Make a map of colors and labels to raster values in cropped landscape
+        df_joined <- data.frame(value = unique_values) %>%
+          left_join(land_cover_labels, by = c("value" = "Value"))
+        
+        # Make a sf points feature (I previously used it to create labels for the map - so this code is likely overkill for what I end up doing...)
+        label_points_sf <- as.data.frame(Protected_areas_plot, xy = TRUE, cells = TRUE) %>% 
+          rename(value = 4) %>% 
+          st_as_sf(coords = c("x", "y"), 
+                   crs = crs(Protected_areas_plot)) %>% 
+          left_join(df_joined, by = "value") %>% 
+          # Add percentage of each Land Class in the map
+          left_join(percent_landcover, by = "value") %>% 
+          # some land classes have 0 percent coverage in the TARGET landscape
+          # but are present in the buffer.
+          mutate(percentage = if_else(is.na(percentage), 0, percentage)) %>% 
+          # Create a new label for each class
+          mutate(Label = paste0(Land_Class, " (", percentage, "%)"),
+                 # arrange the Land Class labels by percentage
+                 Label = fct_infreq(Label))
+        
+        # get colors for plot
+        plot_colors <- label_points_sf %>% 
+          st_drop_geometry() %>% 
+          arrange(Label) %>% 
+          dplyr::select(value, color, Label, percentage) %>%
+          arrange(desc(percentage)) %>% 
+          distinct()
+        
+        # Ready the raster for plotting - assign colors
+        Protected_areas_plot <- as.factor(Protected_areas_plot)
+        
+        levels(Protected_areas_plot) = data.frame(value = plot_colors$value, 
+                                                  Label = plot_colors$Label)
+        
+        # plot in ggplot first
+        my_ggplot <- ggplot() +
+          geom_spatraster(data = Protected_areas_plot) +
+          scale_fill_manual(name = "Protected area status\n",
+                            values = plot_colors$color,
+                            na.value = "white") +
+          geom_sf(data = sp_polygon_3162_buffered,
+                  aes(color = "Buffer extent"), fill = NA, linewidth = 1) +
+          geom_sf(data = sp_plot_polygon(), aes(color = "Target landscape"),
+                  fill = NA, linewidth = 1) +
+          scale_color_manual(name = "", values = c("lightgrey", "black")) +
+          # Old line of code to get labels - not needed anymore
+          # geom_sf(data = label_points_sf,
+          #         aes(text = Label, color = Label), alpha = 0) +
+          theme_minimal() + 
+          theme(panel.grid = element_blank(), legend.margin = margin(c(0,0,0,0)),
+                legend.key.size = unit(1.5, "cm"), # Adjust legend key size
+                legend.text = element_text(size = 12, face = "bold"), # Adjust legend text size
+                legend.title = element_text(size = 18, face = "bold"), # Adjust legend title size
+                legend.box.spacing = unit(0.5, "cm")) + # Adjust spacing
+          guides(fill = guide_legend(
+            label.position = "left",
+            label.hjust = 1),
+            color = guide_legend(
+              direction = "horizontal",
+              label.position = "right",
+              label.hjust = 0))
+        
+        # strip out the legend - this makes it easier to format and put it where you might want it - whether above, below, or beside plotly interactive plot
+        legend_plot2 <- cowplot::get_plot_component(my_ggplot, 'guide-box-right', return_all = TRUE)
+        grid.newpage()
+        grid.draw(legend_plot2)
+        legend_plot2_react(legend_plot2)
+        
+        
+        # Users can hover over the map output below and the raster value will appear.
+        # I'm not totally happy with this - sometimes hover doesn't work.
+        ggplotly(my_ggplot + theme(legend.position = "none",
+                                   axis.text = element_blank()), 
+                 tooltip = "value")
+        
+      })
+      
+      output$rasterPlot2legend <- renderPlot({
+        req(input$protected_based_calculations > 0)
+        legend_plot2<-legend_plot2_react()
+        grid.newpage()
+        grid.draw(legend_plot2)
+      })
+      
 
 #_----
     #Tests for viability of landscape for connectivity calculations ----
@@ -1075,19 +1238,23 @@ server <- function(input, output, session) {
     if (!is.null(croppedOntario())) {
       tagList(
         div(
-          sliderInput("mine_slider", HTML("<br><b>Active mines</b><br><i>1 = Any active mine (open pit or underground), and areas within 10 km of any active mine are degraded.<br>8 = Only land within 500 m of an open pit mine is degraded.</i><br><br>"), min = 1, max = 9, value = 2, step = 1),
+          sliderInput("mine_slider", HTML("<br><b>Active mines</b><br><i>1 = Any active mine (open pit or underground), and areas within 10 km of any active mine are 
+                      degraded.<br>8 = Only land within 500 m of an open pit mine is degraded.</i><br><br>"), min = 1, max = 9, value = 2, step = 1),
           tags$p(id = "mine_max_label", "Not included", style = "text-align: right; margin-top: -20px;")
         ),
         div(
-          sliderInput("amis_slider", HTML("<br><b>Abandoned mines</b><br><i>1 = Pixels with 1 or more abandoned mines are degraded.<br>3 = Only pixels with 3 abandoned mines are degraded.</i><br><br>"), min = 1, max = 4, value = 1, step = 1),
+          sliderInput("amis_slider", HTML("<br><b>Abandoned mines</b><br><i>1 = Pixels with 1 or more abandoned mines are degraded.<br>3 = Only pixels with 3 abandoned 
+                      mines are degraded.</i><br><br>"), min = 1, max = 4, value = 1, step = 1),
           tags$p(id = "amis_max_label", "Not included", style = "text-align: right; margin-top: -20px;")
         ),
         div(
-          sliderInput("night_lights_slider", HTML("<br><b>Night lights</b><br><i>1 = Pixels with any amount of night light pollution are degraded.<br>10 = Only pixels with the most severe night light pollution are degraded.</i><br><br>"), min = 1, max = 11, value = 1, step = 1),
+          sliderInput("night_lights_slider", HTML("<br><b>Night lights</b><br><i>1 = Pixels with any amount of night light pollution are degraded.<br>10 = Only pixels with the most severe night light pollution
+                      are degraded.</i><br><br>"), min = 1, max = 11, value = 1, step = 1),
           tags$p(id = "night_lights_max_label", "Not included", style = "text-align: right; margin-top: -20px;")
         ),
         div(
-          sliderInput("oil_gas_slider", HTML("<br><b>Oil and gas</b><br><i>1 = Any area within 5 km of an active oil and gas field is degraded.<br>10 = Only areas within 300 m of active oil and gas activity are degraded.</i><br><br>"), min = 1, max = 11, value = 6, step = 1),
+          sliderInput("oil_gas_slider", HTML("<br><b>Oil and gas</b><br><i>1 = Any area within 5 km of an active oil and gas field is degraded.<br>10 = Only areas within 300 m of active oil and gas activity
+                      are degraded.</i><br><br>"), min = 1, max = 11, value = 6, step = 1),
           tags$p(id = "oil_gas_max_label", "Not included", style = "text-align: right; margin-top: -20px;")
         ),
         div(
@@ -1099,7 +1266,9 @@ server <- function(input, output, session) {
           tags$p(id = "topsoil_extraction_max_label", "Not included", style = "text-align: right; margin-top: -20px;")
         ),
         div(
-          sliderInput("undifferentiated_slider", HTML("<br><b>Undifferentiated land</b><br><i>1 = Brownfields and marginal farmland are considered degraded land. Note that any pixels classified as 'undifferentiated' by the Southern Ontario Land Resource Information System, SOLRIS, that were also classified as 'good farmland' in the Canada Land Inventory will not be classed as degraded here.</i><br><br>"), min = 1, max = 2, value = 1, step = 1),
+          sliderInput("undifferentiated_slider", HTML("<br><b>Undifferentiated land</b><br><i>1 = Brownfields and marginal farmland are considered degraded land. Note that any pixels classified as 'undifferentiated' 
+                      by the Southern Ontario Land Resource Information System, SOLRIS, that were also classified as 'good farmland' in the Canada Land Inventory will not be classed 
+                      as degraded here.</i><br><br>"), min = 1, max = 2, value = 1, step = 1),
           tags$p(id = "undifferentiated_max_label", "Not included", style = "text-align: right; margin-top: -20px;")
         )
       )
@@ -1147,16 +1316,20 @@ server <- function(input, output, session) {
 
     degraded_protected[final_condition] <- 100 # an areas of conservation concern version of this is done as well (mainly for plotting)
     degraded_protected[is.na(degraded_pixels_temp)] <- NA
-
-    plot_degraded_protected<-degraded_protected
-    plot_degraded_protected <- ifel(!is.na(polyrast_plot()), plot_degraded_protected, polyrast_plot())
+    degraded_protected_react(degraded_protected)
+    
+    sp_polygon_3162_buffered <- st_buffer(sp_plot_polygon(), buffer_value())
+    
+    
+    plot_degraded_protected <- degraded_protected
+    plot_degraded_protected <- crop(plot_degraded_protected, sp_polygon_3162_buffered, mask = TRUE)
     
     plot_degraded_pixels <- degraded_pixels_temp
-    plot_degraded_pixels <- ifel(!is.na(polyrast_plot()), plot_degraded_pixels, polyrast_plot())
+    plot_degraded_pixels <- crop(plot_degraded_pixels, sp_polygon_3162_buffered, mask = TRUE)
 
     # These reactive values are used to store the degraded pixels for plotting later
-    plot1(plot_degraded_pixels)
-    plot2(degraded_protected)
+    plot_degraded_react(plot_degraded_pixels)
+    plot_degraded_protected_react(plot_degraded_protected)
 
     degraded_pixels_temp[degraded_pixels_temp != 100] <- NA
 
@@ -1175,64 +1348,217 @@ server <- function(input, output, session) {
       paste("Number of degraded pixels:", numDegradedPixels())
     })
 
-    degraded_pixels(degraded_pixels_temp) # a reactive value stores the degraded pixels raster for use later
+    degraded_pixels(degraded_pixels_temp) # a reactive values stores the degraded pixels raster for use later
 
     # Plot target landscape with degraded pixels ----
     # a plot is output showing the landscape with non-tolerable pixels excluded and degraded pixels in orange
-    output$degradedPlot <- renderPlot({
-	land_cover_labels <- land_cover_labels_react()
-
-      # Match raster values to land cover classes and convert to factor
-      mapped_values <- factor(land_cover_labels$Land_Class[match(values(plot_degraded_pixels), land_cover_labels$Value)])
-
-      # Create a categorical raster and set its categories
-      cat_raster <- rast(plot_degraded_pixels)
-      values(cat_raster) <- mapped_values
-      levels(cat_raster) <- data.frame(ID = 1:length(levels(mapped_values)), LC = levels(mapped_values))
-
-      # Define colors
-      num_classes <- length(levels(mapped_values))
-      color_palette <- viridis(num_classes, direction = -1)
-
-      # Assign "orangered" to "Degraded"
-      degraded_idx <- which(levels(mapped_values) == "Degraded")
-      if (length(degraded_idx) > 0) color_palette[degraded_idx] <- "orangered"
-
-      # Plot
-      plot(cat_raster, main = "Degraded Land", col = color_palette)
+    
+    output$degradedPlot <- renderPlotly({
+      plot_degraded_pixels <- plot_degraded_react()
+      
+      #Creates a table to map land class labels to numeric values in 'Ontario_land_cover' (for the plot legend essentially)
+      land_cover_labels <- land_cover_labels_react()
+      
+      # Determine percentage of each land cover class in the *buffered* landscape, since this is what readers will see
+      percent_landcover <- plot_degraded_pixels %>% 
+        data.frame() %>% 
+        rename(value = 1) %>% 
+        group_by(value) %>% 
+        tally() %>% 
+        mutate(percentage = round(n/sum(n)*100, 2)) %>% 
+        dplyr::select(-n)
+      
+      #Extract unique values from the SpatRaster for the legend of the plot
+      unique_values <- as.vector(unique(values(plot_degraded_pixels)))
+      
+      # Make a map of colors and labels to raster values in cropped landscape
+      df_joined <- data.frame(value = unique_values) %>%
+        left_join(land_cover_labels, by = c("value" = "Value"))
+      
+      # Make a sf points feature (I previously used it to create labels for the map - so this code is likely overkill for what I end up doing...)
+      label_points_sf <- as.data.frame(plot_degraded_pixels, xy = TRUE, cells = TRUE) %>% 
+        rename(value = 4) %>% 
+        st_as_sf(coords = c("x", "y"), 
+                 crs = crs(plot_degraded_pixels)) %>% 
+        left_join(df_joined, by = "value") %>% 
+        # Add percentage of each Land Class in the map
+        left_join(percent_landcover, by = "value") %>% 
+        # some land classes have 0 percent coverage in the TARGET landscape
+        # but are present in the buffer.
+        mutate(percentage = if_else(is.na(percentage), 0, percentage)) %>% 
+        # Create a new label for each class
+        mutate(Label = paste0(Land_Class, " (", percentage, "%)"),
+               # arrange the Land Class labels by percentage
+               Label = fct_infreq(Label))
+      
+      # get colors for plot
+      plot_colors <- label_points_sf %>% 
+        st_drop_geometry() %>% 
+        arrange(Label) %>% 
+        dplyr::select(value, color, Label, percentage) %>%
+        arrange(desc(percentage)) %>% 
+        distinct()
+      
+      # Ready the raster for plotting - assign colors
+      plot_degraded_pixels <- as.factor(plot_degraded_pixels)
+      
+      levels(plot_degraded_pixels) = data.frame(value = plot_colors$value, 
+                                                Label = plot_colors$Label)
+      
+      # plot in ggplot first
+      my_ggplot <- ggplot() +
+        geom_spatraster(data = plot_degraded_pixels) +
+        scale_fill_manual(name = "Degraded land definition\n",
+                          values = plot_colors$color,
+                          na.value = "white") +
+        geom_sf(data = sp_polygon_3162_buffered,
+                aes(color = "Buffer extent"), fill = NA, linewidth = 1) +
+        geom_sf(data = sp_plot_polygon(), aes(color = "Target landscape"),
+                fill = NA, linewidth = 1) +
+        scale_color_manual(name = "", values = c("lightgrey", "black")) +
+        # Old line of code to get labels - not needed anymore
+        # geom_sf(data = label_points_sf,
+        #         aes(text = Label, color = Label), alpha = 0) +
+        theme_minimal() + 
+        theme(panel.grid = element_blank(), legend.margin = margin(c(0,0,0,0)),
+              legend.key.size = unit(1.5, "cm"), # Adjust legend key size
+              legend.text = element_text(size = 12, face = "bold"), # Adjust legend text size
+              legend.title = element_text(size = 18, face = "bold"), # Adjust legend title size
+              legend.box.spacing = unit(0.5, "cm")) + # Adjust spacing
+        guides(fill = guide_legend(
+          label.position = "left",
+          label.hjust = 1),
+          color = guide_legend(
+            direction = "horizontal",
+            label.position = "right",
+            label.hjust = 0))
+      
+      # strip out the legend - this makes it easier to format and put it where you might want it - whether above, below, or beside plotly interactive plot
+      legend_plot3 <- cowplot::get_plot_component(my_ggplot, 'guide-box-right', return_all = TRUE)
+      grid.newpage()
+      grid.draw(legend_plot3)
+      legend_plot3_react(legend_plot3)
+      
+      
+      # Users can hover over the map output below and the raster value will appear.
+      # I'm not totally happy with this - sometimes hover doesn't work.
+      ggplotly(my_ggplot + theme(legend.position = "none",
+                                 axis.text = element_blank()), 
+               tooltip = "value")
+      
     })
+    
+    output$rasterPlot3legend <- renderPlot({
+      legend_plot3<-legend_plot3_react()
+      grid.newpage()
+      grid.draw(legend_plot3)
+    })
+    
 
     # A version for 'areas of conservation concern' if that option is selected in UI segment 2
-    output$degradedprotectedPlot <- renderPlot({
+    output$degradedprotectedPlot <- renderPlotly({
       req(input$protected_based_calculations > 0)
-	land_cover_labels <- land_cover_labels_react()
-
-      # Match raster values to land cover classes and convert to factor
-      mapped_values <- factor(land_cover_labels$Land_Class[match(values(plot_degraded_protected), land_cover_labels$Value)])
-
-      # Create a categorical raster and set its categories
-      cat_raster <- rast(plot_degraded_protected)
-      values(cat_raster) <- mapped_values
-      levels(cat_raster) <- data.frame(ID = 1:length(levels(mapped_values)), LC = levels(mapped_values))
-
-      # Define colors
-      num_classes <- length(levels(mapped_values))
-      color_palette <- viridis(num_classes, direction = -1)
-
-      # Assign "orangered" to "Degraded", if it exists in the land cover classes
-      degraded_idx <- which(levels(mapped_values) == "Degraded")
-      if (length(degraded_idx) > 0) color_palette[degraded_idx] <- "orangered"
-
-
-      protected_idx <- which(levels(mapped_values) == "Included")
-      if (length(protected_idx) > 0) color_palette[protected_idx] <- "lightseagreen"
-
-      not_protected_idx <- which(levels(mapped_values) == "Not included")
-      if (length(not_protected_idx) > 0) color_palette[not_protected_idx] <- "yellow2"
-
-      plot(cat_raster, main = "Degraded land shown with areas of conservatrion concern", col = color_palette)
+      plot_degraded_protected <- plot_degraded_protected_react()
+        
+        #Creates a table to map land class labels to numeric values in 'Ontario_land_cover' (for the plot legend essentially)
+        land_cover_labels <- land_cover_labels_react()
+        
+        # Determine percentage of each land cover class in the *buffered* landscape, since this is what readers will see
+        percent_landcover <- plot_degraded_protected %>% 
+          data.frame() %>% 
+          rename(value = 1) %>% 
+          group_by(value) %>% 
+          tally() %>% 
+          mutate(percentage = round(n/sum(n)*100, 2)) %>% 
+          dplyr::select(-n)
+        
+        #Extract unique values from the SpatRaster for the legend of the plot
+        unique_values <- as.vector(unique(values(plot_degraded_protected)))
+        
+        # Make a map of colors and labels to raster values in cropped landscape
+        df_joined <- data.frame(value = unique_values) %>%
+          left_join(land_cover_labels, by = c("value" = "Value"))
+        
+        # Make a sf points feature (I previously used it to create labels for the map - so this code is likely overkill for what I end up doing...)
+        label_points_sf <- as.data.frame(plot_degraded_protected, xy = TRUE, cells = TRUE) %>% 
+          rename(value = 4) %>% 
+          st_as_sf(coords = c("x", "y"), 
+                   crs = crs(plot_degraded_protected)) %>% 
+          left_join(df_joined, by = "value") %>% 
+          # Add percentage of each Land Class in the map
+          left_join(percent_landcover, by = "value") %>% 
+          # some land classes have 0 percent coverage in the TARGET landscape
+          # but are present in the buffer.
+          mutate(percentage = if_else(is.na(percentage), 0, percentage)) %>% 
+          # Create a new label for each class
+          mutate(Label = paste0(Land_Class, " (", percentage, "%)"),
+                 # arrange the Land Class labels by percentage
+                 Label = fct_infreq(Label))
+        
+        # get colors for plot
+        plot_colors <- label_points_sf %>% 
+          st_drop_geometry() %>% 
+          arrange(Label) %>% 
+          dplyr::select(value, color, Label, percentage) %>%
+          arrange(desc(percentage)) %>% 
+          distinct()
+        
+        # Ready the raster for plotting - assign colors
+        plot_degraded_protected <- as.factor(plot_degraded_protected)
+        
+        levels(plot_degraded_protected) = data.frame(value = plot_colors$value, 
+                                                  Label = plot_colors$Label)
+        
+        # plot in ggplot first
+        my_ggplot <- ggplot() +
+          geom_spatraster(data = plot_degraded_protected) +
+          scale_fill_manual(name = "Degraded land within areas of conservation concern\n",
+                            values = plot_colors$color,
+                            na.value = "white") +
+          geom_sf(data = sp_polygon_3162_buffered,
+                  aes(color = "Buffer extent"), fill = NA, linewidth = 1) +
+          geom_sf(data = sp_plot_polygon(), aes(color = "Target landscape"),
+                  fill = NA, linewidth = 1) +
+          scale_color_manual(name = "", values = c("lightgrey", "black")) +
+          # Old line of code to get labels - not needed anymore
+          # geom_sf(data = label_points_sf,
+          #         aes(text = Label, color = Label), alpha = 0) +
+          theme_minimal() + 
+          theme(panel.grid = element_blank(), legend.margin = margin(c(0,0,0,0)),
+                legend.key.size = unit(1.5, "cm"), # Adjust legend key size
+                legend.text = element_text(size = 12, face = "bold"), # Adjust legend text size
+                legend.title = element_text(size = 18, face = "bold"), # Adjust legend title size
+                legend.box.spacing = unit(0.5, "cm")) + # Adjust spacing
+          guides(fill = guide_legend(
+            label.position = "left",
+            label.hjust = 1),
+            color = guide_legend(
+              direction = "horizontal",
+              label.position = "right",
+              label.hjust = 0))
+        
+        # strip out the legend - this makes it easier to format and put it where you might want it - whether above, below, or beside plotly interactive plot
+        legend_plot4 <- cowplot::get_plot_component(my_ggplot, 'guide-box-right', return_all = TRUE)
+        grid.newpage()
+        grid.draw(legend_plot4)
+        legend_plot4_react(legend_plot4)
+        
+        
+        # Users can hover over the map output below and the raster value will appear.
+        # I'm not totally happy with this - sometimes hover doesn't work.
+        ggplotly(my_ggplot + theme(legend.position = "none",
+                                   axis.text = element_blank()), 
+                 tooltip = "value")
+        
+      })
+      
+      output$rasterPlot4legend <- renderPlot({
+        req(input$protected_based_calculations > 0)
+        legend_plot4<-legend_plot4_react()
+        grid.newpage()
+        grid.draw(legend_plot4)
+      })
     })
-  })
 
 
 
@@ -1315,20 +1641,120 @@ server <- function(input, output, session) {
     }
 
     restored_land_plot <- rast(restored_land)
-    restored_land_plot <- ifel(!is.na(polyrast_plot()), restored_land_plot, polyrast_plot())
-
+    sp_polygon_3162_buffered <- st_buffer(sp_plot_polygon(), buffer_value())
+    restored_land_plot <- crop(restored_land_plot, sp_polygon_3162_buffered, mask = TRUE)
+    restored_land_plot_react(restored_land_plot)
+    
     restored_land(restored_land)
 
     removeNotification(notification_id_res)
 
     # Plot the restored landscape
-    output$restorationPlot <- renderPlot({
-	land_cover_labels <- land_cover_labels_react()
-
-      mapped_values <- land_cover_labels$Land_Class[match(values(restored_land_plot), land_cover_labels$Value)]
-      values(restored_land_plot) <- mapped_values
-      plot(restored_land_plot, main = "Restored Land", col = viridis(20, direction = -1))
+    
+    
+    
+     output$restorationPlot <- renderPlotly({
+      restored_land_plot <- restored_land_plot_react()
+      
+      #Creates a table to map land class labels to numeric values in 'Ontario_land_cover' (for the plot legend essentially)
+      land_cover_labels <- land_cover_labels_react()
+      
+      # Determine percentage of each land cover class in the *buffered* landscape, since this is what readers will see
+      percent_landcover <- restored_land_plot %>% 
+        data.frame() %>% 
+        rename(value = 1) %>% 
+        group_by(value) %>% 
+        tally() %>% 
+        mutate(percentage = round(n/sum(n)*100, 2)) %>% 
+        dplyr::select(-n)
+      
+      #Extract unique values from the SpatRaster for the legend of the plot
+      unique_values <- as.vector(unique(values(restored_land_plot)))
+      
+      # Make a map of colors and labels to raster values in cropped landscape
+      df_joined <- data.frame(value = unique_values) %>%
+        left_join(land_cover_labels, by = c("value" = "Value"))
+      
+      # Make a sf points feature (I previously used it to create labels for the map - so this code is likely overkill for what I end up doing...)
+      label_points_sf <- as.data.frame(restored_land_plot, xy = TRUE, cells = TRUE) %>% 
+        rename(value = 4) %>% 
+        st_as_sf(coords = c("x", "y"), 
+                 crs = crs(restored_land_plot)) %>% 
+        left_join(df_joined, by = "value") %>% 
+        # Add percentage of each Land Class in the map
+        left_join(percent_landcover, by = "value") %>% 
+        # some land classes have 0 percent coverage in the TARGET landscape
+        # but are present in the buffer.
+        mutate(percentage = if_else(is.na(percentage), 0, percentage)) %>% 
+        # Create a new label for each class
+        mutate(Label = paste0(Land_Class, " (", percentage, "%)"),
+               # arrange the Land Class labels by percentage
+               Label = fct_infreq(Label))
+      
+      # get colors for plot
+      plot_colors <- label_points_sf %>% 
+        st_drop_geometry() %>% 
+        arrange(Label) %>% 
+        dplyr::select(value, color, Label, percentage) %>%
+        arrange(desc(percentage)) %>% 
+        distinct()
+      
+      # Ready the raster for plotting - assign colors
+      restored_land_plot <- as.factor(restored_land_plot)
+      
+      levels(restored_land_plot) = data.frame(value = plot_colors$value, 
+                                                   Label = plot_colors$Label)
+      
+      # plot in ggplot first
+      my_ggplot <- ggplot() +
+        geom_spatraster(data = restored_land_plot) +
+        scale_fill_manual(name = "Restored land composition\n",
+                          values = plot_colors$color,
+                          na.value = "white") +
+        geom_sf(data = sp_polygon_3162_buffered,
+                aes(color = "Buffer extent"), fill = NA, linewidth = 1) +
+        geom_sf(data = sp_plot_polygon(), aes(color = "Target landscape"),
+                fill = NA, linewidth = 1) +
+        scale_color_manual(name = "", values = c("lightgrey", "black")) +
+        # Old line of code to get labels - not needed anymore
+        # geom_sf(data = label_points_sf,
+        #         aes(text = Label, color = Label), alpha = 0) +
+        theme_minimal() + 
+        theme(panel.grid = element_blank(), legend.margin = margin(c(0,0,0,0)),
+              legend.key.size = unit(1.5, "cm"), # Adjust legend key size
+              legend.text = element_text(size = 12, face = "bold"), # Adjust legend text size
+              legend.title = element_text(size = 18, face = "bold"), # Adjust legend title size
+              legend.box.spacing = unit(0.5, "cm")) + # Adjust spacing
+        guides(fill = guide_legend(
+          label.position = "left",
+          label.hjust = 1),
+          color = guide_legend(
+            direction = "horizontal",
+            label.position = "right",
+            label.hjust = 0))
+      
+      # strip out the legend - this makes it easier to format and put it where you might want it - whether above, below, or beside plotly interactive plot
+      legend_plot5 <- cowplot::get_plot_component(my_ggplot, 'guide-box-right', return_all = TRUE)
+      grid.newpage()
+      grid.draw(legend_plot5)
+      legend_plot5_react(legend_plot5)
+      
+      
+      # Users can hover over the map output below and the raster value will appear.
+      # I'm not totally happy with this - sometimes hover doesn't work.
+      ggplotly(my_ggplot + theme(legend.position = "none",
+                                 axis.text = element_blank()), 
+               tooltip = "value")
+      
     })
+    
+    output$rasterPlot5legend <- renderPlot({
+      legend_plot5<-legend_plot5_react()
+      grid.newpage()
+      grid.draw(legend_plot5)
+    })
+    
+    
     shinyjs::enable("simulate_restoration")
     shinyjs::enable("automatic_combination")
     shinyjs::enable("manual_combination")
@@ -1650,7 +2076,7 @@ server <- function(input, output, session) {
       # then patch size differences for these areas are calculated as well
 
       combinations <- combinations_react()
-      degraded_protected <- plot2()
+      degraded_protected <- degraded_protected_react()
 
       protected_restored <- croppedProtected_areas()
       protected_restored[protected_restored == 0] <- NA
@@ -2847,7 +3273,7 @@ server <- function(input, output, session) {
   })
   
   output$BatchsliderPanel <- renderUI({
-       {
+    {
       tagList(
         div(
           sliderInput("mine_slider", HTML("<br><b>Active mines</b><br><i>1 = Any active mine (open pit or underground), 
@@ -2858,7 +3284,7 @@ server <- function(input, output, session) {
         div(
           sliderInput("amis_slider", HTML("<br><b>Abandoned mines</b><br><i>1 = Pixels with 1 or more abandoned mines are
 		 degraded.<br>3 = Only pixels with 3 abandoned mines are degraded.</i><br><br>"), 
-		min = 1, max = 4, value = 1, step = 1),
+                      min = 1, max = 4, value = 1, step = 1),
           tags$p(id = "amis_max_label", "Not included", style = "text-align: right; margin-top: -20px;")
         ),
         div(
@@ -2870,7 +3296,7 @@ server <- function(input, output, session) {
         div(
           sliderInput("oil_gas_slider", HTML("<br><b>Oil and gas</b><br><i>1 = Any area within 5 km of an active oil
 		 and gas field is degraded.<br>10 = Only areas within 300 m of active oil and gas activity are degraded.</i><br><br>"),
-		 min = 1, max = 11, value = 6, step = 1),
+                      min = 1, max = 11, value = 6, step = 1),
           tags$p(id = "oil_gas_max_label", "Not included", style = "text-align: right; margin-top: -20px;")
         ),
         div(
@@ -3104,6 +3530,7 @@ server <- function(input, output, session) {
     
     degraded_protected[final_condition] <- 100 # an areas of conservation concern version of this is done as well (mainly for plotting)
     degraded_protected[is.na(degraded_pixels_temp)] <- NA
+    degraded_protected_react(degraded_protected)
     
     degraded_pixels_temp[degraded_pixels_temp != 100] <- NA
     
@@ -3431,7 +3858,7 @@ server <- function(input, output, session) {
           # then patch size differences for these areas are calculated as well
           
           combinations <- combinations_react()
-          degraded_protected <- plot2()
+          degraded_protected <- degraded_protected_react()
           
           protected_restored <- croppedProtected_areas()
           protected_restored[protected_restored == 0] <- NA
@@ -3878,16 +4305,21 @@ Depending on your goals, you may wish to calculate connectivity and habitat patc
     segment(
       div(style = "font-size: 18px; font-weight: bold; margin-bottom: 15px;", "Choosing a landscape"),
       p(HTML("You are ready to select a target landscape for analysis. You can choose to either draw or select the landscape:<br><br>
-<b>Option 1: Choose landscape extent by drawing a shape</b><br>
-Ensure the “Drawn extent” selection is checked in the map checkbox panel on the righthand side of the map. Set a custom extent using the draw tools located at the top left of the map below the zoom buttons. Create a custom shape by first selecting the pentagon icon, then clicking the map to drop points that define a target landscape. Or, create a rectangle by clicking the square icon, then dropping a single point and dragging to define a target landscape.<br><br>
-<b>Option 2: Choose landscape extent by selecting individual map features</b><br>
-Turn on the visibility of map feature groups such as provincial parks or national wildlife areas using the checkboxes panel on the righthand side of the map. Hover over the map to view the names of individual features within the group. Then, select a single feature by clicking on it (e.g., a single provincial park).<br>"
+  <b>Option 1: Choose landscape extent by drawing a shape</b><br>
+  Ensure the “Drawn extent” selection is checked in the map checkbox panel on the righthand side of the map. Set a custom extent using the
+  draw tools located at the top left of the map below the zoom buttons. Create a custom shape by first selecting the pentagon icon, then 
+  clicking the map to drop points that define a target landscape. Or, create a rectangle by clicking the square icon, then dropping a single
+  point and dragging to define a target landscape.<br><br>
+  <b>Option 2: Choose landscape extent by selecting individual map features</b><br>
+  Turn on the visibility of map feature groups such as provincial parks or national wildlife areas using the checkboxes panel on the righthand
+             side of the map. Hover over the map to view the names of individual features within the group. Then, select a single feature by clicking
+             on it (e.g., a single provincial park).<br>"
 )),
       leafletOutput("map", height = 600),
       br(),
       br(),
       p(HTML("<b>Add a buffer around the target landscape</b><br>
-We recommend adding a buffer to the selected landscape. A buffer is an area that extends outward from your target landscape by a specified number of metres. Buffers are useful in reducing the influence of distortions or artefacts that may arise because features outside your selected landscape are not included in application calculations. If you are considering restoration projects that may benefit more mobile species, your buffer size should be larger. Since the pixel units are 300 by 300 metres, any number entered here will be rounded down to the nearest multiple of 300.<br>")),
+      We recommend adding a buffer to the selected landscape. A buffer is an area that extends outward from your target landscape by a specified number of metres. Buffers are useful in reducing the influence of distortions or artefacts that may arise because features outside your selected landscape are not included in application calculations. If you are considering restoration projects that may benefit more mobile species, your buffer size should be larger. Since the pixel units are 300 by 300 metres, any number entered here will be rounded down to the nearest multiple of 300.<br>")),
       numericInput("buffer_unit_value", "Enter an extent buffer value in metres (optional but recommended):", value = 1200),
       br(),
       br(),
@@ -3899,36 +4331,47 @@ We recommend adding a buffer to the selected landscape. A buffer is an area that
       br(),
       verbatimTextOutput("extent_values"),
       br(),
-      plotOutput("rasterPlot"),
-      br(),
-      tableOutput("habitatBreakdown"),
-      conditionalPanel(
-      condition = "input.protected_based_calculations > 0",
-      br(),
-      plotOutput("protectedPlot"),
-      br(),
-      tableOutput("protectedBreakdown"))
+fluidRow(
+  column(width = 6, plotlyOutput("rasterPlot", height = "800px")),
+  column(width = 6, plotOutput("rasterPlot1legend", height = "800px"))),
+        conditionalPanel(
+          condition = "input.protected_based_calculations > 0",
+            fluidRow(
+             column(width = 6, plotlyOutput("protectedPlot", height = "800px")),
+               column(width = 6, plotOutput("rasterPlot2legend", height = "800px"))),
     )
-  ),
+  )),
 
   ## Segment 5: Define degraded land, output plots ----
   conditionalPanel(
     condition = "input.set_extent > 0",
     segment(
       div(style = "font-size: 18px; font-weight: bold; margin-bottom: 15px;", "Defining degraded pixels"),
-      p(HTML("The next step is defining which pixels qualify as “degraded land” based on user-defined threshold conditions. Using the sliders below, you can customize the criteria under which pixels are considered degraded; these pixels are eligible for restoration. Conditions that could influence whether an area is considered degraded land include presence of active mines, presence of abandoned mines, night light pollution, oil and gas extraction, aggregate extraction, topsoil extraction, and marginal farmland.<br><br>
-The slider values indicate the severity of each degradation condition, and the slider position indicates the minimum threshold. For example, setting “Night Lights = 1” would mean that land with the lowest levels of night light pollution would be considered degraded, and all areas with values above 1 would be considered degraded as well. Conversely, if the slider is set to 10, only land with the highest levels of light pollution would be considered degraded. To exclude or ignore a condition entirely, set the slider to the maximum value. For night lights, “Night lights = 11” means that light pollution is not considered a factor defining degraded land.<br><br> 
-For a given pixel, only one condition needs to be met to be considered degraded. For example, if a pixel meets the threshold you set for night lights, but not for aggregate extraction, it will still be considered degraded.<br><br>
-After setting the thresholds, you can preview which land is defined as “degraded” in a map.")),
+      p(HTML("The next step is defining which pixels qualify as “degraded land” based on user-defined threshold conditions. Using the sliders below, you can customize the criteria under
+      which pixels are considered degraded; these pixels are eligible for restoration. Conditions that could influence whether an area is considered degraded land include presence of active
+      mines, presence of abandoned mines, night light pollution, oil and gas extraction, aggregate extraction, topsoil extraction, and marginal farmland.<br><br>
+      The slider values indicate the severity of each degradation condition, and the slider position indicates the minimum threshold. For example, setting “Night Lights = 1” would mean that 
+      land with the lowest levels of night light pollution would be considered degraded, and all areas with values above 1 would be considered degraded as well. Conversely, if the slider is
+      set to 10, only land with the highest levels of light pollution would be considered degraded. To exclude or ignore a condition entirely, set the slider to the maximum value. For night 
+      lights, “Night lights = 11” means that light pollution is not considered a factor defining degraded land.<br><br> 
+      For a given pixel, only one condition needs to be met to be considered degraded. For example, if a pixel meets the threshold you set for night lights, but not for aggregate extraction,
+      it will still be considered degraded.<br><br>
+      After setting the thresholds, you can preview which land is defined as “degraded” in a map.")),
       uiOutput("sliderPanel"),
       br(),
-      p(HTML("Click the “preview” button to see which pixels in your target landscape are defined as “degraded” with the condition set you chose. In the preview map, certain land values (e.g., water, urban areas, valuable cropland) that are considered unfit for restoration are excluded and are not mapped. Feel free to re-adjust the sliders and try again until you're happy with which areas are defined as “degraded”.")),
+      p(HTML("Click the “preview” button to see which pixels in your target landscape are defined as “degraded” with the condition set you chose. In the preview map, certain land values
+             (e.g., water, urban areas, valuable cropland) that are considered unfit for restoration are excluded and are not mapped. Feel free to re-adjust the sliders and try again 
+             until you're happy with which areas are defined as “degraded”.")),
       br(),
       actionButton("preview", "Preview"),
-      plotOutput("degradedPlot"),
+      fluidRow(
+        column(width = 6, plotlyOutput("degradedPlot", height = "800px")),
+        column(width = 6, plotOutput("rasterPlot3legend", height = "800px"))),
       conditionalPanel(
         condition = "input.protected_based_calculations > 0",
-      plotOutput("degradedprotectedPlot")),
+        fluidRow(
+          column(width = 6, plotlyOutput("degradedprotectedPlot", height = "800px")),
+          column(width = 6, plotOutput("rasterPlot4legend", height = "800px")))),
       div(style = "font-size: 20px;", textOutput("numDegradedPixels"))
     )
   ),
@@ -3946,7 +4389,9 @@ After setting the thresholds, you can preview which land is defined as “degrad
       landscape is then displayed.This simulates restoration by redefining degraded pixels based on non-degraded pixels in their neighbourhood.
       When finished running, the 'restored landscape' will be plotted.")),
       actionButton("simulate_restoration", "Simulate restoration"),
-      plotOutput("restorationPlot")
+      fluidRow(
+        column(width = 6, plotlyOutput("restorationPlot", height = "800px")),
+        column(width = 6, plotOutput("rasterPlot5legend", height = "800px"))),
     )
   ),
 
@@ -4357,6 +4802,3 @@ conditionalPanel(
 
 # Run the app
 shinyApp(ui, server)
-
-# library(rsconnect)
-# deployApp()
