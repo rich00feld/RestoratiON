@@ -1075,31 +1075,31 @@ server <- function(input, output, session) {
     if (!is.null(croppedOntario())) {
       tagList(
         div(
-          sliderInput("mine_slider", "Condition for Mines:", min = 1, max = 9, value = 2, step = 1),
+          sliderInput("mine_slider", HTML("<br><b>Active mines</b><br><i>1 = Any active mine (open pit or underground), and areas within 10 km of any active mine are degraded.<br>8 = Only land within 500 m of an open pit mine is degraded.</i><br><br>"), min = 1, max = 9, value = 2, step = 1),
           tags$p(id = "mine_max_label", "Not included", style = "text-align: right; margin-top: -20px;")
         ),
         div(
-          sliderInput("amis_slider", HTML("Condition for AMIS:<br> the number of abandoned mines"), min = 1, max = 4, value = 1, step = 1),
+          sliderInput("amis_slider", HTML("<br><b>Abandoned mines</b><br><i>1 = Pixels with 1 or more abandoned mines are degraded.<br>3 = Only pixels with 3 abandoned mines are degraded.</i><br><br>"), min = 1, max = 4, value = 1, step = 1),
           tags$p(id = "amis_max_label", "Not included", style = "text-align: right; margin-top: -20px;")
         ),
         div(
-          sliderInput("night_lights_slider", "Condition for Night Lights:", min = 1, max = 11, value = 1, step = 1),
+          sliderInput("night_lights_slider", HTML("<br><b>Night lights</b><br><i>1 = Pixels with any amount of night light pollution are degraded.<br>10 = Only pixels with the most severe night light pollution are degraded.</i><br><br>"), min = 1, max = 11, value = 1, step = 1),
           tags$p(id = "night_lights_max_label", "Not included", style = "text-align: right; margin-top: -20px;")
         ),
         div(
-          sliderInput("oil_gas_slider", "Condition for Oil/Gas:", min = 1, max = 11, value = 6, step = 1),
+          sliderInput("oil_gas_slider", HTML("<br><b>Oil and gas</b><br><i>1 = Any area within 5 km of an active oil and gas field is degraded.<br>10 = Only areas within 300 m of active oil and gas activity are degraded.</i><br><br>"), min = 1, max = 11, value = 6, step = 1),
           tags$p(id = "oil_gas_max_label", "Not included", style = "text-align: right; margin-top: -20px;")
         ),
         div(
-          sliderInput("aggregate_extraction_slider", "Condition for Aggregate Extraction:", min = 1, max = 2, value = 1, step = 1),
+          sliderInput("aggregate_extraction_slider", HTML("<br><b>Aggregate extraction</b><br><i>1 = Any area affected by aggregate extraction is degraded.</i><br><br>"), min = 1, max = 2, value = 1, step = 1),
           tags$p(id = "aggregate_extraction_max_label", "Not included", style = "text-align: right; margin-top: -20px;")
         ),
         div(
-          sliderInput("topsoil_extraction_slider", "Condition for Topsoil Extraction:", min = 1, max = 2, value = 1, step = 1),
+          sliderInput("topsoil_extraction_slider", HTML("<br><b>Topsoil extraction</b><br><i>1 = Any area affected by topsoil extraction is degraded.</i><br><br>"), min = 1, max = 2, value = 1, step = 1),
           tags$p(id = "topsoil_extraction_max_label", "Not included", style = "text-align: right; margin-top: -20px;")
         ),
         div(
-          sliderInput("undifferentiated_slider", "Condition for Undifferentiated Land (includes brownfields and marginal farmland, i.e. filtered to CLI agricultural capability classes 4-7):", min = 1, max = 2, value = 1, step = 1),
+          sliderInput("undifferentiated_slider", HTML("<br><b>Undifferentiated land</b><br><i>1 = Brownfields and marginal farmland are considered degraded land. Note that any pixels classified as 'undifferentiated' by the Southern Ontario Land Resource Information System, SOLRIS, that were also classified as 'good farmland' in the Canada Land Inventory will not be classed as degraded here.</i><br><br>"), min = 1, max = 2, value = 1, step = 1),
           tags$p(id = "undifferentiated_max_label", "Not included", style = "text-align: right; margin-top: -20px;")
         )
       )
@@ -1161,11 +1161,11 @@ server <- function(input, output, session) {
     degraded_pixels_temp[degraded_pixels_temp != 100] <- NA
 
     # This is used to get a count of the number of degraded pixels
-    degraded_pixels_temp_raster <- raster(degraded_pixels_temp)
+    deg_pixel_count <- raster(plot_degraded_pixels)
     degraded_array <- matrix(raster::extract(
-      degraded_pixels_temp_raster,
-      raster::extent(degraded_pixels_temp_raster)
-    ), ncol = 1, nrow = ncell(degraded_pixels_temp_raster))
+      deg_pixel_count,
+      raster::extent(deg_pixel_count)
+    ), ncol = 1, nrow = ncell(deg_pixel_count))
     num_degraded <- sum(degraded_array == 100, na.rm = TRUE)
     numDegradedPixels(num_degraded) # Save the number of degraded pixels for use in later steps
 
@@ -1175,7 +1175,7 @@ server <- function(input, output, session) {
       paste("Number of degraded pixels:", numDegradedPixels())
     })
 
-    degraded_pixels(degraded_pixels_temp) # a reactive values stores the degraded pixels raster for use later
+    degraded_pixels(degraded_pixels_temp) # a reactive value stores the degraded pixels raster for use later
 
     # Plot target landscape with degraded pixels ----
     # a plot is output showing the landscape with non-tolerable pixels excluded and degraded pixels in orange
@@ -2850,31 +2850,44 @@ server <- function(input, output, session) {
        {
       tagList(
         div(
-          sliderInput("mine_slider", "Condition for Mines:", min = 1, max = 9, value = 2, step = 1),
+          sliderInput("mine_slider", HTML("<br><b>Active mines</b><br><i>1 = Any active mine (open pit or underground), 
+		and areas within 10 km of any active mine are degraded.<br>8 = Only land within 500 m of an open pit mine
+		 is degraded.</i><br><br>"), min = 1, max = 9, value = 2, step = 1),
           tags$p(id = "mine_max_label", "Not included", style = "text-align: right; margin-top: -20px;")
         ),
         div(
-          sliderInput("amis_slider", HTML("Condition for AMIS:<br> the number of abandoned mines"), min = 1, max = 4, value = 1, step = 1),
+          sliderInput("amis_slider", HTML("<br><b>Abandoned mines</b><br><i>1 = Pixels with 1 or more abandoned mines are
+		 degraded.<br>3 = Only pixels with 3 abandoned mines are degraded.</i><br><br>"), 
+		min = 1, max = 4, value = 1, step = 1),
           tags$p(id = "amis_max_label", "Not included", style = "text-align: right; margin-top: -20px;")
         ),
         div(
-          sliderInput("night_lights_slider", "Condition for Night Lights:", min = 1, max = 11, value = 1, step = 1),
+          sliderInput("night_lights_slider", HTML("<br><b>Night lights</b><br><i>1 = Pixels with any amount of night
+		 light pollution are degraded.<br>10 = Only pixels with the most severe night light pollution are degraded.
+		</i><br><br>"), min = 1, max = 11, value = 1, step = 1),
           tags$p(id = "night_lights_max_label", "Not included", style = "text-align: right; margin-top: -20px;")
         ),
         div(
-          sliderInput("oil_gas_slider", "Condition for Oil/Gas:", min = 1, max = 11, value = 6, step = 1),
+          sliderInput("oil_gas_slider", HTML("<br><b>Oil and gas</b><br><i>1 = Any area within 5 km of an active oil
+		 and gas field is degraded.<br>10 = Only areas within 300 m of active oil and gas activity are degraded.</i><br><br>"),
+		 min = 1, max = 11, value = 6, step = 1),
           tags$p(id = "oil_gas_max_label", "Not included", style = "text-align: right; margin-top: -20px;")
         ),
         div(
-          sliderInput("aggregate_extraction_slider", "Condition for Aggregate Extraction:", min = 1, max = 2, value = 1, step = 1),
+          sliderInput("aggregate_extraction_slider", HTML("<br><b>Aggregate extraction</b><br><i>1 = Any area affected
+		 by aggregate extraction is degraded.</i><br><br>"),, min = 1, max = 2, value = 1, step = 1),
           tags$p(id = "aggregate_extraction_max_label", "Not included", style = "text-align: right; margin-top: -20px;")
         ),
         div(
-          sliderInput("topsoil_extraction_slider", "Condition for Topsoil Extraction:", min = 1, max = 2, value = 1, step = 1),
+          sliderInput("topsoil_extraction_slider", HTML("<br><b>Topsoil extraction</b><br><i>1 = Any area affected by
+		 topsoil extraction is degraded.</i><br><br>"), min = 1, max = 2, value = 1, step = 1),
           tags$p(id = "topsoil_extraction_max_label", "Not included", style = "text-align: right; margin-top: -20px;")
         ),
         div(
-          sliderInput("undifferentiated_slider", "Condition for Undifferentiated Land (includes brownfields and marginal farmland, i.e. filtered to CLI agricultural capability classes 4-7):", min = 1, max = 2, value = 1, step = 1),
+          sliderInput("undifferentiated_slider", HTML("<br><b>Undifferentiated land</b><br><i>1 = Brownfields and marginal 
+	farmland are considered degraded land. Note that any pixels classified as 'undifferentiated' by the Southern Ontario
+	 Land Resource Information System, SOLRIS, that were also classified as 'good farmland' in the Canada Land Inventory 
+	will not be classed as degraded here.</i><br><br>"), min = 1, max = 2, value = 1, step = 1),
           tags$p(id = "undifferentiated_max_label", "Not included", style = "text-align: right; margin-top: -20px;")
         )
       )
@@ -3879,7 +3892,7 @@ We recommend adding a buffer to the selected landscape. A buffer is an area that
       br(),
       br(),
       p(HTML("<b>Set the final extent</b><br>
-               Finally, press “Set Extent” to confirm the final target landscape for analysis. No matter your extent selection method, the smallest rectangular space of land that contains the entire selected landscape is displayed. An image of the selected landscape is displayed for you to review, with a breakdown of the respective proportion of habitat types it contains. If you chose to focus on areas of conservation concern, a map displaying any areas of conservation concern and which areas are included in the analysis is also displayed.<br><br>
+               Finally, press “Set extent” to confirm the final target landscape for analysis. No matter your extent selection method, the smallest rectangular space of land that contains the entire selected landscape is displayed. An image of the selected landscape is displayed for you to review, with a breakdown of the respective proportion of habitat types it contains. If you chose to focus on areas of conservation concern, a map displaying any areas of conservation concern and which areas are included in the analysis is also displayed.<br><br>
              When the landscape extent is set, a test is run on that landscape to see if it is large enough to calculate connectivity metrics. This will be explained in more detail as you progress through the application.<br>
                ")),
       actionButton("set_extent", "Set extent"),
@@ -3889,10 +3902,12 @@ We recommend adding a buffer to the selected landscape. A buffer is an area that
       plotOutput("rasterPlot"),
       br(),
       tableOutput("habitatBreakdown"),
+      conditionalPanel(
+      condition = "input.protected_based_calculations > 0",
       br(),
       plotOutput("protectedPlot"),
       br(),
-      tableOutput("protectedBreakdown")
+      tableOutput("protectedBreakdown"))
     )
   ),
 
@@ -3901,27 +3916,19 @@ We recommend adding a buffer to the selected landscape. A buffer is an area that
     condition = "input.set_extent > 0",
     segment(
       div(style = "font-size: 18px; font-weight: bold; margin-bottom: 15px;", "Defining degraded pixels"),
-      p(HTML("The next step is to use several sliders to define degraded land based several threshold conditions. Using sliders, set a 
-      combination of conditions defining which pixels are degraded. Conditions include active mines, abandoned mines (AMIS),
-      night lights, oil/gas extraction, aggregate extraction, topsoil extraction, and marginal farmland. Slider values indicate the level of
-      the particular condition: e.g. Night Lights = 1 would mean the lowest level of light pollution, whereas 
-      Night Lights = 10 would mean the highest. 
-      <br><br>
-      The slider position indicates the miniumum level (or threshold) of that degradation 
-      condition required for pixels to considered degraded - so an 8 would mean only pixels with an 8 or higher for that condition would be considered degraded,
-      whereas a 1 would mean all pixels with values greater than 1 would be considered degraded. For a given pixel, determination of whether or not it is degraded 
-      is inclusive of all slider thresholds, and only one condition needs to be met to be considered degraded (e.g. if a pixel meets the set threshold for Aggregate Extraction,
-      but not for Topsoil Extraction, it will still be defined as degraded). Any condition can also be excluded/ignored by setting its slider to the 'Not Included'
-      value. 
-      <br><br>
-	    When the 'preview' button is clicked, the cumulative condition based on all thresholds is used to highlight the defined degraded pixels. 
-	    During this process certain land values (e.g., water, urban areas, valuable cropland) that are considered unfit for restoration are also excluded. 
-	    A count of the number of degraded pixels is also displayed and plots are created. The first displays degraded land in the selected landscape, and, 
-	    if the areas of conservation concern option is selected earlier, another plot is created showing degraded land displayed alongside areas of conservation concern.")),
+      p(HTML("The next step is defining which pixels qualify as “degraded land” based on user-defined threshold conditions. Using the sliders below, you can customize the criteria under which pixels are considered degraded; these pixels are eligible for restoration. Conditions that could influence whether an area is considered degraded land include presence of active mines, presence of abandoned mines, night light pollution, oil and gas extraction, aggregate extraction, topsoil extraction, and marginal farmland.<br><br>
+The slider values indicate the severity of each degradation condition, and the slider position indicates the minimum threshold. For example, setting “Night Lights = 1” would mean that land with the lowest levels of night light pollution would be considered degraded, and all areas with values above 1 would be considered degraded as well. Conversely, if the slider is set to 10, only land with the highest levels of light pollution would be considered degraded. To exclude or ignore a condition entirely, set the slider to the maximum value. For night lights, “Night lights = 11” means that light pollution is not considered a factor defining degraded land.<br><br> 
+For a given pixel, only one condition needs to be met to be considered degraded. For example, if a pixel meets the threshold you set for night lights, but not for aggregate extraction, it will still be considered degraded.<br><br>
+After setting the thresholds, you can preview which land is defined as “degraded” in a map.")),
       uiOutput("sliderPanel"),
+      br(),
+      p(HTML("Click the “preview” button to see which pixels in your target landscape are defined as “degraded” with the condition set you chose. In the preview map, certain land values (e.g., water, urban areas, valuable cropland) that are considered unfit for restoration are excluded and are not mapped. Feel free to re-adjust the sliders and try again until you're happy with which areas are defined as “degraded”.")),
+      br(),
       actionButton("preview", "Preview"),
       plotOutput("degradedPlot"),
-      plotOutput("degradedprotectedPlot"),
+      conditionalPanel(
+        condition = "input.protected_based_calculations > 0",
+      plotOutput("degradedprotectedPlot")),
       div(style = "font-size: 20px;", textOutput("numDegradedPixels"))
     )
   ),
@@ -4350,3 +4357,6 @@ conditionalPanel(
 
 # Run the app
 shinyApp(ui, server)
+
+# library(rsconnect)
+# deployApp()
