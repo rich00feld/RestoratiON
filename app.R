@@ -983,6 +983,7 @@ server <- function(input, output, session) {
               legend.text = element_text(size = 12, face = "bold"), # Adjust legend text size
               legend.title = element_text(size = 18, face = "bold"), # Adjust legend title size
               legend.box.spacing = unit(0.5, "cm")) + # Adjust spacing
+        labs(title = "Target landscape for analysis") +
       guides(fill = guide_legend(
         label.position = "left",
         label.hjust = 1,
@@ -1076,7 +1077,7 @@ server <- function(input, output, session) {
         # plot in ggplot first
         my_ggplot <- ggplot() +
           geom_spatraster(data = Protected_areas_plot) +
-          scale_fill_manual(name = "Protected area status\n",
+          scale_fill_manual(name = "Areas of conservation concern and percent cover\n",
                             values = plot_colors$color,
                             na.value = "white") +
           geom_sf(data = sp_polygon_3162_buffered,
@@ -1087,6 +1088,7 @@ server <- function(input, output, session) {
           # Old line of code to get labels - not needed anymore
           # geom_sf(data = label_points_sf,
           #         aes(text = Label, color = Label), alpha = 0) +
+          labs(title = "Areas of conservation concern within target landscape") +
           theme_minimal() + 
           theme(panel.grid = element_blank(), legend.margin = margin(c(0,0,0,0)),
                 legend.key.size = unit(1.5, "cm"), # Adjust legend key size
@@ -1420,7 +1422,7 @@ server <- function(input, output, session) {
       # plot in ggplot first
       my_ggplot <- ggplot() +
         geom_spatraster(data = plot_degraded_pixels) +
-        scale_fill_manual(name = "Degraded land definition\n",
+        scale_fill_manual(name = "Habitat type and percent cover\n",
                           values = plot_colors$color,
                           na.value = "white") +
         geom_sf(data = sp_polygon_3162_buffered,
@@ -1431,6 +1433,7 @@ server <- function(input, output, session) {
         # Old line of code to get labels - not needed anymore
         # geom_sf(data = label_points_sf,
         #         aes(text = Label, color = Label), alpha = 0) +
+        labs(title = "Target landscape showing areas of degraded land\nand habitat classes considered suitable for restoration") +
         theme_minimal() + 
         theme(panel.grid = element_blank(), legend.margin = margin(c(0,0,0,0)),
               legend.key.size = unit(1.5, "cm"), # Adjust legend key size
@@ -1542,6 +1545,7 @@ server <- function(input, output, session) {
           # geom_sf(data = label_points_sf,
           #         aes(text = Label, color = Label), alpha = 0) +
           theme_minimal() + 
+          labs(title = "Degraded land within areas of conservation concern")
           theme(panel.grid = element_blank(), legend.margin = margin(c(0,0,0,0)),
                 legend.key.size = unit(1.5, "cm"), # Adjust legend key size
                 legend.text = element_text(size = 12, face = "bold"), # Adjust legend text size
@@ -1741,6 +1745,7 @@ server <- function(input, output, session) {
         # geom_sf(data = label_points_sf,
         #         aes(text = Label, color = Label), alpha = 0) +
         theme_minimal() + 
+        labs("Target landscape with all degraded land restored")
         theme(panel.grid = element_blank(), legend.margin = margin(c(0,0,0,0)),
               legend.key.size = unit(1.5, "cm"), # Adjust legend key size
               legend.text = element_text(size = 12, face = "bold"), # Adjust legend text size
@@ -1842,7 +1847,7 @@ server <- function(input, output, session) {
     # Get the names of the selected habitat classes to exclude
     selected_labels <- names(land_class_mapping)[land_class_mapping %in% choices_reactive()]
 
-    multiple_checkbox("selected_habitats", "Select habitat classes to *exclude* from patch size calculations:", choices = selected_labels)
+    multiple_checkbox("selected_habitats", "You may only be interested in patch size or heterogeneity of certain habitats, e.g., meadow and alvar. If you would like to exclude habitat classes from the calculations, please select them below:", choices = selected_labels)
   })
 
 
@@ -2183,7 +2188,7 @@ server <- function(input, output, session) {
   observeEvent(input$perform_merge, {
     result_habitat_data_updated(result_habitat_data())
     # Check the selected option
-    if (input$merge_metrics == "Yes") {
+    if (input$merge_metrics == "Merge") {
       # Perform the merging and updating of the data
       updated_data <- result_habitat_data() %>%
         mutate(
@@ -2237,7 +2242,7 @@ server <- function(input, output, session) {
                 caption = htmltools::tags$caption(
                   style = 'caption-side: top; text-align: left;',
                   HTML("<br><strong style='font-size: 16px;'>Difference in mean patch size (hectares)
-                       and landscape heterogeneity between original and restored landscape for each candidate area</strong>")))
+                       and landscape heterogeneity between original and restored landscape for each candidate area. Each candidate area has a unique ID (e.g, CA-001 (3 pixels) means candidate area 1, containing 3 pixels of degraded land).</strong>")))
     })
     
     output$subtitleText1 <- renderUI({
@@ -4499,12 +4504,11 @@ fluidRow(
 Patch size can be calculated as the mean size of contiguous areas of a particular habitat type. For each habitat type, the impact of restoration is measured by comparing patch size of the original landscape against the set of landscapes with each candidate area restored. 
 Landscape heterogeneity is a measure of how diverse a landscape is in terms of habitat types. Heterogeneity is measured as average roughness: the absolute deviation of surface values from the mean value. For the heterogeneity metric, the application measures the difference between the original landscape and each of the restored landscapes.<br><br>
 The application computes the difference between patch size and heterogeneity compared between the original and each restored landscape. Additionally, if you selected the option to focus on ‘areas of conservation concern’, only degraded areas that are restored within areas of conservation concern are counted towards increasing patch size or landscape heterogeneity.<br><br> 
-You may only be interested in patch size or heterogeneity of certain habitats, e.g., meadow and alvar. If you would like to exclude habitat classes from the calculations, please select them below. 
 ")),
       br(),
       uiOutput("dynamic_checkboxes"),
       br(),
-      p(HTML("Click 'calculate habitat metrics' to view results of patch size and heterogeneity calculations. Each candidate area is listed as a row in the table, and are given a unique ID (e.g, CA-001 (3 pixels) means candidate area 1, containing 3 pixels of degraded land).")),
+      p(HTML("Click 'Calculate habitat metrics' to view results of patch size and heterogeneity calculations.")),
       br(),
       actionButton("calculate_metrics", "Calculate habitat metrics"),
       br(),
@@ -4519,7 +4523,7 @@ You may only be interested in patch size or heterogeneity of certain habitats, e
     condition = "input.calculate_metrics > 0",
     segment(
       div(style = "font-size: 18px; font-weight: bold; margin-bottom: 15px;", "Merge patch-size results?"),
-      p("You may choose to merge patch size calculations across all habitat types, or keep results separate for each habitat type. If patch size results are merged, the sum of patch size results are combined across habitat types. If patch size for one habitat type is considered more valuable for the purposes of restoration than another, patch size metrics should be left separate so they can be weighted accordingly at a later step."),
+      p("You may choose to merge patch size calculations across all habitat types, or keep results separate for each habitat type. If patch size results are merged, the sum of patch size results are combined across habitat types. If patch size for one habitat type is considered more valuable for the purposes of restoration than another, patch size metrics should be left separate so they can be weighted accordingly at a later step. You can try both options ('Merge' vs 'Do not merge') before making a final choice."),
       multiple_radio("merge_metrics",
         label = NULL,
         choices = c("Merge", "Do not merge"),
