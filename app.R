@@ -4494,25 +4494,17 @@ fluidRow(
   conditionalPanel(
     condition = "input.calculate_combinations > 0 || input.automatic_combination > 0",
     segment(
-      div(style = "font-size: 18px; font-weight: bold; margin-bottom: 15px;", "Calculating patch-size metrics"),
-      p(HTML("Now we can start the process of calculating the impact of groups of restored pixels (i.e. combinations) on
-      habitat patch size. Patch size can be described as the mean size of an area of particular habitat type in the
-      landscape. This is measured by comparing patch size of the completely degraded landscape with no pixels restored,
-      against landscapes with each combination of pixels restored (either a manual set of combinations ore an automatic
-      set depending on what was selected previously). The idea here is to show the varying degrees of positive impact in
-      terms of patch size for each combination. Beforehand, specific habitat types can also be optionally selected via 
-      checkboxes to exclude them from the calculation entirely. This would be applicable if only certain habitat types were of interest.
-      <br><br> 
-	     When the ‘calculate metrics’ button is clicked, the program computes heteogeneity (a measure of how diverse a landscape is in terms of habitat types) 
-	     and mean habitat patch size by type between the degraded landscape and each of the restored landscapes. Heteogeneity is measured as average roughness,
-	     the absolute deviation of surface values from the mean value.
-	    <br><br> 
-      The results for each combination are displayed in a table.
-	    Additionally, if the user has previously selected the option for focusing on ‘areas of conservation concern’, patch size differences for 
-	    these areas are calculated as well – the difference here being that only degraded areas that are restored within areas of conservation
-	    concern are counted towards increasing ‘areas of conservation concern’ patch size.")),
+      div(style = "font-size: 18px; font-weight: bold; margin-bottom: 15px;", "Calculating patch-size and heterogeneity metrics"),
+      p(HTML("Now, we can calculate the impact of restoring candidate areas on habitat patch size and landscape heterogeneity.<br><br>
+Patch size can be calculated as the mean size of contiguous areas of a particular habitat type. For each habitat type, the impact of restoration is measured by comparing patch size of the original landscape against the set of landscapes with each candidate area restored. 
+Landscape heterogeneity is a measure of how diverse a landscape is in terms of habitat types. Heterogeneity is measured as average roughness: the absolute deviation of surface values from the mean value. For the heterogeneity metric, the application measures the difference between the original landscape and each of the restored landscapes.<br><br>
+The application computes the difference between patch size and heterogeneity compared between the original and each restored landscape. Additionally, if you selected the option to focus on ‘areas of conservation concern’, only degraded areas that are restored within areas of conservation concern are counted towards increasing patch size or landscape heterogeneity.<br><br> 
+You may only be interested in patch size or heterogeneity of certain habitats, e.g., meadow and alvar. If you would like to exclude habitat classes from the calculations, please select them below. 
+")),
       br(),
       uiOutput("dynamic_checkboxes"),
+      br(),
+      p(HTML("Click 'calculate habitat metrics' to view results of patch size and heterogeneity calculations. Each candidate area is listed as a row in the table, and are given a unique ID (e.g, CA-001 (3 pixels) means candidate area 1, containing 3 pixels of degraded land).")),
       br(),
       actionButton("calculate_metrics", "Calculate habitat metrics"),
       br(),
@@ -4526,15 +4518,12 @@ fluidRow(
   conditionalPanel(
     condition = "input.calculate_metrics > 0",
     segment(
-      div(style = "font-size: 18px; font-weight: bold; margin-bottom: 15px;", "Choosing to merge patch-size results?"),
-      p("This is an option to merge patch size results across all habitat types, or keep results separate for each habitat type.
-        If patch size results are merged, the sum of patch size results are combined. If they are not merged, they are kept as calculated.
-        If patch size for one habitat type is considered more valuable for the purposes of restoration than another, 
-        patch size metrics should be left seperate so they can be weighted accordingly at a later step."),
+      div(style = "font-size: 18px; font-weight: bold; margin-bottom: 15px;", "Merge patch-size results?"),
+      p("You may choose to merge patch size calculations across all habitat types, or keep results separate for each habitat type. If patch size results are merged, the sum of patch size results are combined across habitat types. If patch size for one habitat type is considered more valuable for the purposes of restoration than another, patch size metrics should be left separate so they can be weighted accordingly at a later step."),
       multiple_radio("merge_metrics",
         label = NULL,
-        choices = c("Yes", "No"),
-        selected = "Yes", inline = TRUE
+        choices = c("Merge", "Do not merge"),
+        selected = "Merge", inline = TRUE
       ),
       actionButton("perform_merge", "Proceed", style = "margin-top: 15px;"),
       br(),
@@ -4550,22 +4539,12 @@ fluidRow(
     condition = "input.perform_merge > 0",
     segment(
       div(style = "font-size: 18px; font-weight: bold; margin-bottom: 15px;", "Calculating connectivity metrics"),
-      p(HTML("Connectivity metrics for each combination can be calculated. Connectivity here can be defined as the ease of movement across a landscape due to connectedness
-      – another way to view this is the amount of resistance a landscape has to movement. To carry out this analysis we have movement cost data for each 300 by 300 metre pixel,
-      and this data covers the entire province. This data was created Pither et al. 2023, and a full breakdown of the cost values for each pixel type are given
-      <a href='https://figshare.com/articles/journal_contribution/Land_cover_layers_and_their_sources_used_to_construct_a_movement_cost_layer_for_Canada_/22143033' target='_blank'>here</a>. 
+      p(HTML("Next, we will measure connectivity metrics for each candidate area. Connectivity can be defined as the ease of movement across a landscape due to connectedness of habitat types. Another way to view this is the amount of resistance a landscape has to movement. We assigned a movement cost value to each 300 x 300 metre pixel in the province, following Pither et al. 2023 (a full breakdown of the cost values for each pixel type are given
+      <a href='https://figshare.com/articles/journal_contribution/Land_cover_layers_and_their_sources_used_to_construct_a_movement_cost_layer_for_Canada_/22143033' target='_blank'>here</a>). We modify cost values for some pixels: any degraded pixels are given a high cost value (1000), whereas restored pixels and natural habitat are given the lowest cost value (1). 
       <br><br> 
-      This movement cost data layer is modified so that any degraded pixels the user has defined are given a high cost value (1000), and restored pixels and natural habitat are given
-      a low-cost value (1). If the option to focus on areas of conservation concern is selected, these areas, and any pixels restored within them, are given a value of 1, with
-      other habitat given a value of 10, and costs for all other pixel types being scaled by 10 (e.g. degraded pixel have a cost value of 10000 in this case).
-      <br><br> 
-      To get and idea of connectivity for each restored pixel combination’s landscape, we measure the movement cost of serval paths across the landscape and take an average 
-      of the cost of those paths as an indication of the resistance of that landscape – mean path resistance. These resistance paths are measured between all “nodes” (or clusters)
-      of either contiguous areas of natural habitat, or areas of conservation concern (depending on the focus of the analysis) that occur in the landscape.
-      <br><br> 
-      The mean path resistance for each restored landscape is then subtracted from the mean path resistance of the degraded landscape 
-      – to get a measure of how much resistance was reduced (or connectivity increased) by each restoration combination. Positive values = reduced resistance and better movement in a landscape,
-      negative values = increased resistance and more difficult movement. Results for each combination are output in a table.")),
+     If the option to focus on areas of conservation concern is selected, these areas, and any pixels restored within them, are given a cost value of 1, with other natural  habitat given a cost value of 10, and costs for all other pixel types scaled up by a magnitude of 10 (e.g. degraded pixels = 10000).<br><br>
+             To get an idea of connectivity within each restored landscape, we measure the movement cost of many potential movement paths across the landscape and take an average of the cost of those paths as an indication of the resistance of that landscape; this is referred to as ‘mean path resistance’. These resistance paths are measured between all ‘nodes’ or ‘clusters’ of either contiguous areas of natural habitat, or areas of conservation concern (depending on the focus of the analysis) that occur in the landscape.<br><br>
+             The mean path resistance  for each restored landscape is then subtracted from the mean path resistance of the degraded landscape – to get a measure of how much resistance was reduced (or connectivity increased) by restoring each candidate area. Positive values denote reduced resistance and better movement in a landscape, whereas negative values denote increased resistance and more difficult movement. Results for each combination are output in a table.")),
       actionButton("calculate_connectivity", "Calculate connectivity", style = "margin-top: 15px;"),
       br(),
       br(),
