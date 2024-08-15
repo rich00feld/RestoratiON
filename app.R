@@ -1545,7 +1545,7 @@ server <- function(input, output, session) {
           # geom_sf(data = label_points_sf,
           #         aes(text = Label, color = Label), alpha = 0) +
           theme_minimal() + 
-          labs(title = "Degraded land within areas of conservation concern")
+          labs(title = "Degraded land within areas of conservation concern") +
           theme(panel.grid = element_blank(), legend.margin = margin(c(0,0,0,0)),
                 legend.key.size = unit(1.5, "cm"), # Adjust legend key size
                 legend.text = element_text(size = 12, face = "bold"), # Adjust legend text size
@@ -1745,7 +1745,7 @@ server <- function(input, output, session) {
         # geom_sf(data = label_points_sf,
         #         aes(text = Label, color = Label), alpha = 0) +
         theme_minimal() + 
-        labs("Target landscape with all degraded land restored")
+        labs("Target landscape with all degraded land restored") +
         theme(panel.grid = element_blank(), legend.margin = margin(c(0,0,0,0)),
               legend.key.size = unit(1.5, "cm"), # Adjust legend key size
               legend.text = element_text(size = 12, face = "bold"), # Adjust legend text size
@@ -4503,7 +4503,7 @@ fluidRow(
       p(HTML("Now, we can calculate the impact of restoring candidate areas on habitat patch size and landscape heterogeneity.<br><br>
 Patch size can be calculated as the mean size of contiguous areas of a particular habitat type. For each habitat type, the impact of restoration is measured by comparing patch size of the original landscape against the set of landscapes with each candidate area restored. 
 Landscape heterogeneity is a measure of how diverse a landscape is in terms of habitat types. Heterogeneity is measured as average roughness: the absolute deviation of surface values from the mean value. For the heterogeneity metric, the application measures the difference between the original landscape and each of the restored landscapes.<br><br>
-The application computes the difference between patch size and heterogeneity compared between the original and each restored landscape. Additionally, if you selected the option to focus on ‘areas of conservation concern’, only degraded areas that are restored within areas of conservation concern are counted towards increasing patch size or landscape heterogeneity.<br><br> 
+The application computes the difference between patch size and heterogeneity compared between the original and each restored landscape. Additionally, if you selected the option to focus on ‘areas of conservation concern’, only degraded areas that are restored within areas of conservation concern are counted towards increasing patch size or landscape heterogeneity. 
 ")),
       br(),
       uiOutput("dynamic_checkboxes"),
