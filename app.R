@@ -202,6 +202,8 @@ land_cover_labels <- data.frame(
     Land_Class = c("Degraded", "Priority pixels", "Aggregate extraction", 
                    "Topsoil/Peat extraction", "Undifferentiated", "Not included", "Included")
   ))
+
+
 land_cover_labels_react(land_cover_labels)
 polyrast_plot<- reactiveVal()
 buffer_value <- reactiveVal()
@@ -4387,7 +4389,7 @@ Depending on your goals, you may wish to calculate connectivity and habitat patc
       br(),
       br(),
       p(HTML("<b>Set the final extent</b><br>
-               Finally, press “Set extent” to confirm the final target landscape for analysis. No matter your extent selection method, the smallest rectangular space of land that contains the entire selected landscape is displayed. An image of the selected landscape is displayed for you to review, with a breakdown of the respective proportion of habitat types it contains. If you chose to focus on areas of conservation concern, a map displaying any areas of conservation concern and which areas are included in the analysis is also displayed.<br><br>
+               Finally, press “Set extent” to confirm the final target landscape for analysis. An image of the selected landscape, including the buffer area, is displayed for you to review, with a breakdown of the respective proportion of habitat types it contains. If you chose to focus on areas of conservation concern, a map displaying any areas of conservation concern and which areas are included in the analysis is also displayed.<br><br>
              When the landscape extent is set, a test is run on that landscape to see if it is large enough to calculate connectivity metrics. This will be explained in more detail as you progress through the application.<br>
                ")),
       actionButton("set_extent", "Set extent"),
