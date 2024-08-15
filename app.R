@@ -905,11 +905,16 @@ server <- function(input, output, session) {
     plot_buffered_raster <- crop(croppedOntario(), sp_polygon_3162_buffered, mask = TRUE)
     polyrast_plot(plot_buffered_raster)
     
+
+    
     # This plots the cropped landscape with habitat classes
+    
+    #create the target landscape object for the plots
+    target_landscape <- sp_plot_polygon()
+    
     output$rasterPlot <-  renderPlotly({
       #Creates a table to map land class labels to numeric values in 'Ontario_land_cover' (for the plot legend essentially)
       land_cover_labels <- land_cover_labels_react()
-      
       # Determine percentage of each land cover class in the *buffered* landscape, since this is what readers will see
       percent_landcover <- plot_buffered_raster %>% 
         data.frame() %>% 
@@ -964,7 +969,7 @@ server <- function(input, output, session) {
                           na.value = "white") +
         geom_sf(data = sp_polygon_3162_buffered,
                 aes(color = "Buffer extent"), fill = NA, linewidth = 1) +
-        geom_sf(data = sp_plot_polygon(), aes(color = "Target landscape"),
+        geom_sf(data = target_landscape, aes(color = "Target landscape"),
                 fill = NA, linewidth = 1) +
         scale_color_manual(name = "", values = c("lightgrey", "black")) +
         # Old line of code to get labels - not needed anymore
@@ -986,8 +991,6 @@ server <- function(input, output, session) {
       
       # strip out the legend - this makes it easier to format and put it where you might want it - whether above, below, or beside plotly interactive plot
       legend_plot1 <- cowplot::get_plot_component(my_ggplot, 'guide-box-right', return_all = TRUE)
-      grid.newpage()
-      grid.draw(legend_plot1)
       legend_plot1_react(legend_plot1)
       
 
@@ -1006,10 +1009,13 @@ server <- function(input, output, session) {
       grid.draw(legend_plot1)
     })
   
-
-
+    
     # If the 'areas of conservation concern' option is selected in the previous UI Segment 2,
     # then an 'areas of conservation concern' plot is also created using the definitions the user selected previously
+    
+    # Get the target landscape
+    target_landscape <- sp_plot_polygon()
+    
     output$protectedPlot <- renderPlotly({
       req(input$protected_based_calculations > 0)
       Protected_areas_plot <- ifel(!is.na(plot_buffered_raster), croppedProtected_areas(), plot_buffered_raster)
@@ -1071,7 +1077,7 @@ server <- function(input, output, session) {
                             na.value = "white") +
           geom_sf(data = sp_polygon_3162_buffered,
                   aes(color = "Buffer extent"), fill = NA, linewidth = 1) +
-          geom_sf(data = sp_plot_polygon(), aes(color = "Target landscape"),
+          geom_sf(data = target_landscape, aes(color = "Target landscape"),
                   fill = NA, linewidth = 1) +
           scale_color_manual(name = "", values = c("lightgrey", "black")) +
           # Old line of code to get labels - not needed anymore
@@ -1093,8 +1099,6 @@ server <- function(input, output, session) {
         
         # strip out the legend - this makes it easier to format and put it where you might want it - whether above, below, or beside plotly interactive plot
         legend_plot2 <- cowplot::get_plot_component(my_ggplot, 'guide-box-right', return_all = TRUE)
-        grid.newpage()
-        grid.draw(legend_plot2)
         legend_plot2_react(legend_plot2)
         
         
@@ -1320,7 +1324,6 @@ server <- function(input, output, session) {
     
     sp_polygon_3162_buffered <- st_buffer(sp_plot_polygon(), buffer_value())
     
-    
     plot_degraded_protected <- degraded_protected
     plot_degraded_protected <- crop(plot_degraded_protected, sp_polygon_3162_buffered, mask = TRUE)
     
@@ -1352,6 +1355,9 @@ server <- function(input, output, session) {
 
     # Plot target landscape with degraded pixels ----
     # a plot is output showing the landscape with non-tolerable pixels excluded and degraded pixels in orange
+    
+    # Get the target landscape
+    target_landscape <- sp_plot_polygon()
     
     output$degradedPlot <- renderPlotly({
       plot_degraded_pixels <- plot_degraded_react()
@@ -1413,7 +1419,7 @@ server <- function(input, output, session) {
                           na.value = "white") +
         geom_sf(data = sp_polygon_3162_buffered,
                 aes(color = "Buffer extent"), fill = NA, linewidth = 1) +
-        geom_sf(data = sp_plot_polygon(), aes(color = "Target landscape"),
+        geom_sf(data = target_landscape, aes(color = "Target landscape"),
                 fill = NA, linewidth = 1) +
         scale_color_manual(name = "", values = c("lightgrey", "black")) +
         # Old line of code to get labels - not needed anymore
@@ -1454,8 +1460,12 @@ server <- function(input, output, session) {
       grid.draw(legend_plot3)
     })
     
+    
+    # A plot for 'areas of conservation concern' if that option is selected in UI segment 2
+    
+    # Get the target landscape
+    target_landscape <- sp_plot_polygon()
 
-    # A version for 'areas of conservation concern' if that option is selected in UI segment 2
     output$degradedprotectedPlot <- renderPlotly({
       req(input$protected_based_calculations > 0)
       plot_degraded_protected <- plot_degraded_protected_react()
@@ -1517,7 +1527,7 @@ server <- function(input, output, session) {
                             na.value = "white") +
           geom_sf(data = sp_polygon_3162_buffered,
                   aes(color = "Buffer extent"), fill = NA, linewidth = 1) +
-          geom_sf(data = sp_plot_polygon(), aes(color = "Target landscape"),
+          geom_sf(data = target_landscape, aes(color = "Target landscape"),
                   fill = NA, linewidth = 1) +
           scale_color_manual(name = "", values = c("lightgrey", "black")) +
           # Old line of code to get labels - not needed anymore
@@ -1651,7 +1661,8 @@ server <- function(input, output, session) {
 
     # Plot the restored landscape
     
-    
+    # Get the target landscape
+    target_landscape <- sp_plot_polygon()
     
      output$restorationPlot <- renderPlotly({
       restored_land_plot <- restored_land_plot_react()
@@ -1713,7 +1724,7 @@ server <- function(input, output, session) {
                           na.value = "white") +
         geom_sf(data = sp_polygon_3162_buffered,
                 aes(color = "Buffer extent"), fill = NA, linewidth = 1) +
-        geom_sf(data = sp_plot_polygon(), aes(color = "Target landscape"),
+        geom_sf(data = target_landscape, aes(color = "Target landscape"),
                 fill = NA, linewidth = 1) +
         scale_color_manual(name = "", values = c("lightgrey", "black")) +
         # Old line of code to get labels - not needed anymore
