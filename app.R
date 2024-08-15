@@ -4444,13 +4444,9 @@ fluidRow(
     condition = "input.preview > 0",
     segment(
       div(style = "font-size: 18px; font-weight: bold; margin-bottom: 15px;", "Simulating restoration"),
-      p(HTML("The next step is to simulate the restoration of pixels that are defined as degraded. When 'simulate restoration' is clicked, degraded pixels
-      are replaced with the most prevalent natural habitat around them (i.e. a 3x3 pixel neighbourhood with that given degraded pixel at the centre). <br><br> 
-      This process starts with a 3x3 neighbourhood and for any pixel that is not restored because there are no nearby habitat pixels (as may be the case with 
-      islands surrounded by water or degraded pixels surrounded by urban areas or farmland), it runs successively with larger neighbourhoods, increasing 
-      by 2 each time (e.g. 5x5, 7x7, 9x9 etc.). This process continues until all degraded pixels are restored in the landscape. A plot of the restored
-      landscape is then displayed.This simulates restoration by redefining degraded pixels based on non-degraded pixels in their neighbourhood.
-      When finished running, the 'restored landscape' will be plotted.")),
+      p(HTML("The next step is to simulate the restoration of pixels that are defined as degraded. When 'simulate restoration' is clicked, each individual degraded pixel in the target landscape is replaced with the most prevalent natural habitat in the 8 pixels that surround it. The 3x3 pixel area surrounding each degraded pixel is called a 'neighborhood'. <br><br>
+     If a degraded pixel is not surrounded by any natural habitat in the 3x3 neighborhood, which may occur when the degraded land is completely surrounded by water, urban areas, or farmland, the application will attempt to replace the degraded pixel using successively larger neighborhoods, which increase by 2 pixels each time (e.g., 5x5, 7x7, 9x9, etc.).<br><br> 
+             This process continues until all degraded pixels are 'restored' to natural habitat in the target landscape. Click 'simulate restoration' below to view the restored landscape, with degraded pixels replaced by natural habitat.")),
       actionButton("simulate_restoration", "Simulate restoration"),
       fluidRow(
         column(width = 6, plotlyOutput("restorationPlot", height = "800px")),
