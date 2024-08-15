@@ -2138,7 +2138,6 @@ server <- function(input, output, session) {
       # Close parallel processing
       plan(sequential)
 
-
       # combine this patch size metric with the other results table
       hab_result_combined <- merge(result_habitat_data(), protected_result, by = "combination")
 
@@ -2185,13 +2184,55 @@ server <- function(input, output, session) {
     # Display the results in the UI, merged or un-merged
     output$habitatTable <- renderDataTable({
       req(result_habitat_data_updated())
-      
       # Round the values to 3 decimal places
       rounded_data <- result_habitat_data_updated()
       rounded_data[] <- lapply(rounded_data, function(x) if (is.numeric(x)) round(x, 3) else x)
       
-      datatable(rounded_data, rownames = FALSE, options = list(scrollX = TRUE))
+      # rename 'sa_difference' to 'Heterogeneity'
+      if("sa_difference" %in% names(rounded_data)) {
+        names(rounded_data)[names(rounded_data) == 'sa_difference'] <- 'Heterogeneity'
+      }
+      
+      # rename 'sum_habitat_patch_size_diff' to 'Sum patch size' if present
+      if("sum_habitat_patch_size_diff" %in% names(rounded_data)) {
+        names(rounded_data)[names(rounded_data) == 'sum_habitat_patch_size_diff'] <- 'Sum patch size'
+      }
+      
+      # Use a pattern matching approach to rename the 'patch_size_diff' columns if they are present
+      new_names <- names(rounded_data)
+      new_names <- gsub("^patch_size_diff_(.+?) \\(Class \\d+\\)$", "\\1 patch size", new_names)
+      # Assign the new names back to the data frame
+      names(rounded_data) <- new_names
+      
+      # Rename 'combination' column to 'Candidate area'
+      names(rounded_data)[names(rounded_data) == 'combination'] <- 'Candidate area'
+      # Get the total number of rows
+      total_rows <- nrow(rounded_data)
+      # Determine the number of zeros needed based on the total number of rows
+      num_zeros <- nchar(as.character(total_rows))
+      # Generate the new values for the 'Candidate area' column
+      rounded_data$`Candidate area` <- sapply(1:total_rows, function(i) {
+        # Count the number of '-' in the original entry
+        original_value <- rounded_data$`Candidate area`[i]
+        num_pixels <- str_count(original_value, "-") + 1
+        # Generate the CA number with leading zeros
+        ca_number <- sprintf(paste0("CA_%0", num_zeros, "d"), i)
+        # Combine CA number with pixel information
+        paste0(ca_number, " (", num_pixels, " pixels)")
+      })
+      
+      datatable(rounded_data, rownames = FALSE, options = list(scrollX = TRUE), ,
+                caption = htmltools::tags$caption(
+                  style = 'caption-side: top; text-align: left;',
+                  HTML("<br><strong style='font-size: 16px;'>Difference in mean patch size (hectares)
+                       and landscape heterogeneity between original and restored landscape for each candidate area</strong>")))
     })
+    
+    output$subtitleText1 <- renderUI({
+      req(result_habitat_data_updated())  # Ensure that the table data is ready
+      HTML("<p style='font-size: 12px; text-align: left;'>**Positive values indicate that heterogeneity or patch size is greater in the restored landscape.</p>")
+    })
+    
   })
 
   # Linked to UI Segment 11, Calculating landscape connectivity metrics ----
@@ -3790,6 +3831,7 @@ server <- function(input, output, session) {
           # Create a copy of the degraded raster and add the values from restored_land
           modified_raster <- degraded_raster
           modified_raster[combination] <- restored_values[combination]
+
           
           # Here, calculate the metrics for the modified raster
           modified_patch_size <- lsm_c_area_mn(modified_raster)
@@ -4471,8 +4513,9 @@ fluidRow(
       terms of patch size for each combination. Beforehand, specific habitat types can also be optionally selected via 
       checkboxes to exclude them from the calculation entirely. This would be applicable if only certain habitat types were of interest.
       <br><br> 
-	     When the ‘calculate metrics’ button is clicked, the program computes heteogeneity ('sa' - a measure of how diverse a landscape is in terms of habitat types) 
-	     and mean habitat patch size by type between the degraded landscape and each of the restored landscapes.  
+	     When the ‘calculate metrics’ button is clicked, the program computes heteogeneity (a measure of how diverse a landscape is in terms of habitat types) 
+	     and mean habitat patch size by type between the degraded landscape and each of the restored landscapes. Heteogeneity is measured as average roughness,
+	     the absolute deviation of surface values from the mean value.
 	    <br><br> 
       The results for each combination are displayed in a table.
 	    Additionally, if the user has previously selected the option for focusing on ‘areas of conservation concern’, patch size differences for 
@@ -4506,7 +4549,8 @@ fluidRow(
       actionButton("perform_merge", "Proceed", style = "margin-top: 15px;"),
       br(),
       br(),
-      dataTableOutput("habitatTable")
+      dataTableOutput("habitatTable"),
+      uiOutput("subtitleText1")
     )
   ),
 
