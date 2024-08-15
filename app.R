@@ -4446,7 +4446,7 @@ fluidRow(
       div(style = "font-size: 18px; font-weight: bold; margin-bottom: 15px;", "Simulating restoration"),
       p(HTML("The next step is to simulate the restoration of pixels that are defined as degraded. When 'simulate restoration' is clicked, each individual degraded pixel in the target landscape is replaced with the most prevalent natural habitat in the 8 pixels that surround it. The 3x3 pixel area surrounding each degraded pixel is called a 'neighborhood'. <br><br>
      If a degraded pixel is not surrounded by any natural habitat in the 3x3 neighborhood, which may occur when the degraded land is completely surrounded by water, urban areas, or farmland, the application will attempt to replace the degraded pixel using successively larger neighborhoods, which increase by 2 pixels each time (e.g., 5x5, 7x7, 9x9, etc.).<br><br> 
-             This process continues until all degraded pixels are 'restored' to natural habitat in the target landscape. Click 'simulate restoration' below to view the restored landscape, with degraded pixels replaced by natural habitat.")),
+             This process continues until all degraded pixels are 'restored' to natural habitat in the target landscape. Click 'simulate restoration' to view the restored landscape, with degraded pixels replaced by natural habitat.")),
       actionButton("simulate_restoration", "Simulate restoration"),
       fluidRow(
         column(width = 6, plotlyOutput("restorationPlot", height = "800px")),
@@ -4460,29 +4460,16 @@ fluidRow(
   conditionalPanel(
     condition = "input.simulate_restoration > 0 && !output.showAutoCombo && !output.showManualCombo",
     segment(
-      div(style = "font-size: 18px; font-weight: bold; margin-bottom: 15px;", "Choosing how to evaluate combinations of restored pixels"),
-      p(HTML("The next step is to make a choice on how to combine restored pixels in groups (i.e. combinations) to
-      evaluate which group of pixels has the greatest positive impact after restoration. Groups of 1 are also possible.
-      The user has two main options:
-      <br><br>
-      The first option is to create combinations automatically. This option creates combinations from groups of connected pixels that share the same 
-      habitat type. In 	general, this will produce far less combinations than by setting combinations manually via the second option.
-      <br><br>
-	    The second option is setting pixel combinations manually by specifying a number which is used to set the size of pixel
-	    groups to be combined, i.e. this value corresponds to how many restored pixels to include in a given combination.
-	    For example, if a landscape has 100 restored/degraded pixels, a combination size of 1 (each pixel assessed on its own)
-	    will result in 100 possible unique combinations, a combination size of 2 will result in 4950 possible combinations,
-	    and a combination size of 3 will result in 161700 possible unique combinations from that set of 100 pixels. 
-	    The number of	combinations to analyze can quickly	become very large (and take a very long time to assess) so it 
-	    is not recommended to set the combination size high unless the number of degraded/restored pixels in the landscape 
-	    is very small (e.g. if a landscape 	has 10 restored/degraded pixels then a combination size of 3 results in 120 possible
-	    combinations, but if a landscape has 100 restored/degraded pixels then a combination size of 3 results in 161700 possible unique combinations)."
+      div(style = "font-size: 18px; font-weight: bold; margin-bottom: 15px;", "Choosing how to define candidate areas for restoration"),
+      p(HTML("Your target landscape likely has multiple areas that are considered degraded land that could be restored. Eventually, the application will rank these 'candidate areas' to determine which degraded area, once restored, has the greatest positive impact. However, first you must choose how to <i>define</i> candidate areas for restoration. <br><br>
+<b>There are two options:</b>"
 	    )),
       br(),
-      actionButton("automatic_combination", "Automatically assign pixel combinations based on contiguous pixels of identical habitat"),
+      actionButton("automatic_combination", "Define candidate areas based on contiguous habitat type"),
+      p(HTML("<i><p style='margin-left: 25px;'>This option creates candidate areas by automatically dividing sections of degraded land into one or more groups. Each group shares the same habitat type and all pixels in the group are connected. In general, this option will produce fewer candidate areas.</p></i>")),
       br(),
-      br(),
-      actionButton("manual_combination", "Set pixel combinations based on all unique combinations of a set number of pixels")
+      actionButton("manual_combination", "Define candidate areas based on a set number of pixels"),
+      p(HTML("<i><p style='margin-left: 25px;'>If your restoration efforts must be focused on a small area within a target landscape – e.g., only one or two 300 x 300 m pixels (9 – 18 hectares), you may wish to define candidate areas based on a set number of pixels, e.g., 1, 2, or 3. This option <b>does not constrain candidate areas to be contiguous</b>; instead, it groups all possible combinations of degraded pixels for restoration based on a set number of pixels.</p></i>"))
     )
   ),
 
@@ -4490,16 +4477,13 @@ fluidRow(
   conditionalPanel(
     condition = "input.manual_combination > 0",
     segment(
-      div(style = "font-size: 18px; font-weight: bold; margin-bottom: 15px;", "Pixels to evaluate for restoration"),
-      p("Set the number of pixels used in each unique combination (i.e. the size of the pixel group to prioritize for restoration).
-    The resulting number of unique combinations based on the number of degraded pixels and the selected number of combined
-    pixels will be output below. This setting has a strong bearing on calculation time. For example, in a sample landscape
-    with 150 degraded pixels, a pixel number of 5 would result in attempting to calculate metrics for ~5.91e8 unique combinations."),
+      div(style = "font-size: 18px; font-weight: bold; margin-bottom: 15px;", "Set number of pixels"),
+      p(HTML("Choose the number of pixels that will define candidate areas for restoration. The higher the number of candidate areas, the longer the computation time will be. For example, if a landscape has 100 degraded pixels, setting the number to 1, where each pixel is assessed on its own, will result in 100 candidate areas. Setting the number to 2 will result in 4950 candidate areas, and setting the number to 3 will result in 161700 candidate areas. On the other hand, if a target landscape has only 10 degraded pixels, then setting the number to 3 results in only 120 candidate areas. The number of candidate areas to analyze can quickly become very large (and take a very long time to assess) so you must consider the total number of degraded pixels in your target landscape when determining a reasonable number of pixels to include in a single candidate area.<br><br>You can test different scenarios by setting the number of pixels, then clicking 'Calculate number of candidate areas'. We recommend limiting the number of candidate areas to <span style='color:#cd3212;background-color: #f6beb2;'>less than 3000. (Ryan please advise)</span>.")),
       textOutput("numDegradedPixels_Seg8"),
       br(),
-      numericInput("num_combined_pixels", "Size of pixel group:", value = 1, min = 1),
+      numericInput("num_combined_pixels", "Set number of pixels:", value = 1, min = 1),
       br(),
-      actionButton("calculate_combinations", "Calculate combinations"),
+      actionButton("calculate_combinations", "Calculate number of candidate areas"),
       br(),
       br(),
       div(style = "font-size: 20px;", textOutput("numCombinations"))
