@@ -983,11 +983,13 @@ server <- function(input, output, session) {
               legend.box.spacing = unit(0.5, "cm")) + # Adjust spacing
       guides(fill = guide_legend(
         label.position = "left",
-        label.hjust = 1),
+        label.hjust = 1,
+        order = 2),
         color = guide_legend(
           direction = "horizontal",
           label.position = "right",
-          label.hjust = 0))
+          label.hjust = 0,
+          order = 1))
       
       # strip out the legend - this makes it easier to format and put it where you might want it - whether above, below, or beside plotly interactive plot
       legend_plot1 <- cowplot::get_plot_component(my_ggplot, 'guide-box-right', return_all = TRUE)
@@ -1091,11 +1093,13 @@ server <- function(input, output, session) {
                 legend.box.spacing = unit(0.5, "cm")) + # Adjust spacing
           guides(fill = guide_legend(
             label.position = "left",
-            label.hjust = 1),
+            label.hjust = 1,
+            order = 2),
             color = guide_legend(
               direction = "horizontal",
               label.position = "right",
-              label.hjust = 0))
+              label.hjust = 0,
+              order = 1))
         
         # strip out the legend - this makes it easier to format and put it where you might want it - whether above, below, or beside plotly interactive plot
         legend_plot2 <- cowplot::get_plot_component(my_ggplot, 'guide-box-right', return_all = TRUE)
@@ -1433,11 +1437,13 @@ server <- function(input, output, session) {
               legend.box.spacing = unit(0.5, "cm")) + # Adjust spacing
         guides(fill = guide_legend(
           label.position = "left",
-          label.hjust = 1),
+          label.hjust = 1,
+          order = 2),
           color = guide_legend(
             direction = "horizontal",
             label.position = "right",
-            label.hjust = 0))
+            label.hjust = 0,
+            order = 1))
       
       # strip out the legend - this makes it easier to format and put it where you might want it - whether above, below, or beside plotly interactive plot
       legend_plot3 <- cowplot::get_plot_component(my_ggplot, 'guide-box-right', return_all = TRUE)
@@ -1541,11 +1547,13 @@ server <- function(input, output, session) {
                 legend.box.spacing = unit(0.5, "cm")) + # Adjust spacing
           guides(fill = guide_legend(
             label.position = "left",
-            label.hjust = 1),
+            label.hjust = 1,
+            order = 2),
             color = guide_legend(
               direction = "horizontal",
               label.position = "right",
-              label.hjust = 0))
+              label.hjust = 0,
+              order = 1))
         
         # strip out the legend - this makes it easier to format and put it where you might want it - whether above, below, or beside plotly interactive plot
         legend_plot4 <- cowplot::get_plot_component(my_ggplot, 'guide-box-right', return_all = TRUE)
@@ -1738,11 +1746,13 @@ server <- function(input, output, session) {
               legend.box.spacing = unit(0.5, "cm")) + # Adjust spacing
         guides(fill = guide_legend(
           label.position = "left",
-          label.hjust = 1),
+          label.hjust = 1,
+          order = 2),
           color = guide_legend(
             direction = "horizontal",
             label.position = "right",
-            label.hjust = 0))
+            label.hjust = 0,
+            order = 1))
       
       # strip out the legend - this makes it easier to format and put it where you might want it - whether above, below, or beside plotly interactive plot
       legend_plot5 <- cowplot::get_plot_component(my_ggplot, 'guide-box-right', return_all = TRUE)
