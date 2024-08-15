@@ -4564,18 +4564,11 @@ The application computes the difference between patch size and heterogeneity com
   conditionalPanel(
     condition = "input.calculate_connectivity > 0",
     segment(
-      div(style = "font-size: 18px; font-weight: bold; margin-bottom: 15px;", "Creating the principal component data layers"),
-      p(HTML("Principal Component Analysis (PCA) is a statistical method designed to simplify and reveal patterns in complex datasets. With the environment,
-      there are a large set of variables, such as temperature, precipitation, and soil types. PCA takes all this information and creates multiple new variables,
-      called principal components, which capture the most significant variations in the data. By focusing on these components, PCA helps reduce the complexity of
-      the dataset, making it easier to visualize trends, understand relationships between variables, and compress the data while retaining essential information.
+      div(style = "font-size: 18px; font-weight: bold; margin-bottom: 15px;", "Calculating environmental heterogeneity: creating principal component data layers"),
+      p(HTML("In this application, we assume that species cannot easily live in or travel through degraded land. Therefore, it is useful to measure environmental heterogeneity in the original landscape, excluding degraded areas, and compare that value against each restored landscape, including the restored candidate areas, to determine which candidate area provides the greatest benefits once restored.
       <br><br>
-	    In this section the program initiates the process of performing a PCA on various environmental data layers. Several environmental layers (temperature, 
-	    precipitation, elevation, and soil data) are analyzed to create multiple principal component data layers (i.e. a map of pixels which cover the entire province, 
-	    each pixel with a value set by the associated principal component). The results of this PCA analysis, including standard deviations and proportions of variance 
-	    explained by each principal component, are displayed in a summary table. This information provides insights into the importance of each principal component in 
-	    explaining the variability in the environmental data. Using these principal component layers, we will measure environmental heterogeneity in each of the restored
-	    pixel combination landscapes, comparing them against the degraded landscape.")),
+	    There is a large set of variables to consider when measuring environmental heterogeneity, such as temperature, precipitation, and soil types. Principal Component Analysis (PCA) is a statistical method designed to simplify and reveal patterns in complex datasets. PCA takes all this information and creates multiple new variables, called principal components, which capture the most significant variations in the data. By focusing on these components, PCA helps reduce the complexity of the dataset, making it easier to visualize trends, understand relationships between variables, and compress the data while retaining essential information.<br><br>
+	    Here, we perform a PCA on several environmental layers (temperature, precipitation, elevation, and soil data) to create multiple principal component data layers (i.e. a map of pixels which cover the entire province, each pixel with a value set by the associated principal component). This information provides insights into the importance of each principal component in explaining variability in the environmental data. Using these principal component layers, we will measure environmental heterogeneity for each potential restored landscape, comparing them against the original, degraded landscape. The results of the PCA, including standard deviations and proportions of variance explained by each principal component, are displayed in a summary table.")),
       actionButton("calculate_pca", "Calculate PCA and print summary"),
       br(),
       br(),
@@ -4588,7 +4581,7 @@ The application computes the difference between patch size and heterogeneity com
   conditionalPanel(
     condition = "input.calculate_pca > 0",
     segment(
-      div(style = "font-size: 18px; font-weight: bold; margin-bottom: 15px;", "Calculating environmental heterogeneity"),
+      div(style = "font-size: 18px; font-weight: bold; margin-bottom: 15px;", "Calculating environmental heterogeneity: comparing degraded and restored landscapes"),
       p(HTML("Here we measure the difference in environmental heterogeneity between each the restored landscapes 
       and the degraded landscape – using the principal component data layers created previously. Degraded pixels are
       treated as if they have no environmental value (NA) in the principal component layers, while restored pixels are
