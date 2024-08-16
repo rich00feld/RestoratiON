@@ -1024,8 +1024,7 @@ server <- function(input, output, session) {
     
     output$protectedPlot <- renderPlotly({
       req(input$protected_based_calculations > 0)
-      Protected_areas_plot <- ifel(!is.na(plot_buffered_raster), croppedProtected_areas(), plot_buffered_raster)
-  
+      Protected_areas_plot <- crop(croppedProtected_areas(), sp_polygon_3162_buffered, mask = TRUE)
         #Creates a table to map land class labels to numeric values in 'Ontario_land_cover' (for the plot legend essentially)
         land_cover_labels <- land_cover_labels_react()
         
@@ -2206,29 +2205,36 @@ server <- function(input, output, session) {
       # Update the reactive value
       result_habitat_data_updated(updated_data)
     }
+    
+    
+    
     # Display the results in the UI, merged or un-merged
     output$habitatTable <- renderDataTable({
       req(result_habitat_data_updated())
       # Round the values to 3 decimal places
       rounded_data <- result_habitat_data_updated()
       rounded_data[] <- lapply(rounded_data, function(x) if (is.numeric(x)) round(x, 3) else x)
-      
       # rename 'sa_difference' to 'Heterogeneity'
       if("sa_difference" %in% names(rounded_data)) {
         names(rounded_data)[names(rounded_data) == 'sa_difference'] <- 'Heterogeneity'
       }
-      
+      # rename 'habitat_heterogeneity_difference' to 'Heterogeneity'
+      if("habitat_heterogeneity_difference" %in% names(rounded_data)) {
+        names(rounded_data)[names(rounded_data) == 'habitat_heterogeneity_difference'] <- 'Heterogeneity'
+            }
+      # rename 'protected_patch_size_difference' to 'Protected area patch size'
+      if("protected_patch_size_difference" %in% names(rounded_data)) {
+        names(rounded_data)[names(rounded_data) == 'protected_patch_size_difference'] <- 'Protected area patch size'
+      }
       # rename 'sum_habitat_patch_size_diff' to 'Sum patch size' if present
       if("sum_habitat_patch_size_diff" %in% names(rounded_data)) {
-        names(rounded_data)[names(rounded_data) == 'sum_habitat_patch_size_diff'] <- 'Sum patch size'
+        names(rounded_data)[names(rounded_data) == 'sum_habitat_patch_size_diff'] <- 'Sum habitat patch size'
       }
-      
       # Use a pattern matching approach to rename the 'patch_size_diff' columns if they are present
       new_names <- names(rounded_data)
       new_names <- gsub("^patch_size_diff_(.+?) \\(Class \\d+\\)$", "\\1 patch size", new_names)
       # Assign the new names back to the data frame
       names(rounded_data) <- new_names
-      
       # Rename 'combination' column to 'Candidate area'
       names(rounded_data)[names(rounded_data) == 'combination'] <- 'Candidate area'
       # Get the total number of rows
@@ -2245,17 +2251,19 @@ server <- function(input, output, session) {
         # Combine CA number with pixel information
         paste0(ca_number, " (", num_pixels, " pixels)")
       })
-      
       datatable(rounded_data, rownames = FALSE, options = list(scrollX = TRUE), ,
                 caption = htmltools::tags$caption(
                   style = 'caption-side: top; text-align: left;',
                   HTML("<br><strong style='font-size: 16px;'>Difference in mean patch size (hectares)
-                       and landscape heterogeneity between original and restored landscape for each candidate area. Each candidate area has a unique ID (e.g, CA-001 (3 pixels) means candidate area 1, containing 3 pixels of degraded land).</strong>")))
+                       and landscape heterogeneity between original and restored landscape for each candidate area.
+                       Positive values indicate that heterogeneity or patch size is greater in the restored landscape.
+                       Each candidate area has a unique ID (e.g, CA-001 (3 pixels) means candidate area 1, containing 3 pixels of degraded land).</strong>")))
     })
     
     output$subtitleText1 <- renderUI({
       req(result_habitat_data_updated())  # Ensure that the table data is ready
-      HTML("<p style='font-size: 12px; text-align: left;'>**Positive values indicate that heterogeneity or patch size is greater in the restored landscape.</p>")
+      HTML("<p style='font-size: 14px; text-align: left;'>**Heterogeneity was calculated as average roughness (absolute deviation of surface values from the mean),
+           see <a href='https://besjournals.onlinelibrary.wiley.com/doi/full/10.1111/2041-210X.13677#mee313677-tbl-0002' target='_blank'>Smith et al. 2021</a>.</p>")
     })
     
   })
