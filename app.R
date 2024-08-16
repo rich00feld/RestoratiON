@@ -966,7 +966,7 @@ server <- function(input, output, session) {
       # plot in ggplot first
       my_ggplot <- ggplot() +
         geom_spatraster(data = plot_buffered_raster) +
-        scale_fill_manual(name = "Land class and percent cover\n",
+        scale_fill_manual(name = "\nLand class and percent cover\n",
                           values = plot_colors$color,
                           na.value = "white") +
         geom_sf(data = sp_polygon_3162_buffered,
@@ -978,13 +978,14 @@ server <- function(input, output, session) {
         # geom_sf(data = label_points_sf,
         #         aes(text = Label, color = Label), alpha = 0) +
         theme_minimal() + 
+        labs(title = "\nTarget landscape for analysis\n") +
         theme(panel.grid = element_blank(), legend.margin = margin(c(0,0,0,0)),
               legend.key.size = unit(1.5, "cm"), # Adjust legend key size
               legend.text = element_text(size = 12, face = "bold"), # Adjust legend text size
-              legend.title = element_text(size = 18, face = "bold"), # Adjust legend title size
+              legend.title = element_text(size = 16, face = "bold"), # Adjust legend title size
               legend.box.spacing = unit(0.5, "cm")) + # Adjust spacing
-        labs(title = "Target landscape for analysis") +
       guides(fill = guide_legend(
+        ncol = 2,
         label.position = "left",
         label.hjust = 1,
         order = 2),
@@ -1077,7 +1078,7 @@ server <- function(input, output, session) {
         # plot in ggplot first
         my_ggplot <- ggplot() +
           geom_spatraster(data = Protected_areas_plot) +
-          scale_fill_manual(name = "Areas of conservation concern and percent cover\n",
+          scale_fill_manual(name = "\nAreas of conservation concern percent cover\n",
                             values = plot_colors$color,
                             na.value = "white") +
           geom_sf(data = sp_polygon_3162_buffered,
@@ -1088,14 +1089,15 @@ server <- function(input, output, session) {
           # Old line of code to get labels - not needed anymore
           # geom_sf(data = label_points_sf,
           #         aes(text = Label, color = Label), alpha = 0) +
-          labs(title = "Areas of conservation concern within target landscape") +
           theme_minimal() + 
+          labs(title = "\nAreas of conservation concern within target landscape\n") +
           theme(panel.grid = element_blank(), legend.margin = margin(c(0,0,0,0)),
                 legend.key.size = unit(1.5, "cm"), # Adjust legend key size
                 legend.text = element_text(size = 12, face = "bold"), # Adjust legend text size
-                legend.title = element_text(size = 18, face = "bold"), # Adjust legend title size
+                legend.title = element_text(size = 16, face = "bold"), # Adjust legend title size
                 legend.box.spacing = unit(0.5, "cm")) + # Adjust spacing
           guides(fill = guide_legend(
+            ncol = 2,
             label.position = "left",
             label.hjust = 1,
             order = 2),
@@ -1425,7 +1427,7 @@ server <- function(input, output, session) {
       # plot in ggplot first
       my_ggplot <- ggplot() +
         geom_spatraster(data = plot_degraded_pixels) +
-        scale_fill_manual(name = "Habitat type and percent cover\n",
+        scale_fill_manual(name = "\nHabitat type and percent cover\n",
                           values = plot_colors$color,
                           na.value = "white") +
         geom_sf(data = sp_polygon_3162_buffered,
@@ -1436,14 +1438,15 @@ server <- function(input, output, session) {
         # Old line of code to get labels - not needed anymore
         # geom_sf(data = label_points_sf,
         #         aes(text = Label, color = Label), alpha = 0) +
-        labs(title = "Target landscape showing areas of degraded land\nand habitat classes considered suitable for restoration") +
         theme_minimal() + 
+        labs(title = "\nTarget landscape showing areas of degraded land\nand habitat classes considered suitable for restoration\n") +
         theme(panel.grid = element_blank(), legend.margin = margin(c(0,0,0,0)),
               legend.key.size = unit(1.5, "cm"), # Adjust legend key size
               legend.text = element_text(size = 12, face = "bold"), # Adjust legend text size
-              legend.title = element_text(size = 18, face = "bold"), # Adjust legend title size
+              legend.title = element_text(size = 16, face = "bold"), # Adjust legend title size
               legend.box.spacing = unit(0.5, "cm")) + # Adjust spacing
         guides(fill = guide_legend(
+          ncol = 2,
           label.position = "left",
           label.hjust = 1,
           order = 2),
@@ -1536,7 +1539,7 @@ server <- function(input, output, session) {
         # plot in ggplot first
         my_ggplot <- ggplot() +
           geom_spatraster(data = plot_degraded_protected) +
-          scale_fill_manual(name = "Degraded land within areas of conservation concern\n",
+          scale_fill_manual(name = "\nDegraded land with percent cover\n",
                             values = plot_colors$color,
                             na.value = "white") +
           geom_sf(data = sp_polygon_3162_buffered,
@@ -1548,13 +1551,14 @@ server <- function(input, output, session) {
           # geom_sf(data = label_points_sf,
           #         aes(text = Label, color = Label), alpha = 0) +
           theme_minimal() + 
-          labs(title = "Degraded land within areas of conservation concern") +
+          labs(title = "\nDegraded land within areas of conservation concern\n") +
           theme(panel.grid = element_blank(), legend.margin = margin(c(0,0,0,0)),
                 legend.key.size = unit(1.5, "cm"), # Adjust legend key size
                 legend.text = element_text(size = 12, face = "bold"), # Adjust legend text size
-                legend.title = element_text(size = 18, face = "bold"), # Adjust legend title size
+                legend.title = element_text(size = 16, face = "bold"), # Adjust legend title size
                 legend.box.spacing = unit(0.5, "cm")) + # Adjust spacing
           guides(fill = guide_legend(
+            ncol = 2,
             label.position = "left",
             label.hjust = 1,
             order = 2),
@@ -1736,7 +1740,7 @@ server <- function(input, output, session) {
       # plot in ggplot first
       my_ggplot <- ggplot() +
         geom_spatraster(data = restored_land_plot) +
-        scale_fill_manual(name = "Restored land composition\n",
+        scale_fill_manual(name = "\nRestored land composition\n",
                           values = plot_colors$color,
                           na.value = "white") +
         geom_sf(data = sp_polygon_3162_buffered,
@@ -1748,13 +1752,14 @@ server <- function(input, output, session) {
         # geom_sf(data = label_points_sf,
         #         aes(text = Label, color = Label), alpha = 0) +
         theme_minimal() + 
-        labs(title = "Target landscape with all degraded land restored") +
+        labs(title = "\nTarget landscape with all degraded land restored\n") +
         theme(panel.grid = element_blank(), legend.margin = margin(c(0,0,0,0)),
               legend.key.size = unit(1.5, "cm"), # Adjust legend key size
               legend.text = element_text(size = 12, face = "bold"), # Adjust legend text size
-              legend.title = element_text(size = 18, face = "bold"), # Adjust legend title size
+              legend.title = element_text(size = 16, face = "bold"), # Adjust legend title size
               legend.box.spacing = unit(0.5, "cm")) + # Adjust spacing
         guides(fill = guide_legend(
+          ncol = 2,
           label.position = "left",
           label.hjust = 1,
           order = 2),
