@@ -1251,7 +1251,10 @@ server <- function(input, output, session) {
       tagList(
         div(
           sliderInput("mine_slider", HTML("<br><b>Active mines</b><br><i>1 = Any active mine (open pit or underground), and areas within 10 km of any active mine are 
-                      degraded.<br>8 = Only land within 500 m of an open pit mine is degraded.</i><br><br>"), min = 1, max = 9, value = 2, step = 1),
+                      degraded.<br>8 = Only land within 500 m of an open pit mine is degraded. For more detail on how active mine thresholds are defined, 
+                      see table 3, <a href='https://www.sciencedirect.com/science/article/abs/pii/S0169204608000637' target='_blank'>Woolmer et al. 2008</a>),
+                                          also accessible as table 5 in <a href='https://www.facetsjournal.com/doi/full/10.1139/facets-2021-0063#tab5' target='_blank'>Hirsh-Pearson et al. 2022</a>).
+                                          </i><br><br>"), min = 1, max = 9, value = 2, step = 1),
           tags$p(id = "mine_max_label", "Not included", style = "text-align: right; margin-top: -20px;")
         ),
         div(
@@ -3347,7 +3350,10 @@ server <- function(input, output, session) {
         div(
           sliderInput("mine_slider", HTML("<br><b>Active mines</b><br><i>1 = Any active mine (open pit or underground), 
 		and areas within 10 km of any active mine are degraded.<br>8 = Only land within 500 m of an open pit mine
-		 is degraded.</i><br><br>"), min = 1, max = 9, value = 2, step = 1),
+		 is degraded. For more detail on how active mine thresholds are defined, 
+                      see table 3, <a href='https://www.sciencedirect.com/science/article/abs/pii/S0169204608000637' target='_blank'>Woolmer et al. 2008</a>),
+                                          also accessible as table 5 in <a href='https://www.facetsjournal.com/doi/full/10.1139/facets-2021-0063#tab5' target='_blank'>Hirsh-Pearson et al. 2022</a>).
+                                          </i><br><br>"), min = 1, max = 9, value = 2, step = 1),
           tags$p(id = "mine_max_label", "Not included", style = "text-align: right; margin-top: -20px;")
         ),
         div(
