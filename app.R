@@ -1748,7 +1748,7 @@ server <- function(input, output, session) {
         # geom_sf(data = label_points_sf,
         #         aes(text = Label, color = Label), alpha = 0) +
         theme_minimal() + 
-        labs("Target landscape with all degraded land restored") +
+        labs(title = "Target landscape with all degraded land restored") +
         theme(panel.grid = element_blank(), legend.margin = margin(c(0,0,0,0)),
               legend.key.size = unit(1.5, "cm"), # Adjust legend key size
               legend.text = element_text(size = 12, face = "bold"), # Adjust legend text size
