@@ -1253,8 +1253,8 @@ server <- function(input, output, session) {
         div(
           sliderInput("mine_slider", HTML("<br><b>Active mines</b><br><i>1 = Any active mine (open pit or underground), and areas within 10 km of any active mine are 
                       degraded.<br>8 = Only land within 500 m of an open pit mine is degraded. For more detail on how active mine thresholds are defined, 
-                      see table 3, <a href='https://www.sciencedirect.com/science/article/abs/pii/S0169204608000637' target='_blank'>Woolmer et al. 2008</a>),
-                                          also accessible as table 5 in <a href='https://www.facetsjournal.com/doi/full/10.1139/facets-2021-0063#tab5' target='_blank'>Hirsh-Pearson et al. 2022</a>).
+                      see table 3, <a href='https://www.sciencedirect.com/science/article/abs/pii/S0169204608000637' target='_blank'>Woolmer et al. 2008</a>,
+                                          also accessible as table 5 in <a href='https://www.facetsjournal.com/doi/full/10.1139/facets-2021-0063#tab5' target='_blank'>Hirsh-Pearson et al. 2022</a>.
                                           </i><br><br>"), min = 1, max = 9, value = 2, step = 1),
           tags$p(id = "mine_max_label", "Not included", style = "text-align: right; margin-top: -20px;")
         ),
@@ -1854,7 +1854,7 @@ server <- function(input, output, session) {
     # Get the names of the selected habitat classes to exclude
     selected_labels <- names(land_class_mapping)[land_class_mapping %in% choices_reactive()]
 
-    multiple_checkbox("selected_habitats", "You may only be interested in patch size or heterogeneity of certain habitats, e.g., meadow and alvar. If you would like to exclude habitat classes from the calculations, please select them below:", choices = selected_labels)
+    multiple_checkbox("selected_habitats", "You may only be interested in patch size or heterogeneity of certain habitats, e.g., meadow and alvar. If you would like to exclude habitat classes from the calculations, please select them below:\n", choices = selected_labels)
   })
 
 
@@ -2175,12 +2175,31 @@ server <- function(input, output, session) {
     # Calculate the elapsed time
     end_time <- Sys.time()
     elapsed_time(end_time - start_time)
-
+    
+    format_elapsed_time <- function(time_diff) {
+      # Convert the difftime object to numeric seconds
+      total_seconds <- as.numeric(time_diff, units = "secs")
+      
+      # Round the time to the nearest second
+      rounded_seconds <- round(total_seconds)
+      
+      # Calculate minutes and remaining seconds
+      minutes <- rounded_seconds %/% 60
+      remaining_seconds <- rounded_seconds %% 60
+      
+      # Create the output string
+      if (minutes > 0) {
+        return(paste(minutes, "minute(s),", remaining_seconds, "seconds"))
+      } else {
+        return(paste(rounded_seconds, "seconds"))
+      }
+    }
 
     # Display the elapsed time in the UI
     output$elapsedTime <- renderText({
-      paste("Elapsed Time:", as.character(elapsed_time()))
+      paste("Elapsed time:", format_elapsed_time(elapsed_time()))
     })
+    
     removeNotification(notification_id_hab)
     shinyjs::enable("perform_merge")
     shinyjs::enable("calculate_metrics")
@@ -2360,10 +2379,29 @@ server <- function(input, output, session) {
     end_time <- Sys.time()
     elapsed_time(end_time - start_time)
 
+    format_elapsed_time <- function(time_diff) {
+      # Convert the difftime object to numeric seconds
+      total_seconds <- as.numeric(time_diff, units = "secs")
+      
+      # Round the time to the nearest second
+      rounded_seconds <- round(total_seconds)
+      
+      # Calculate minutes and remaining seconds
+      minutes <- rounded_seconds %/% 60
+      remaining_seconds <- rounded_seconds %% 60
+      
+      # Create the output string
+      if (minutes > 0) {
+        return(paste(minutes, "minute(s),", remaining_seconds, "seconds"))
+      } else {
+        return(paste(rounded_seconds, "seconds"))
+      }
+    }
+    
 
     # Display the elapsed time in the UI
     output$conTime <- renderText({
-      paste("Elapsed Time:", as.character(elapsed_time()))
+      paste("Elapsed time:", format_elapsed_time(elapsed_time()))
     })
 
     # Display the results in the UI
@@ -2551,11 +2589,32 @@ server <- function(input, output, session) {
       
       datatable(rounded_data, rownames = FALSE, options = list(scrollX = TRUE))
     })
-
+    
+    
+    format_elapsed_time <- function(time_diff) {
+      # Convert the difftime object to numeric seconds
+      total_seconds <- as.numeric(time_diff, units = "secs")
+      
+      # Round the time to the nearest second
+      rounded_seconds <- round(total_seconds)
+      
+      # Calculate minutes and remaining seconds
+      minutes <- rounded_seconds %/% 60
+      remaining_seconds <- rounded_seconds %% 60
+      
+      # Create the output string
+      if (minutes > 0) {
+        return(paste(minutes, "minute(s),", remaining_seconds, "seconds"))
+      } else {
+        return(paste(rounded_seconds, "seconds"))
+      }
+    }
+    
     # Display the elapsed time in the UI
     output$elapsedTimeEnv <- renderText({
-      paste("Elapsed Time:", as.character(elapsed_time_env()))
+      paste("Elapsed time:", format_elapsed_time(elapsed_time_env()))
     })
+    
     removeNotification(notification_id_env)
     shinyjs::enable("merge_and_display")
     shinyjs::enable("calculate_env_metrics")
@@ -3364,8 +3423,8 @@ server <- function(input, output, session) {
           sliderInput("mine_slider", HTML("<br><b>Active mines</b><br><i>1 = Any active mine (open pit or underground), 
 		and areas within 10 km of any active mine are degraded.<br>8 = Only land within 500 m of an open pit mine
 		 is degraded. For more detail on how active mine thresholds are defined, 
-                      see table 3, <a href='https://www.sciencedirect.com/science/article/abs/pii/S0169204608000637' target='_blank'>Woolmer et al. 2008</a>),
-                                          also accessible as table 5 in <a href='https://www.facetsjournal.com/doi/full/10.1139/facets-2021-0063#tab5' target='_blank'>Hirsh-Pearson et al. 2022</a>).
+                      see table 3, <a href='https://www.sciencedirect.com/science/article/abs/pii/S0169204608000637' target='_blank'>Woolmer et al. 2008</a>,
+                                          also accessible as table 5 in <a href='https://www.facetsjournal.com/doi/full/10.1139/facets-2021-0063#tab5' target='_blank'>Hirsh-Pearson et al. 2022</a>.
                                           </i><br><br>"), min = 1, max = 9, value = 2, step = 1),
           tags$p(id = "mine_max_label", "Not included", style = "text-align: right; margin-top: -20px;")
         ),
