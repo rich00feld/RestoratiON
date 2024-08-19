@@ -14,7 +14,7 @@
 # install.packages("shiny")
 # install.packages("shiny.semantic")
 # install.packages("shinyjs")
-# install.packages("shinythemes")
+# install.packages("shinythemes") # shiny 
 # install.packages("DT")
 # install.packages("rasterVis")
 # install.packages("rstudioapi")
