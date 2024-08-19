@@ -217,6 +217,7 @@ legend_plot5_react <-reactiveVal()
 plot_degraded_react <-reactiveVal()
 plot_degraded_protected_react <-reactiveVal()
 restored_land_plot_react <-reactiveVal()
+final_data_table <-reactiveVal()
 
 # BatchloopFinished <- reactiveVal(FALSE)
 
@@ -2254,6 +2255,7 @@ server <- function(input, output, session) {
       new_names <- gsub("^patch_size_diff_(.+?) \\(Class \\d+\\)$", "\\1 patch size", new_names)
       # Assign the new names back to the data frame
       names(rounded_data) <- new_names
+      
       # Rename 'combination' column to 'Candidate area'
       names(rounded_data)[names(rounded_data) == 'combination'] <- 'Candidate area'
       # Get the total number of rows
@@ -2412,8 +2414,32 @@ server <- function(input, output, session) {
       rounded_data <- result_connectivity()
       rounded_data[] <- lapply(rounded_data, function(x) if (is.numeric(x)) round(x, 3) else x)
       
+      # rename 'sa_difference' to 'Heterogeneity'
+      if("reduced_resistance" %in% names(rounded_data)) {
+        names(rounded_data)[names(rounded_data) == 'reduced_resistance'] <- 'Reduced mean path resistance'
+      }
+        
+        # Rename 'combination' column to 'Candidate area'
+        names(rounded_data)[names(rounded_data) == 'combination'] <- 'Candidate area'
+        # Get the total number of rows
+        total_rows <- nrow(rounded_data)
+        # Determine the number of zeros needed based on the total number of rows
+        num_zeros <- nchar(as.character(total_rows))
+        # Generate the new values for the 'Candidate area' column
+        rounded_data$`Candidate area` <- sapply(1:total_rows, function(i) {
+          # Count the number of '-' in the original entry
+          original_value <- rounded_data$`Candidate area`[i]
+          num_pixels <- str_count(original_value, "-") + 1
+          # Generate the CA number with leading zeros
+          ca_number <- sprintf(paste0("CA_%0", num_zeros, "d"), i)
+          # Combine CA number with pixel information
+          paste0(ca_number, " (", num_pixels, " pixels)")
+        })
+      
       datatable(rounded_data, rownames = FALSE, options = list(scrollX = TRUE))
     })
+    
+    
     shinyjs::enable("calculate_pca")
     shinyjs::enable("calculate_connectivity")
   })
@@ -2474,10 +2500,11 @@ server <- function(input, output, session) {
       cum_prop_var <- cumsum(prop_var)
 
       pca_table <- data.frame(
-        Component = paste("PC", seq_along(sdev)),
-        Standard_Deviation = sdev,
-        Proportion_of_Variance = prop_var,
-        Cumulative_Proportion = cum_prop_var
+        `Principal component` = paste("PC", seq_along(sdev)),
+        `Standard deviation` = sdev,
+        `Proportion of variance` = prop_var,
+        `Cumulative proportion` = cum_prop_var,
+        check.names = FALSE
       )
       
       # Round the values in the table to 3 decimal places
@@ -2486,6 +2513,7 @@ server <- function(input, output, session) {
       row.names(pca_table) <- NULL
       datatable(pca_table, rownames = FALSE, options = list(scrollX = TRUE))
     })
+    
     removeNotification(notification_id_PCA)
     shinyjs::enable("calculate_env_metrics")
     shinyjs::enable("calculate_pca")
@@ -2587,6 +2615,39 @@ server <- function(input, output, session) {
       rounded_data <- result_env_data()
       rounded_data[] <- lapply(rounded_data, function(x) if (is.numeric(x)) round(x, 3) else x)
       
+      
+      # Extract the current column names
+      new_names <- names(rounded_data)
+      # Use gsub to replace the pattern
+      new_names <- gsub("Env_PC(\\d+)_sa_diff", "PC\\1 environmental heterogeneity", new_names)
+      # Assign the new names back to the data frame
+      names(rounded_data) <- new_names
+      
+      extract_first_number <- function(x) {
+        as.numeric(sub("-.*", "", x))
+      }
+      # Apply the function to the 'combination' column
+      first_numbers <- sapply(rounded_data$combination, extract_first_number)
+      # Sort the dataframe based on the first pixel index
+      rounded_data <- rounded_data[order(first_numbers), ]
+      
+      # Rename 'combination' column to 'Candidate area'
+      names(rounded_data)[names(rounded_data) == 'combination'] <- 'Candidate area'
+      # Get the total number of rows
+      total_rows <- nrow(rounded_data)
+      # Determine the number of zeros needed based on the total number of rows
+      num_zeros <- nchar(as.character(total_rows))
+      # Generate the new values for the 'Candidate area' column
+      rounded_data$`Candidate area` <- sapply(1:total_rows, function(i) {
+        # Count the number of '-' in the original entry
+        original_value <- rounded_data$`Candidate area`[i]
+        num_pixels <- str_count(original_value, "-") + 1
+        # Generate the CA number with leading zeros
+        ca_number <- sprintf(paste0("CA_%0", num_zeros, "d"), i)
+        # Combine CA number with pixel information
+        paste0(ca_number, " (", num_pixels, " pixels)")
+      })
+      
       datatable(rounded_data, rownames = FALSE, options = list(scrollX = TRUE))
     })
     
@@ -2637,8 +2698,6 @@ server <- function(input, output, session) {
     # Combine scaled columns with 'combination'
     merged_data <- cbind(merged_data["combination"], scaled_data)
 
-    merged_data_reactive(merged_data) # send it to storage for future use
-
     # Output the table in the UI
     output$mergedResultsTable <- renderDataTable({
       
@@ -2646,6 +2705,61 @@ server <- function(input, output, session) {
       rounded_data <- merged_data
       rounded_data[] <- lapply(rounded_data, function(x) if (is.numeric(x)) round(x, 3) else x)
       
+      # rename 'sa_difference' to 'Heterogeneity'
+      if("sa_difference" %in% names(rounded_data)) {
+        names(rounded_data)[names(rounded_data) == 'sa_difference'] <- 'Heterogeneity'
+      }
+      # rename 'habitat_heterogeneity_difference' to 'Heterogeneity'
+      if("habitat_heterogeneity_difference" %in% names(rounded_data)) {
+        names(rounded_data)[names(rounded_data) == 'habitat_heterogeneity_difference'] <- 'Heterogeneity'
+      }
+      # rename 'protected_patch_size_difference' to 'Protected area patch size'
+      if("protected_patch_size_difference" %in% names(rounded_data)) {
+        names(rounded_data)[names(rounded_data) == 'protected_patch_size_difference'] <- 'Protected area patch size'
+      }
+      # rename 'sum_habitat_patch_size_diff' to 'Sum patch size' if present
+      if("sum_habitat_patch_size_diff" %in% names(rounded_data)) {
+        names(rounded_data)[names(rounded_data) == 'sum_habitat_patch_size_diff'] <- 'Sum habitat patch size'
+      }
+      # rename 'reduced_resistance' to 'Reduced mean path resistance'
+      if("reduced_resistance" %in% names(rounded_data)) {
+        names(rounded_data)[names(rounded_data) == 'reduced_resistance'] <- 'Reduced mean path resistance'
+      }
+      # Use a pattern matching approach to rename the 'patch_size_diff' and 'ENV_PC' columns if they are present
+      new_names <- names(rounded_data)
+      new_names <- gsub("^patch_size_diff_(.+?) \\(Class \\d+\\)$", "\\1 patch size", new_names)
+      new_names <- gsub("Env_PC(\\d+)_sa_diff", "PC\\1 environmental heterogeneity", new_names)
+      names(rounded_data) <- new_names
+      
+      extract_first_number <- function(x) {
+        as.numeric(sub("-.*", "", x))
+      }
+      # Apply the function to the 'combination' column
+      first_numbers <- sapply(rounded_data$combination, extract_first_number)
+      # Sort the dataframe based on the first pixel index
+      rounded_data <- rounded_data[order(first_numbers), ]
+      
+      # Add pixels column
+      rounded_data$Pixels<-rounded_data$combination
+      
+      
+      # Rename 'combination' column to 'Candidate area'
+      names(rounded_data)[names(rounded_data) == 'combination'] <- 'Candidate area'
+      # Get the total number of rows
+      total_rows <- nrow(rounded_data)
+      # Determine the number of zeros needed based on the total number of rows
+      num_zeros <- nchar(as.character(total_rows))
+      # Generate the new values for the 'Candidate area' column
+      rounded_data$`Candidate area` <- sapply(1:total_rows, function(i) {
+        # Count the number of '-' in the original entry
+        original_value <- rounded_data$`Candidate area`[i]
+        num_pixels <- str_count(original_value, "-") + 1
+        # Generate the CA number with leading zeros
+        ca_number <- sprintf(paste0("CA_%0", num_zeros, "d"), i)
+        # Combine CA number with pixel information
+        paste0(ca_number, " (", num_pixels, " pixels)")
+      })
+      final_data_table(rounded_data)
       datatable(rounded_data, rownames = FALSE, options = list(scrollX = TRUE))
     })
   })
@@ -2654,27 +2768,10 @@ server <- function(input, output, session) {
 
   # Code to create the metrics weighting UI element
   output$weights_ui <- renderUI({
-    habitat_data <- result_habitat_data_updated()
-    env_data <- result_env_data()
-    connectivity_data <- result_connectivity()
+      merged_data<-final_data_table()
 
-    # Check if "combination" is present in all data sets
-    if ("combination" %in% colnames(habitat_data) &&
-      "combination" %in% colnames(env_data) &&
-      "combination" %in% colnames(connectivity_data)) {
-      # Merge all data sets
-      merged_data <- merge(result_habitat_data_updated(), result_env_data(), by = "combination")
-      merged_data <- merge(result_connectivity(), merged_data, by = "combination")
-      # Scale the columns except 'combination'
-      columns_to_scale <- setdiff(names(merged_data), "combination")
-      scaled_data <- as.data.frame(lapply(merged_data[columns_to_scale], scale))
-      # Replace NAs with 0s after scaling
-      scaled_data[is.na(scaled_data)] <- 0
-      # Combine scaled columns with 'combination'
-      merged_data <- cbind(merged_data["combination"], scaled_data)
-
-      # Exclude the "combination" column to get variable names
-      vars <- setdiff(names(merged_data), "combination")
+      # Exclude some columns to get variable names
+      vars <- setdiff(names(merged_data), c("Pixels", "Candidate area"))
 
       # Generate UI inputs for all variables
       lapply(vars, function(var) {
@@ -2684,23 +2781,36 @@ server <- function(input, output, session) {
           value = 1
         )
       })
-    } else {
-      return(NULL)
+  })
+
+  # Code to ensure a valid top combinations input value always exists to prevent crashing
+  input_num_top_combinations_counter <- reactiveVal(0)
+  num_top_combinations_react<-reactiveVal()
+  
+  # Increment the counter each time the top combinations input changes
+  observeEvent(input$num_top_combinations, {
+    input_num_top_combinations_counter(input_num_top_combinations_counter() + 1)
+  })
+  
+  observeEvent(input$num_top_combinations, {
+    if (input_num_top_combinations_counter() > 1) {
+      if (!is.null(input$num_top_combinations) && input$num_top_combinations >= 1) {
+        num_top_combinations_react(input$num_top_combinations)
+      } else {
+        num_top_combinations_react(1)
+      }
     }
   })
 
-
+  
+  
+  
   observeEvent(input$find_best_comb, {
     # Merging the data sets
-    merged_data <- merge(result_habitat_data_updated(), result_env_data(), by = "combination")
-    merged_data <- merge(result_connectivity(), merged_data, by = "combination")
-    columns_to_scale <- setdiff(names(merged_data), "combination")
-    scaled_data <- as.data.frame(lapply(merged_data[columns_to_scale], scale))
-    scaled_data[is.na(scaled_data)] <- 0
-    merged_data <- cbind(merged_data["combination"], scaled_data)
+    merged_data <- final_data_table()
     
-    # Variables to be weighted
-    vars <- setdiff(names(merged_data), "combination")
+    # Exclude some columns to get variable names
+    vars <- setdiff(names(merged_data), c("Pixels", "Candidate area"))
     
     # Adjust the values of each variable based on user-provided weights
     for (var in vars) {
@@ -2709,15 +2819,15 @@ server <- function(input, output, session) {
     }
     
     # Calculate the sum of weighted values for each combination
-    merged_data$sum_weighted <- rowSums(merged_data[, vars, drop = FALSE])
+    merged_data$`Sum weighted` <- rowSums(merged_data[, vars, drop = FALSE])
     merged_data_reactive(merged_data)
     
     # Identify the top N combinations with the maximum sum of weighted values
-    num_top_combinations <- input$num_top_combinations
-    top_combinations <- merged_data[order(merged_data$sum_weighted, decreasing = TRUE), ][1:num_top_combinations, "combination"]
+    num_top_combinations<-num_top_combinations_react()
+    top_combinations <- merged_data[order(merged_data$`Sum weighted`, decreasing = TRUE), ][1:num_top_combinations, "Pixels"]
     
     # Convert top_combinations to a data frame
-    top_combinations <- data.frame(combination = top_combinations)
+    top_combinations <- data.frame(Pixels = top_combinations)
     
     # Store the top combinations for use in the plots
     best_comb_react(top_combinations)
@@ -2729,9 +2839,9 @@ server <- function(input, output, session) {
           "<div>",
           paste0("<b>#", i, "&nbsp;&nbsp;&nbsp;", "<br>Index:&nbsp;&nbsp;&nbsp;", comb, "</b>"),
           "</div>\n",
-          ifelse(i < input$num_top_combinations, "<br>", "")
+          ifelse(i < num_top_combinations, "<br>", "")
         )
-      }, 1:input$num_top_combinations, top_combinations$combination)
+      }, 1:num_top_combinations, top_combinations$Pixels)
       
       HTML(paste(formatted_output, collapse = ""))
     })
@@ -2741,9 +2851,9 @@ server <- function(input, output, session) {
     all_indices <- 1:length(values(degraded_pixels()))
     
     plot_polygons <- list()
-    
+    # browser()
     for (i in 1:nrow(top_combinations)) {
-      comb <- unlist(strsplit(as.character(top_combinations[i, "combination"]), "-"))
+      comb <- unlist(strsplit(as.character(top_combinations[i, "Pixels"]), "-"))
       # Subset the pixels for the current combination
       comb_pixels <- plot_pixels
       comb_pixels[-as.integer(comb)] <- NA
@@ -2806,7 +2916,7 @@ server <- function(input, output, session) {
     
     # Create a list to store individual plot outputs
     plot_outputs <- lapply(seq_len(nrow(top_combinations)), function(i) {
-      comb <- top_combinations$combination[i]
+      comb <- top_combinations$Pixels[i]
       
       # Crop the 'Ontario_land_cover' raster to the specified extent
       cropped_raster <- cropped_polyrast()
@@ -2874,9 +2984,9 @@ server <- function(input, output, session) {
       merged_data <- merged_data_reactive() # bring it out of the reactive value
 
       # Add a new column 'landscape' with the provided landscape name to the merged data
-      merged_data$landscape <- landscape_name
-      merged_data <- merged_data[c("landscape", names(merged_data)[names(merged_data) != "landscape"])]
-      merged_data <- merged_data[order(-merged_data$sum_weighted), ]
+      merged_data$Landscape <- landscape_name
+      merged_data <- merged_data[c("Landscape", names(merged_data)[names(merged_data) != "Landscape"])]
+      merged_data <- merged_data[order(-merged_data$`Sum weighted`), ]
       merged_data_reactive(merged_data)
       landscape_added(TRUE) # After the landscape name is added, trigger the switch to make the download UI appear
     }
@@ -2995,7 +3105,7 @@ server <- function(input, output, session) {
 
       # Read and store data, skipping the first two lines (the extent information)
       df <- read.csv(file, skip = 2, stringsAsFactors = FALSE, sep = ",")
-      df <- df[, names(df) != "sum_weighted"]
+      df <- df[, names(df) != "Sum weighted"]
       if (nrow(df) == 0) {
         stop("One of the files is empty: ", file)
       }
@@ -3047,7 +3157,7 @@ server <- function(input, output, session) {
   # The weighting UI, similar to the single landscape analysis
   output$landscape_weights_ui <- renderUI({
     req(landscape_merged()$data)
-    vars <- setdiff(names(landscape_merged()$data), c("combination", "landscape"))
+    vars <- setdiff(names(landscape_merged()$data), c("Candidate area", "Landscape", "Pixels"))
 
     lapply(vars, function(var) {
       numericInput(
@@ -3063,21 +3173,21 @@ server <- function(input, output, session) {
   observeEvent(input$lands_best_comb, {
     req(landscape_merged()$data)
     landscape_data <- landscape_merged()$data
-    vars <- setdiff(names(landscape_data), c("combination", "landscape"))
+    vars <- setdiff(names(landscape_data), c("Candidate area", "Landscape", "Pixels"))
 
     for (var in vars) {
       weight_input_id <- paste0("weight_", gsub("[^a-zA-Z0-9]", "_", var))
       landscape_data[[var]] <- as.numeric(landscape_data[[var]]) * input[[weight_input_id]]
     }
 
-    landscape_data$sum_weighted <- rowSums(landscape_data[, vars, drop = FALSE])
+    landscape_data$`Sum weighted` <- rowSums(landscape_data[, vars, drop = FALSE])
 
 
     # Get the top n combinations
-    top_n <- landscape_data[order(landscape_data$sum_weighted, decreasing = TRUE), ][1:input$topNCombinations, ] # input.topNCombinations set via the UI
+    top_n <- landscape_data[order(landscape_data$`Sum weighted`, decreasing = TRUE), ][1:input$topNCombinations, ] # input.topNCombinations set via the UI
     
     # update the landscape_merged reactive value
-    landscape_data <- landscape_data[order(-landscape_data$sum_weighted), ]
+    landscape_data <- landscape_data[order(-landscape_data$`Sum weighted`), ]
     landscape_output(landscape_data)
 
     # Output the top n combinations landscape names and indices in  HTML (this was the only way I found to prevent the text getting cut off?)
@@ -3089,7 +3199,7 @@ server <- function(input, output, session) {
           "</div>\n",
           ifelse(i < input$topNCombinations, "<br>", "")
         )
-      }, 1:input$topNCombinations, top_n$combination, top_n$landscape)
+      }, 1:input$topNCombinations, top_n$Pixels, top_n$Landscape)
 
       HTML(paste(formatted_output, collapse = ""))
     })
@@ -3102,8 +3212,8 @@ server <- function(input, output, session) {
     KML_output <- list()
     
     for (i in seq_len(nrow(top_n))) {
-      comb <- top_n$combination[i]
-      land <- top_n$landscape[i]
+      comb <- top_n$Pixels[i]
+      land <- top_n$Landscape[i]
       
       # Retrieve extent values from compared_extents reactiveValues
       extent_values <- compared_extents$extents[[land]]
@@ -3115,7 +3225,7 @@ server <- function(input, output, session) {
       cropped_raster <- crop(OLC, extent_object)
       
       # Extract pixel indices from the combination string
-      best_combination_indices <- as.numeric(strsplit(top_n$combination[i], "-")[[1]])
+      best_combination_indices <- as.numeric(strsplit(top_n$Pixels[i], "-")[[1]])
       
       values(cropped_raster)[best_combination_indices] <- 101
       cropped_raster[cropped_raster != 101] <- NA
@@ -3185,8 +3295,8 @@ server <- function(input, output, session) {
 
     # Create a list to store individual plot outputs
     plot_outputs <- lapply(seq_len(nrow(top_n)), function(i) {
-      comb <- top_n$combination[i]
-      land <- top_n$landscape[i]
+      comb <- top_n$Pixels[i]
+      land <- top_n$Landscape[i]
 
       # Retrieve extent values from compared_extents reactiveValues
       extent_values <- compared_extents$extents[[land]]
@@ -4708,7 +4818,7 @@ The application computes the difference between patch size and heterogeneity com
   conditionalPanel(
     condition = "input.merge_and_display > 0",
     segment(
-      div(style = "font-size: 18px; font-weight: bold; margin-bottom: 15px;", "Weighting and finding the best pixel combinations"),
+      div(style = "font-size: 18px; font-weight: bold; margin-bottom: 15px;", "Weighting and finding the best candidate areas"),
       p(HTML("We are now at the final stage of the app for a single landscape, which is weighting metrics and plotting the best combination
       of pixels based on those weighted metrics. Here weights (corresponding to a multiplier - with '1' as the default) can be assigned to the
       various environmental, habitat, and connectivity metrics calculated previously. Weights can be assigned to different metrics to influence
@@ -4716,15 +4826,15 @@ The application computes the difference between patch size and heterogeneity com
       may also be specified here. For example, if a user sets the number of top combinations to 5, the best 5 pixel combinations will be displayed
       in descending order of importance (i.e., 1 being the best performing pixel combination, and 5 being the 5th best). 
       <br><br>
-      When the 'Find best combinations' button is clicked, values for each metric are adjusted based on the user-provided weights, the sum of weighted values
+      When the 'Find best candidate areas' button is clicked, values for each metric are adjusted based on the user-provided weights, the sum of weighted values
       is calculated for each combination, and the combination with the maximum sum is identified (i.e. the “best combination”). Two figures are created:
       an interactive map highlighting the pixels corresponding to the best combinations, and another showing where those pixels occur in respect to natural habitat.
       The latter includes an option for displaying the best pixel combination in conjunction with areas of conservation concern if the option to focus on areas of 
       conservation concern was previously selected.")),
       uiOutput("weights_ui"),
       br(),
-      numericInput("num_top_combinations", "Number of top combinations to display:", value = 1, min = 1, step = 1),
-      actionButton("find_best_comb", "Find best combinations"),
+      numericInput("num_top_combinations", "Number of top candidate areas to display:", value = 1, min = 1, step = 1),
+      actionButton("find_best_comb", "Find best candidate areas"),
       uiOutput("bestCombinationName", class = "ui message"),
       leafletOutput("map_best_comb", height = 600),
       uiOutput("plotsContainer")
@@ -4784,10 +4894,10 @@ The application computes the difference between patch size and heterogeneity com
       uiOutput("landscape_weights_ui"),
       br(),
       br(),
-      numericInput("topNCombinations", "Number of top combinations to display:", value = 1, min = 1),
+      numericInput("topNCombinations", "Number of top candidate areas to display:", value = 1, min = 1),
       br(),
       br(),
-      actionButton("lands_best_comb", "Find best combination"),
+      actionButton("lands_best_comb", "Find best candidate areas"),
       br(),
       br(),
       uiOutput("topCombinations", class = "ui message"),
