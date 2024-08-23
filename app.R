@@ -1,5 +1,5 @@
 # Code to install packages ----
-# install.packages('rsconnect') #test4test5
+# install.packages('rsconnect')
 # install.packages("sf")
 # install.packages("terra")
 # install.packages("geodiv")
@@ -2785,7 +2785,7 @@ server <- function(input, output, session) {
 
   # Code to ensure a valid top combinations input value always exists to prevent crashing
   input_num_top_combinations_counter <- reactiveVal(0)
-  num_top_combinations_react<-reactiveVal()
+  num_top_combinations_react<-reactiveVal(1)
   
   # Increment the counter each time the top combinations input changes
   observeEvent(input$num_top_combinations, {
@@ -2793,7 +2793,7 @@ server <- function(input, output, session) {
   })
   
   observeEvent(input$num_top_combinations, {
-    if (input_num_top_combinations_counter() > 1) {
+    if (input_num_top_combinations_counter() >= 1) {
       if (!is.null(input$num_top_combinations) && input$num_top_combinations >= 1) {
         num_top_combinations_react(input$num_top_combinations)
       } else {
@@ -2817,7 +2817,6 @@ server <- function(input, output, session) {
       weight_input_id <- paste0("weight_", gsub("[^a-zA-Z0-9]", "_", var))
       merged_data[[var]] <- merged_data[[var]] * input[[weight_input_id]]
     }
-    
     # Calculate the sum of weighted values for each combination
     merged_data$`Sum weighted` <- rowSums(merged_data[, vars, drop = FALSE])
     merged_data_reactive(merged_data)
@@ -2825,6 +2824,7 @@ server <- function(input, output, session) {
     # Identify the top N combinations with the maximum sum of weighted values
     num_top_combinations<-num_top_combinations_react()
     top_combinations <- merged_data[order(merged_data$`Sum weighted`, decreasing = TRUE), ][1:num_top_combinations, "Pixels"]
+    top_combinations_text <-merged_data[order(merged_data$`Sum weighted`, decreasing = TRUE), ][1:num_top_combinations, c("Pixels", "Candidate area")]
     
     # Convert top_combinations to a data frame
     top_combinations <- data.frame(Pixels = top_combinations)
@@ -2834,14 +2834,14 @@ server <- function(input, output, session) {
     
     # Render the best combination index as text in the UI
     output$bestCombinationName <- renderUI({
-      formatted_output <- mapply(function(i, comb) {
+      formatted_output <- mapply(function(i, comb, CA) {
         paste0(
           "<div>",
-          paste0("<b>#", i, "&nbsp;&nbsp;&nbsp;", "<br>Index:&nbsp;&nbsp;&nbsp;", comb, "</b>"),
+          paste0("<b>#", i, ":&nbsp;&nbsp;&nbsp;", CA, "<br>Pixels:&nbsp;&nbsp;&nbsp;", comb, "</b>"),
           "</div>\n",
           ifelse(i < num_top_combinations, "<br>", "")
         )
-      }, 1:num_top_combinations, top_combinations$Pixels)
+      }, 1:num_top_combinations, top_combinations_text$Pixels, top_combinations_text$`Candidate area`)
       
       HTML(paste(formatted_output, collapse = ""))
     })
@@ -2851,28 +2851,26 @@ server <- function(input, output, session) {
     all_indices <- 1:length(values(degraded_pixels()))
     
     plot_polygons <- list()
-    # browser()
     for (i in 1:nrow(top_combinations)) {
       comb <- unlist(strsplit(as.character(top_combinations[i, "Pixels"]), "-"))
       # Subset the pixels for the current combination
       comb_pixels <- plot_pixels
       comb_pixels[-as.integer(comb)] <- NA
+      crs(comb_pixels) <- "EPSG:3162"
       
-      # Define target CRS
-      target_crs <- "+proj=longlat +datum=WGS84"
+      # Create a new, finer resolution raster template to minimize re-sampling distortions
+      finer_raster <- rast(ext(comb_pixels), nrow = nrow(comb_pixels) * 15, ncol = ncol(comb_pixels) * 15)
+      # Resample to the finer resolution
+      comb_pixels_resampled <- resample(comb_pixels, finer_raster, method = "near")
+      # Now re-project to WGS84
+      comb_pixels_reproj <- project(comb_pixels_resampled, "EPSG:4326", method = "near")
+      comb_pixels_stars <- st_as_stars(comb_pixels_reproj)
       
-      # Reproject the raster using stars for accurate transformation
-      # Convert SpatRaster to stars object
-      comb_pixels_stars <- st_as_stars(comb_pixels)
-      
-      # Warp the stars object to the target CRS
-      comb_pixels_stars <- st_warp(comb_pixels_stars, crs = target_crs)
-      
-      # Convert the reprojected stars object to polygons
-      comb_pixels_sf <- st_as_sf(comb_pixels_stars, merge = FALSE, as_points = FALSE, na.rm = TRUE)
+      # # Convert the reprojected stars object to polygons
+      comb_pixels_sf <- st_as_sf(comb_pixels_stars, merge = TRUE, as_points = FALSE, na.rm = TRUE)
       
       # Assign labels to each polygon
-      comb_pixels_sf$label <- as.character(i) #Warning: Error in [[<-.data.frame: replacement has 1 row, data has 0 sometimes occurs
+      comb_pixels_sf$label <- as.character(i)
       
       # Store polygons in the list
       plot_polygons[[i]] <- comb_pixels_sf
@@ -2928,7 +2926,7 @@ server <- function(input, output, session) {
 	    land_cover_labels <- land_cover_labels_react()
       
       # Extract pixel indices from the combination string
-      best_combination_indices <- as.numeric(strsplit(comb, "-")[[1]])
+      best_combination_indices <- as.numeric(strsplit(comb, "-")[[1]])#error here?
       
       values(cropped_raster)[best_combination_indices] <- 101
       
@@ -4402,8 +4400,66 @@ server <- function(input, output, session) {
                     merged_data <- merged_data_reactive() # bring it out of the reactive value
                     
                     # Add a new column 'landscape' with the provided landscape name to the merged data
-                    merged_data$landscape <- landscape_name
-                    merged_data <- merged_data[c("landscape", names(merged_data)[names(merged_data) != "landscape"])]
+                    merged_data$Landscape <- landscape_name
+                    merged_data <- merged_data[c("Landscape", names(merged_data)[names(merged_data) != "Landscape"])]
+                    
+                    # rename 'sa_difference' to 'Heterogeneity'
+                    if("sa_difference" %in% names(merged_data)) {
+                      names(merged_data)[names(merged_data) == 'sa_difference'] <- 'Heterogeneity'
+                    }
+                    # rename 'habitat_heterogeneity_difference' to 'Heterogeneity'
+                    if("habitat_heterogeneity_difference" %in% names(merged_data)) {
+                      names(merged_data)[names(merged_data) == 'habitat_heterogeneity_difference'] <- 'Heterogeneity'
+                    }
+                    # rename 'protected_patch_size_difference' to 'Protected area patch size'
+                    if("protected_patch_size_difference" %in% names(merged_data)) {
+                      names(merged_data)[names(merged_data) == 'protected_patch_size_difference'] <- 'Protected area patch size'
+                    }
+                    # rename 'sum_habitat_patch_size_diff' to 'Sum patch size' if present
+                    if("sum_habitat_patch_size_diff" %in% names(merged_data)) {
+                      names(merged_data)[names(merged_data) == 'sum_habitat_patch_size_diff'] <- 'Sum habitat patch size'
+                    }
+                    # rename 'reduced_resistance' to 'Reduced mean path resistance'
+                    if("reduced_resistance" %in% names(merged_data)) {
+                      names(merged_data)[names(merged_data) == 'reduced_resistance'] <- 'Reduced mean path resistance'
+                    }
+                    # Use a pattern matching approach to rename the 'patch_size_diff' and 'ENV_PC' columns if they are present
+                    new_names <- names(merged_data)
+                    new_names <- gsub("^patch_size_diff_(.+?) \\(Class \\d+\\)$", "\\1 patch size", new_names)
+                    new_names <- gsub("Env_PC(\\d+)_sa_diff", "PC\\1 environmental heterogeneity", new_names)
+                    names(merged_data) <- new_names
+                    
+                    extract_first_number <- function(x) {
+                      as.numeric(sub("-.*", "", x))
+                    }
+                    # Apply the function to the 'combination' column
+                    first_numbers <- sapply(merged_data$combination, extract_first_number)
+                    # Sort the dataframe based on the first pixel index
+                    merged_data <- merged_data[order(first_numbers), ]
+                    
+                    # Add pixels column
+                    merged_data$Pixels<-merged_data$combination
+                    
+                    
+                    # Rename 'combination' column to 'Candidate area'
+                    names(merged_data)[names(merged_data) == 'combination'] <- 'Candidate area'
+                    # Get the total number of rows
+                    total_rows <- nrow(merged_data)
+                    # Determine the number of zeros needed based on the total number of rows
+                    num_zeros <- nchar(as.character(total_rows))
+                    # Generate the new values for the 'Candidate area' column
+                    merged_data$`Candidate area` <- sapply(1:total_rows, function(i) {
+                      # Count the number of '-' in the original entry
+                      original_value <- merged_data$`Candidate area`[i]
+                      num_pixels <- str_count(original_value, "-") + 1
+                      # Generate the CA number with leading zeros
+                      ca_number <- sprintf(paste0("CA_%0", num_zeros, "d"), i)
+                      # Combine CA number with pixel information
+                      paste0(ca_number, " (", num_pixels, " pixels)")
+                    })
+                    
+                    
+                    
                     merged_data_reactive(merged_data)
                     
                     
