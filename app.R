@@ -3102,7 +3102,7 @@ server <- function(input, output, session) {
       polygons_list[[length(polygons_list) + 1]] <- sfc_polygon
 
       # Read and store data, skipping the first two lines (the extent information)
-      df <- read.csv(file, skip = 2, stringsAsFactors = FALSE, sep = ",")
+      df <- read.csv(file, skip = 2, stringsAsFactors = FALSE, sep = ",", check.names = FALSE)
       df <- df[, names(df) != "Sum weighted"]
       if (nrow(df) == 0) {
         stop("One of the files is empty: ", file)
@@ -3228,18 +3228,17 @@ server <- function(input, output, session) {
       values(cropped_raster)[best_combination_indices] <- 101
       cropped_raster[cropped_raster != 101] <- NA
       
-      # Define target CRS
-      target_crs <- "+proj=longlat +datum=WGS84"
       
-      # Reproject the raster using stars for accurate transformation
-      # Convert SpatRaster to stars object
-      plot_pixels_stars <- st_as_stars(cropped_raster)
-      
-      # Warp the stars object to the target CRS
-      plot_pixels_stars <- st_warp(plot_pixels_stars, crs = target_crs)
+      # Create a new, finer resolution raster template to minimize re-sampling distortions
+      finer_raster <- rast(ext(cropped_raster), nrow = nrow(cropped_raster) * 15, ncol = ncol(cropped_raster) * 15)
+      # Resample to the finer resolution
+      comb_pixels_resampled <- resample(cropped_raster, finer_raster, method = "near")
+      # Now re-project to WGS84
+      comb_pixels_reproj <- project(comb_pixels_resampled, "EPSG:4326", method = "near")
+      comb_pixels_stars <- st_as_stars(comb_pixels_reproj)
       
       # Convert the reprojected stars object to polygons
-      plot_pixels_sf <- st_as_sf(plot_pixels_stars, merge = FALSE, as_points = FALSE, na.rm = TRUE)
+      plot_pixels_sf <- st_as_sf(comb_pixels_stars, merge = TRUE, as_points = FALSE, na.rm = TRUE)
       
       # Store the plot_pixels_sf in the KML_output list
       KML_output[[i]] <- plot_pixels_sf
