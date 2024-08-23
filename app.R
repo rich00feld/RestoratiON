@@ -2926,7 +2926,7 @@ server <- function(input, output, session) {
 	    land_cover_labels <- land_cover_labels_react()
       
       # Extract pixel indices from the combination string
-      best_combination_indices <- as.numeric(strsplit(comb, "-")[[1]])#error here?
+      best_combination_indices <- as.numeric(strsplit(comb, "-")[[1]])
       
       values(cropped_raster)[best_combination_indices] <- 101
       
