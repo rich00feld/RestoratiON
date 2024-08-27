@@ -2277,14 +2277,14 @@ server <- function(input, output, session) {
                   style = 'caption-side: top; text-align: left;',
                   HTML("<br><strong style='font-size: 16px;'>Difference in mean patch size (hectares)
                        and landscape heterogeneity between original and restored landscape for each candidate area.
-                       Positive values indicate that heterogeneity or patch size is greater in the restored landscape.
-                       Each candidate area has a unique ID (e.g, CA-001 (3 pixels) means candidate area 1, containing 3 pixels of degraded land).</strong>")))
+                       Positive values indicate that heterogeneity or patch size is greater in the restored landscape.</strong>")))
     })
     
     output$subtitleText1 <- renderUI({
       req(result_habitat_data_updated())  # Ensure that the table data is ready
       HTML("<p style='font-size: 14px; text-align: left;'>**Heterogeneity was calculated as average roughness (absolute deviation of surface values from the mean),
-           see <a href='https://besjournals.onlinelibrary.wiley.com/doi/full/10.1111/2041-210X.13677#mee313677-tbl-0002' target='_blank'>Smith et al. 2021</a>.</p>")
+           see <a href='https://besjournals.onlinelibrary.wiley.com/doi/full/10.1111/2041-210X.13677#mee313677-tbl-0002' target='_blank'>Smith et al. 2021</a>.
+           <br>***Each candidate area has a unique ID (e.g, CA-001 (3 pixels) means candidate area 1, containing 3 pixels of degraded land).</p>")
     })
     
   })
@@ -2436,7 +2436,11 @@ server <- function(input, output, session) {
           paste0(ca_number, " (", num_pixels, " pixels)")
         })
       
-      datatable(rounded_data, rownames = FALSE, options = list(scrollX = TRUE))
+      datatable(rounded_data, rownames = FALSE, options = list(scrollX = TRUE), ,
+                caption = htmltools::tags$caption(
+                  style = 'caption-side: top; text-align: left;',
+                  HTML("<br><strong style='font-size: 16px;'>Difference in mean path resistance between original and restored landscape for each candidate area.
+                       Positive values indicate less resistance in the restored landscape.</strong>")))
     })
     
     
@@ -2511,7 +2515,10 @@ server <- function(input, output, session) {
       pca_table[] <- lapply(pca_table, function(x) if (is.numeric(x)) round(x, 3) else x)
 
       row.names(pca_table) <- NULL
-      datatable(pca_table, rownames = FALSE, options = list(scrollX = TRUE))
+      datatable(pca_table, rownames = FALSE, options = list(scrollX = TRUE), ,
+                caption = htmltools::tags$caption(
+                  style = 'caption-side: top; text-align: left;',
+                  HTML("<br><strong style='font-size: 16px;'>Summary of each environmental principal component.</strong>")))
     })
     
     removeNotification(notification_id_PCA)
@@ -2648,7 +2655,11 @@ server <- function(input, output, session) {
         paste0(ca_number, " (", num_pixels, " pixels)")
       })
       
-      datatable(rounded_data, rownames = FALSE, options = list(scrollX = TRUE))
+      datatable(rounded_data, rownames = FALSE, options = list(scrollX = TRUE), ,
+                caption = htmltools::tags$caption(
+                  style = 'caption-side: top; text-align: left;',
+                  HTML("<br><strong style='font-size: 16px;'>Difference in environmental heterogeneity between original and restored landscape for each candidate area and each principal component.
+                       Positive values indicate that environmental heterogeneity is greater in the restored landscape.</strong>")))
     })
     
     
@@ -2760,7 +2771,10 @@ server <- function(input, output, session) {
         paste0(ca_number, " (", num_pixels, " pixels)")
       })
       final_data_table(rounded_data)
-      datatable(rounded_data, rownames = FALSE, options = list(scrollX = TRUE))
+      datatable(rounded_data, rownames = FALSE, options = list(scrollX = TRUE), ,
+                caption = htmltools::tags$caption(
+                  style = 'caption-side: top; text-align: left;',
+                  HTML("<br><strong style='font-size: 16px;'>Summary of merged results for all previously calculated landscape metrics after being scaled.</strong>")))
     })
   })
 
@@ -3133,7 +3147,10 @@ server <- function(input, output, session) {
     rounded_data <- landscape_merged()$data
     rounded_data[] <- lapply(rounded_data, function(x) if (is.numeric(x)) round(x, 3) else x)
     
-    datatable(rounded_data, rownames = FALSE, options = list(scrollX = TRUE))
+    datatable(rounded_data, rownames = FALSE, options = list(scrollX = TRUE), ,
+              caption = htmltools::tags$caption(
+                style = 'caption-side: top; text-align: left;',
+                HTML("<br><strong style='font-size: 16px;'>Previously calculated metrics for candidate areas within the selected landscapes.</strong>")))
   })
 
 
