@@ -2705,6 +2705,7 @@ server <- function(input, output, session) {
     # Scale the columns except 'combination'
     columns_to_scale <- setdiff(names(merged_data), "combination")
     scaled_data <- as.data.frame(lapply(merged_data[columns_to_scale], scale))
+    colnames(scaled_data) <- colnames(merged_data[columns_to_scale])
     # Replace NAs with 0s after scaling (NAs were produced when the scale was applied to values of 0)
     scaled_data[is.na(scaled_data)] <- 0
     # Combine scaled columns with 'combination'
@@ -4407,6 +4408,7 @@ server <- function(input, output, session) {
                   # Scale the columns except 'combination'
                   columns_to_scale <- setdiff(names(merged_data), "combination")
                   scaled_data <- as.data.frame(lapply(merged_data[columns_to_scale], scale))
+		  colnames(scaled_data) <- colnames(merged_data[columns_to_scale])
                   # Replace NAs with 0s after scaling
                   scaled_data[is.na(scaled_data)] <- 0
                   # Combine scaled columns with 'combination'
