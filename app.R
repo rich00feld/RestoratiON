@@ -4962,9 +4962,9 @@ If you would like to export a KML file to view the top candidate areas chosen in
   conditionalPanel(
     condition = "input.lands_best_comb > 0",
     segment(
-      downloadButton("download_multiple_data", "Save restored pixel metrics", style = "height:60px; width:300px; font-size:25px;")),
+      downloadButton("download_multiple_data", "Save landscape metrics and candidate area performance csv", style = "height:60px; width:300px; font-size:25px;")),
       segment(
-        downloadButton("download_multiple_KML", "Save KML files of top combinations", style = "height:60px; width:300px; font-size:25px;"))
+        downloadButton("download_multiple_KML", "Export top candidate area(s) to KML", style = "height:60px; width:300px; font-size:25px;"))
   ),
 
   ## Segment 21: visualizing landscapes based on CSVs ----
