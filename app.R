@@ -2443,6 +2443,11 @@ server <- function(input, output, session) {
                   HTML("<br><strong style='font-size: 16px;'>Difference in mean path resistance between original and restored landscape for each candidate area.
                        Positive values indicate less resistance in the restored landscape.</strong>")))
     })
+
+     output$subtitleText2 <- renderUI({
+      req(result_connectivity())  # Ensure that the table data is ready
+      HTML("<p style='font-size: 14px; text-align: left;'>**Each candidate area has a unique ID (e.g, CA-001 (3 pixels) means candidate area 1, containing 3 pixels of degraded land).</p>")
+    })
     
     
     shinyjs::enable("calculate_pca")
@@ -2662,6 +2667,11 @@ server <- function(input, output, session) {
                   HTML("<br><strong style='font-size: 16px;'>Difference in environmental heterogeneity between original and restored landscape for each candidate area and each principal component.
                        Positive values indicate that environmental heterogeneity is greater in the restored landscape.</strong>")))
     })
+
+      output$subtitleText3 <- renderUI({
+      req(result_env_data()) # Ensure that the table data is ready
+      HTML("<p style='font-size: 14px; text-align: left;'>**Each candidate area has a unique ID (e.g, CA-001 (3 pixels) means candidate area 1, containing 3 pixels of degraded land).</p>")
+    })
     
     
     format_elapsed_time <- function(time_diff) {
@@ -2777,6 +2787,9 @@ server <- function(input, output, session) {
                 caption = htmltools::tags$caption(
                   style = 'caption-side: top; text-align: left;',
                   HTML("<br><strong style='font-size: 16px;'>Summary of merged results for all previously calculated landscape metrics after being scaled.</strong>")))
+    })
+      output$subtitleText4 <- renderUI({
+      HTML("<p style='font-size: 14px; text-align: left;'>**Each candidate area has a unique ID (e.g, CA-001 (3 pixels) means candidate area 1, containing 3 pixels of degraded land).</p>")
     })
   })
 
@@ -3153,6 +3166,11 @@ server <- function(input, output, session) {
               caption = htmltools::tags$caption(
                 style = 'caption-side: top; text-align: left;',
                 HTML("<br><strong style='font-size: 16px;'>Previously calculated metrics for candidate areas within the selected landscapes.</strong>")))
+  })
+
+  output$subtitleText5 <- renderUI({
+    req(landscape_merged()$data)  # Ensure that the table data is ready
+    HTML("<p style='font-size: 14px; text-align: left;'>**Each candidate area has a unique ID (e.g, CA-001 (3 pixels) means candidate area 1, containing 3 pixels of degraded land).</p>")
   })
 
 
@@ -4818,7 +4836,8 @@ The application computes the difference between patch size and heterogeneity com
       textOutput("conTime"),
       br(),
       br(),
-      dataTableOutput("connectivityTable")
+      dataTableOutput("connectivityTable"),
+      uiOutput("subtitleText2")
     )
   ),
 
@@ -4857,8 +4876,11 @@ The application computes the difference between patch size and heterogeneity com
       actionButton("calculate_env_metrics", "Calculate environmental metrics"),
       br(),
       br(),
+      textOutput("elapsedTimeEnv"),
+      br(),
+      br(),
       dataTableOutput("environmentTable"),
-      textOutput("elapsedTimeEnv")
+      uiOutput("subtitleText3")
     )
   ),
 
@@ -4871,7 +4893,8 @@ The application computes the difference between patch size and heterogeneity com
       actionButton("merge_and_display", "Merge and scale results"),
       br(),
       br(),
-      dataTableOutput("mergedResultsTable")
+      dataTableOutput("mergedResultsTable"),
+      uiOutput("subtitleText4")
     )
   ),
 
@@ -4929,7 +4952,8 @@ If you would like to export a KML file to view the top candidate areas chosen in
 	    for multi-landscape analysis. The spatial extents of each landscape are visualized on a map, providing an overview of the coverage of the uploaded landscapes."),
       fileInput("fileInput", "Choose .CSV files", multiple = TRUE, accept = c("text/csv", "text/comma-separated-values,text/plain", ".csv")),
       leafletOutput("map_lands", height = 600),
-      dataTableOutput("landscapeMergedTable")
+      dataTableOutput("landscapeMergedTable"),
+      uiOutput("subtitleText5")
     )
   ),
 
