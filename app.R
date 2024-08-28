@@ -2272,7 +2272,8 @@ server <- function(input, output, session) {
         # Combine CA number with pixel information
         paste0(ca_number, " (", num_pixels, " pixels)")
       })
-      datatable(rounded_data, rownames = FALSE, options = list(scrollX = TRUE), ,
+      datatable(rounded_data, rownames = FALSE, 
+                options = list(scrollX = TRUE),         
                 caption = htmltools::tags$caption(
                   style = 'caption-side: top; text-align: left;',
                   HTML("<br><strong style='font-size: 16px;'>Difference in mean patch size (hectares)
@@ -2284,7 +2285,7 @@ server <- function(input, output, session) {
       req(result_habitat_data_updated())  # Ensure that the table data is ready
       HTML("<p style='font-size: 14px; text-align: left;'>**Heterogeneity was calculated as average roughness (absolute deviation of surface values from the mean),
            see <a href='https://besjournals.onlinelibrary.wiley.com/doi/full/10.1111/2041-210X.13677#mee313677-tbl-0002' target='_blank'>Smith et al. 2021</a>.
-           <br>***Each candidate area has a unique ID (e.g, CA-001 (3 pixels) means candidate area 1, containing 3 pixels of degraded land).</p>")
+           <br>***Each candidate area has a unique ID: CA_001 (3 pixels) means candidate area 1, containing 3 pixels of degraded land.</p>")
     })
     
   })
@@ -4731,7 +4732,7 @@ fluidRow(
 	    )),
       br(),
       actionButton("automatic_combination", "Define candidate areas based on contiguous habitat type"),
-      p(HTML("<i><p style='margin-left: 25px;'>This option creates candidate areas by automatically dividing sections of degraded land into one or more groups. Each group shares the same habitat type and all pixels in the group are connected. In general, this option will produce fewer candidate areas.</p></i>")),
+      p(HTML("<i><p style='margin-left: 25px;'>This option creates candidate areas by automatically dividing sections of degraded land into one or more groups. Each group shares the same habitat type and all pixels in the group are connected. 'Connected' means that at least one corner of a pixel touches the corner of another pixel in the candidate area. In general, this option will produce fewer candidate areas.</p></i>")),
       br(),
       actionButton("manual_combination", "Define candidate areas based on a set number of pixels"),
       p(HTML("<i><p style='margin-left: 25px;'>If your restoration efforts must be focused on a small area within a target landscape – e.g., only one or two 300 x 300 m pixels (9 – 18 hectares), you may wish to define candidate areas based on a set number of pixels, e.g., 1, 2, or 3. This option <b>does not constrain candidate areas to be contiguous</b>; instead, it groups all possible combinations of degraded pixels for restoration based on a set number of pixels.</p></i>"))
@@ -4842,21 +4843,11 @@ The application computes the difference between patch size and heterogeneity com
     condition = "input.calculate_pca > 0",
     segment(
       div(style = "font-size: 18px; font-weight: bold; margin-bottom: 15px;", "Calculating environmental heterogeneity: comparing degraded and restored landscapes"),
-      p(HTML("Here we measure the difference in environmental heterogeneity between each the restored landscapes 
-      and the degraded landscape – using the principal component data layers created previously. Degraded pixels are
-      treated as if they have no environmental value (NA) in the principal component layers, while restored pixels are
-      given the values assigned by the principal component layer for that pixel area.
+      p(HTML("Here, we measure the difference in environmental heterogeneity between each restored landscape and the degraded landscape, based on the principal component data layers. Degraded pixels are treated as if they have no value in the principal component layers, whereas restored pixels are given the corresponding principal component value.
       <br><br>
-      Heterogeneity, or variation in the landscape, is calculated by measuring the “average surface roughness” of the landscape
-      – essentially a measure of how the environmental values for each pixel differ from the mean environmental value of all pixels
-      in the landscape. This gives us an idea of how environmentally variable or diverse the landscape is, based on the values in the raster.
-      Environmental heterogeneity for each restored combination landscape is compared against the degraded landscape to get 
-      a measure of difference between the restored landscapes and the unrestored one. 
+      Heterogeneity, or variation in the landscape, is calculated by measuring the “average surface roughness” of the landscape – essentially a measure of how the environmental values for each pixel differ from the mean environmental value of all pixels in the landscape. Surface roughness can therefore represent how environmentally variable or diverse the landscape is. In the next step, environmental heterogeneity for each restored candidate landscape is compared against the degraded landscape. 
       <br><br> 
-      The user has the option to select how
-      many of the principal component layers to run through this process with – the default being the first two principal components
-      as they typically contain > 99% of the environmental variation during testing. Results are output in a table for each combination with results
-      for the number of principal component layers selected.")),
+      You have the option to select how many of the principal component layers to include in the analysis. The default is to use the first two principal components, as they typically contain > 99% of the environmental variation. Results are output in a table for each candidate area.")),
       numericInput("num_pcs", "Number of principal components:",
         value = 2, min = 1, max = 22
       ),
@@ -4874,11 +4865,7 @@ The application computes the difference between patch size and heterogeneity com
     condition = "input.calculate_env_metrics > 0",
     segment(
       div(style = "font-size: 18px; font-weight: bold; margin-bottom: 15px;", "Merging and scaling results"),
-      p("Results from all previous calculations are merged together in single table in preparation for finding the best combination.
-      The values for each metric are also scaled so that they are on a standardized scale (i.e. an equivalent, comparable scale) for
-      weighting purposes in the next step. The exact method of scaling is 'Z-Score Scaling' which transforms values by subtracting
-      the mean and dividing by the standard deviation. After this transformation, values express the number of standard deviations 
-      a data point is from the mean for that metric."),
+      p("To prepare to identify the best candidate area(s) to restore, results from all previous calculations are merged into a single table. The values for each metric (e.g., patch size, heterogeneity, connectivity) for each candidate area are scaled to comparable values using the 'Z-Score Scaling' method. This method transforms values for each metric by subtracting the mean value for all candidate areas and dividing by the standard deviation. After this transformation, values in the table below express the number of standard deviations a data point is from the mean for that metric."),
       actionButton("merge_and_display", "Merge and scale results"),
       br(),
       br(),
@@ -4891,21 +4878,13 @@ The application computes the difference between patch size and heterogeneity com
     condition = "input.merge_and_display > 0",
     segment(
       div(style = "font-size: 18px; font-weight: bold; margin-bottom: 15px;", "Weighting and finding the best candidate areas"),
-      p(HTML("We are now at the final stage of the app for a single landscape, which is weighting metrics and plotting the best combination
-      of pixels based on those weighted metrics. Here weights (corresponding to a multiplier - with '1' as the default) can be assigned to the
-      various environmental, habitat, and connectivity metrics calculated previously. Weights can be assigned to different metrics to influence
-      their impact on the final combination, or prioritize some metrics in the selection process over others. How many top combinations displayed
-      may also be specified here. For example, if a user sets the number of top combinations to 5, the best 5 pixel combinations will be displayed
-      in descending order of importance (i.e., 1 being the best performing pixel combination, and 5 being the 5th best). 
-      <br><br>
-      When the 'Find best candidate areas' button is clicked, values for each metric are adjusted based on the user-provided weights, the sum of weighted values
-      is calculated for each combination, and the combination with the maximum sum is identified (i.e. the “best combination”). Two figures are created:
-      an interactive map highlighting the pixels corresponding to the best combinations, and another showing where those pixels occur in respect to natural habitat.
-      The latter includes an option for displaying the best pixel combination in conjunction with areas of conservation concern if the option to focus on areas of 
-      conservation concern was previously selected.")),
+      p(HTML("The final step is to determine and visualize the best candidate area(s) for restoration. Here, you have the option to adjust the weight given to each metric calculated in the app. Each metric starts out with a default weight of 1. Different weights can be assigned with the goal of prioritizing some metrics in the selection process over others.")),
       uiOutput("weights_ui"),
       br(),
+      p(HTML("<br><br>Now, set the number of candidate areas you wish to return. For example, if you set the number of top candidate areas to display to 5, the best 5 candidate areas will be displayed in descending order of importance, with the best candidate area displayed first.")),
       numericInput("num_top_combinations", "Number of top candidate areas to display:", value = 1, min = 1, step = 1),
+      br(),
+      p(HTML("When the 'Find best candidate areas' button is clicked, values for each metric are adjusted based on the weights you provide. The sum of weighted values is calculated for each candidate area, and the area with the maximum sum is identified as the best candidate area for restoration. Two figures are created: an interactive map displaying the best candidate areas, and another showing habitat types and candidate areas in the target landscape. The latter figure includes an option for displaying the best candidate area in conjunction with areas of conservation concern, if this option was selected.")),
       actionButton("find_best_comb", "Find best candidate areas"),
       uiOutput("bestCombinationName", class = "ui message"),
       leafletOutput("map_best_comb", height = 600),
@@ -4917,14 +4896,14 @@ The application computes the difference between patch size and heterogeneity com
   conditionalPanel(
     condition = "input.find_best_comb > 0",
     segment(
-      div(style = "font-size: 18px; font-weight: bold; margin-bottom: 15px;", "Saving restored combination metrics"),
-      p("Lastly, the landscape can be named by entering and saving a name, and a .CSV file containing the metrics for
-      each combination (before weighting) can be downloaded by clicking the download button. This allows the comparison
-      of this landscapes combinations against others in the 'Multiple Landscapes' section of the app. This step concludes the single landscape analysis."),
+      div(style = "font-size: 18px; font-weight: bold; margin-bottom: 15px;", "Saving candidate areas and associated metrics"),
+      p(HTML("Finally, to conclude the single landscape analysis, you can save the table containing the final, summed values for all environmental metrics for each candidate area. Enter a unique name for your landscape below. A .csv file containing the metrics for each combination (before weighting) is created. This results .csv file can be used to compare candidate areas in this landscape to other landscapes in the 'Multiple Landscapes' section of the app.<br><br>Click 'Save landscape metrics and candidate area performance csv' below to save the results file.<br><br>
+If you would like to export a KML file to view the top candidate areas chosen in the analysis outside this app (e.g., in Google Earth or ArcGIS), click 'Export top candidate area(s) to KML'. 
+")),
       br(),
-      textInput("landscape_name", "Enter a unique landscape identifier:"),
+      textInput("landscape_name", "Enter a unique name for your landscape:"),
       br(),
-      actionButton("add_column", "Set landscape ldentifier")
+      actionButton("add_column", "Set unique landscape name")
     )
   ),
 
@@ -4932,9 +4911,9 @@ The application computes the difference between patch size and heterogeneity com
   conditionalPanel(
     condition = "output.landscape_added",
     segment(
-      downloadButton("download_data", "Save landscape metics and combinaton performance", style = "height:60px; width:300px; font-size:25px;")),
+      downloadButton("download_data", "Save landscape metrics and candidate area performance csv", style = "height:60px; width:300px; font-size:25px;")),
       segment(
-        downloadButton("downloadKML", "Save best combination .KML", style = "height:60px; width:300px; font-size:25px;")
+        downloadButton("downloadKML", "Export top candidate area(s) to KML", style = "height:60px; width:300px; font-size:25px;")
     )
   ),
 
@@ -4959,10 +4938,9 @@ The application computes the difference between patch size and heterogeneity com
     condition = "output.fileSelected > 0",
     segment(
       div(style = "font-size: 18px; font-weight: bold; margin-bottom: 15px;", "Weighting and ranking"),
-      p("Similar to single landscape analysis, weights can be assigned to different metrics for multi-landscape analysis.
-        The best restored pixel combinations across all landscapes, are ranked using the weighted metrics, and displayed showing the
-        corresponding landscape name and combination indices (for that particular landscape). Individual plots for each of the top 
-        combinations are also generated, highlighting priority pixels in the landscapes alongside habitat."),
+      p("Similar to single landscape analysis, weights can be assigned to different metrics for the multi-landscape analysis.
+        The best restored candidate areas across all landscapes are ranked using the weighted metrics, and displayed showing the candidate area name and landscape name. Individual plots for each of the top 
+        combinations are also generated, highlighting candidate areas in the landscapes alongside habitat classes."),
       uiOutput("landscape_weights_ui"),
       br(),
       br(),
@@ -4984,9 +4962,9 @@ The application computes the difference between patch size and heterogeneity com
   conditionalPanel(
     condition = "input.lands_best_comb > 0",
     segment(
-      downloadButton("download_multiple_data", "Save restored pixel metrics", style = "height:60px; width:300px; font-size:25px;")),
+      downloadButton("download_multiple_data", "Save landscape metrics and candidate area performance csv", style = "height:60px; width:300px; font-size:25px;")),
       segment(
-        downloadButton("download_multiple_KML", "Save KML files of top combinations", style = "height:60px; width:300px; font-size:25px;"))
+        downloadButton("download_multiple_KML", "Export top candidate area(s) to KML", style = "height:60px; width:300px; font-size:25px;"))
   ),
 
   ## Segment 21: visualizing landscapes based on CSVs ----
