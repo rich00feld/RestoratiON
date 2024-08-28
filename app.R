@@ -4903,7 +4903,7 @@ If you would like to export a KML file to view the top candidate areas chosen in
       br(),
       textInput("landscape_name", "Enter a unique name for your landscape:"),
       br(),
-      actionButton("add_column", "Set landscape ldentifier")
+      actionButton("add_column", "Set unique landscape name")
     )
   ),
 
