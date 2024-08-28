@@ -4938,10 +4938,9 @@ If you would like to export a KML file to view the top candidate areas chosen in
     condition = "output.fileSelected > 0",
     segment(
       div(style = "font-size: 18px; font-weight: bold; margin-bottom: 15px;", "Weighting and ranking"),
-      p("Similar to single landscape analysis, weights can be assigned to different metrics for multi-landscape analysis.
-        The best restored pixel combinations across all landscapes, are ranked using the weighted metrics, and displayed showing the
-        corresponding landscape name and combination indices (for that particular landscape). Individual plots for each of the top 
-        combinations are also generated, highlighting priority pixels in the landscapes alongside habitat."),
+      p("Similar to single landscape analysis, weights can be assigned to different metrics for the multi-landscape analysis.
+        The best restored candidate areas across all landscapes are ranked using the weighted metrics, and displayed showing the candidate area name and landscape name. Individual plots for each of the top 
+        combinations are also generated, highlighting candidate areas in the landscapes alongside habitat classes."),
       uiOutput("landscape_weights_ui"),
       br(),
       br(),
