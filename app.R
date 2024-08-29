@@ -2837,9 +2837,6 @@ server <- function(input, output, session) {
     }
   })
 
-  
-  
-  
   observeEvent(input$find_best_comb, {
     # Merging the data sets
     merged_data <- final_data_table()
@@ -2893,16 +2890,13 @@ server <- function(input, output, session) {
       comb_pixels[-as.integer(comb)] <- NA
       crs(comb_pixels) <- "EPSG:3162"
       
-      # Create a new, finer resolution raster template to minimize re-sampling distortions
-      finer_raster <- rast(ext(comb_pixels), nrow = nrow(comb_pixels) * 15, ncol = ncol(comb_pixels) * 15)
-      # Resample to the finer resolution
-      comb_pixels_resampled <- resample(comb_pixels, finer_raster, method = "near")
-      # Now re-project to WGS84
-      comb_pixels_reproj <- project(comb_pixels_resampled, "EPSG:4326", method = "near")
-      comb_pixels_stars <- st_as_stars(comb_pixels_reproj)
+      # Convert raster pixels to polygons
+      comb_pixels <- as.polygons(comb_pixels, dissolve = TRUE)
+      # Convert Polygons to sf object
+      comb_pixels_sf <- st_as_sf(comb_pixels)
       
-      # # Convert the reprojected stars object to polygons
-      comb_pixels_sf <- st_as_sf(comb_pixels_stars, merge = TRUE, as_points = FALSE, na.rm = TRUE)
+      # Re-project the sf object to EPSG:4326
+      comb_pixels_sf <- st_transform(comb_pixels_sf, crs = 4326)
       
       # Assign labels to each polygon
       comb_pixels_sf$label <- as.character(i)
@@ -2958,7 +2952,10 @@ server <- function(input, output, session) {
           lng = centroid_coords[, 1],  # Longitude of the centroid
           lat = centroid_coords[, 2],  # Latitude of the centroid
           label = centroids$label,  # Use the labels from the centroids
-          labelOptions = labelOptions(noHide = TRUE, textOnly = TRUE)
+          labelOptions = labelOptions(noHide = TRUE, textOnly = TRUE, style = list(
+            "font-weight" = "bold",
+            "font-size" = "14px"
+          ))
         ) %>%
         addLayersControl(
           baseGroups = c("Map View", "Satellite View"),
@@ -4524,8 +4521,6 @@ server <- function(input, output, session) {
                     #Generate a filename based on landscape_name and current date/time
                     filename <- paste(landscape_name, "_", Sys.Date(), ".csv", sep = "")
                     csv_filename <- file.path(temp_dir, filename)
-                    
-
 
                     # Get the extent object from the reactive value
                     extent <- output_extent()
