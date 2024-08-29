@@ -196,10 +196,10 @@ land_cover_labels <- data.frame(
       205, 250, 0, 1),
     # These are custom colors we define  (I just threw these in, they are not necessarily "good"):
     color = c(
-      "#FF33B5", "#33FFF3", "#FF8333",
+      "orangered", "deeppink", "#FF8333",
       "#8D33FF", "#3333FF", "#8B0000", 
       "#FFD700"),
-    Land_Class = c("Degraded", "Priority pixels", "Aggregate extraction", 
+    Land_Class = c("Degraded", "Candidate area", "Aggregate extraction", 
                    "Topsoil/Peat extraction", "Undifferentiated", "Not included", "Included")
   ))
 
@@ -456,7 +456,7 @@ server <- function(input, output, session) {
   # Set up the leaflet map ----
   # Set colors for each polygon layer. IDs for each individual polygon are set with layerId =
   output$map <- renderLeaflet({
-    leaflet() %>%
+    leaflet(options = leafletOptions(zoomControl = FALSE)) %>%
       addTiles(group = "Map View") %>%
       addProviderTiles(providers$Esri.WorldImagery, group = "Satellite View") %>%
       setView(lng = -84.3870, lat = 50.2538, zoom = 5) %>%
@@ -679,7 +679,13 @@ server <- function(input, output, session) {
       hideGroup(group = "Provincial planned protected areas") %>%
       hideGroup(group = "National capital valued ecosystem") %>%
       hideGroup(group = "Other effective area-based<br>conservation measures") %>%
-      hideGroup(group = "National parks")
+      hideGroup(group = "National parks") %>%
+      htmlwidgets::onRender("
+    function(el, x) {
+      var map = this;
+      L.control.zoom({ position: 'bottomright' }).addTo(map);
+    }
+  ")
   })
 
   # Schedule the removal of the loading notification after the rendering is complete
@@ -854,7 +860,6 @@ server <- function(input, output, session) {
       showNotification("Please draw a rectangle on the map or click on a polygon to set the extent", type = "warning")
       return()
     }
-
     # A notification to display until this code is finished running
     notification_id_extent <- showNotification("Setting extent and testing calculation viability...", type = "message", duration = NULL)
     # Create a buffer around the extent_coord, 0 if no value was input
@@ -1000,7 +1005,6 @@ server <- function(input, output, session) {
       legend_plot1 <- cowplot::get_plot_component(my_ggplot, 'guide-box-right', return_all = TRUE)
       legend_plot1_react(legend_plot1)
       
-
       
       # Users can hover over the map output below and the raster value will appear.
       # I'm not totally happy with this - sometimes hover doesn't work.
@@ -2784,6 +2788,7 @@ server <- function(input, output, session) {
         paste0(ca_number, " (", num_pixels, " pixels)")
       })
       final_data_table(rounded_data)
+      rounded_data <- rounded_data[ , !names(rounded_data) %in% "Pixels"]
       datatable(rounded_data, rownames = FALSE, options = list(scrollX = TRUE), ,
                 caption = htmltools::tags$caption(
                   style = 'caption-side: top; text-align: left;',
@@ -2864,14 +2869,14 @@ server <- function(input, output, session) {
     
     # Render the best combination index as text in the UI
     output$bestCombinationName <- renderUI({
-      formatted_output <- mapply(function(i, comb, CA) {
+      formatted_output <- mapply(function(i, CA) {
         paste0(
           "<div>",
-          paste0("<b>#", i, ":&nbsp;&nbsp;&nbsp;", CA, "<br>Pixels:&nbsp;&nbsp;&nbsp;", comb, "</b>"),
+          paste0("<b>#", i, ":&nbsp;&nbsp;&nbsp;", CA, "</b>"),
           "</div>\n",
           ifelse(i < num_top_combinations, "<br>", "")
         )
-      }, 1:num_top_combinations, top_combinations_text$Pixels, top_combinations_text$`Candidate area`)
+      }, 1:num_top_combinations, top_combinations_text$`Candidate area`)
       
       HTML(paste(formatted_output, collapse = ""))
     })
@@ -2919,15 +2924,32 @@ server <- function(input, output, session) {
     # Ensure centroids keep the label information
     centroids$label <- plot_pixels_sf$label
     
-    # Use the centroids and labels from plot_pixels_sf when adding labels to the map
     output$map_best_comb <- renderLeaflet({
-      leaflet() %>%
+      # Convert the extent to an sf object
+      extent_sf <- st_as_sfc(st_bbox(c(xmin = output_extent()@xmin, 
+                                       xmax = output_extent()@xmax, 
+                                       ymin = output_extent()@ymin, 
+                                       ymax = output_extent()@ymax), 
+                                     crs = st_crs(3162)))
+      
+      # Transform the extent to WGS84
+      extent_wgs84 <- st_transform(extent_sf, crs = 4326)
+      
+      # Extract the coordinates for the bounding box in WGS84 as a list
+      bbox <- as.list(st_bbox(extent_wgs84))
+      
+      leaflet(options = leafletOptions(zoomControl = FALSE)) %>%
+        addControl(
+          html = "<h4 style='text-align: center; margin: 0;'>Top candidate areas for restoration</h4>", 
+          position = "topleft"
+        ) %>%
         addTiles(group = "Map View") %>%
         addProviderTiles(providers$Esri.WorldImagery, group = "Satellite View") %>%
-        setView(lng = -84.3870, lat = 50.2538, zoom = 5) %>%
+        fitBounds(lng1 = bbox$xmin, lat1 = bbox$ymin, 
+                  lng2 = bbox$xmax, lat2 = bbox$ymax) %>%
         addPolygons(
           data = plot_pixels_sf,
-          fillColor = "turquoise",
+          fillColor = "deeppink",
           fillOpacity = 0.7,
           color = "black",
           weight = 0.5
@@ -2938,8 +2960,16 @@ server <- function(input, output, session) {
           label = centroids$label,  # Use the labels from the centroids
           labelOptions = labelOptions(noHide = TRUE, textOnly = TRUE)
         ) %>%
-      addLayersControl(
-        baseGroups = c("Map View", "Satellite View"))
+        addLayersControl(
+          baseGroups = c("Map View", "Satellite View"),
+          options = layersControlOptions(collapsed = FALSE)
+        ) %>%
+        htmlwidgets::onRender("
+    function(el, x) {
+      var map = this;
+      L.control.zoom({ position: 'bottomright' }).addTo(map);
+    }
+  ")
     })
     
     # Create a list to store individual plot outputs
@@ -2953,7 +2983,7 @@ server <- function(input, output, session) {
       # Generate unique output ID for each plot
       output_id <- paste0("plot_", i)
       
-	    land_cover_labels <- land_cover_labels_react()
+      land_cover_labels <- land_cover_labels_react()
       
       # Extract pixel indices from the combination string
       best_combination_indices <- as.numeric(strsplit(comb, "-")[[1]])
@@ -2968,27 +2998,16 @@ server <- function(input, output, session) {
       values(cat_raster) <- mapped_values
       levels(cat_raster) <- data.frame(ID = 1:length(levels(mapped_values)), LC = levels(mapped_values))
       
-      # Define colors
+      # Define colors based on the reactive land_cover_labels
       num_classes <- length(levels(mapped_values))
-      color_palette <- viridis(num_classes, direction = -1)
+      color_palette <- land_cover_labels$color[match(levels(mapped_values), land_cover_labels$Land_Class)]
       
-      degraded_idx <- which(levels(mapped_values) == "Degraded")
-      if (length(degraded_idx) > 0) color_palette[degraded_idx] <- "orangered"
-      
-      priority_idx <- which(levels(mapped_values) == "Priority pixels")
-      if (length(priority_idx) > 0) color_palette[priority_idx] <- "turquoise1"
-      
-      protected_idx <- which(levels(mapped_values) == "Included")
-      if (length(protected_idx) > 0) color_palette[protected_idx] <- "lightseagreen"
-      
-      not_protected_idx <- which(levels(mapped_values) == "Not included")
-      if (length(not_protected_idx) > 0) color_palette[not_protected_idx] <- "yellow2"
-      
-      plot(cat_raster, main = paste("Top combination", i), col = color_palette)
-      
-      # Plot the cropped raster
+      # Plot the cropped raster with the custom colors
       output[[output_id]] <- renderPlot({
-        plot(cat_raster, main = paste("#", i), col = color_palette)
+        plot(cat_raster, main = paste("Candidate area for restoration #", i, ":", top_combinations_text$`Candidate area`[i]), col = color_palette, 
+             axes = FALSE, 
+             box = FALSE)
+        # box(lty = "blank")  # Remove the plot border
       })
       
       plotOutput(output_id)
@@ -4427,7 +4446,7 @@ server <- function(input, output, session) {
                   # Scale the columns except 'combination'
                   columns_to_scale <- setdiff(names(merged_data), "combination")
                   scaled_data <- as.data.frame(lapply(merged_data[columns_to_scale], scale))
-		  colnames(scaled_data) <- colnames(merged_data[columns_to_scale])
+		              colnames(scaled_data) <- colnames(merged_data[columns_to_scale])
                   # Replace NAs with 0s after scaling
                   scaled_data[is.na(scaled_data)] <- 0
                   # Combine scaled columns with 'combination'
