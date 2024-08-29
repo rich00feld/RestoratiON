@@ -2668,9 +2668,10 @@ server <- function(input, output, session) {
                        Positive values indicate that environmental heterogeneity is greater in the restored landscape.</strong>")))
     })
 
-      output$subtitleText3 <- renderUI({
+    output$subtitleText3 <- renderUI({
       req(result_env_data()) # Ensure that the table data is ready
-      HTML("<p style='font-size: 14px; text-align: left;'>**Each candidate area has a unique ID (e.g, CA-001 (3 pixels) means candidate area 1, containing 3 pixels of degraded land).</p>")
+      HTML("<p style='font-size: 14px; text-align: left;'><em>In some cases, restoring degraded land will reduce overall heterogeneity of the landscape. Consider a situation where the landscape has only 10 total pixels; 3 are 3 different types, and 7 are degraded. Restoring the 7 degraded pixels to one type would reduce overall heterogeneity.</em><br>
+       <br>**Each candidate area has a unique ID (e.g., CA-001 (3 pixels) means candidate area 1, containing 3 pixels of degraded land).</p>")
     })
     
     
@@ -3059,7 +3060,6 @@ server <- function(input, output, session) {
     }
   )
   
-  
   # Download KML button
   output$downloadKML <- downloadHandler(
     filename = function() {
@@ -3074,6 +3074,7 @@ server <- function(input, output, session) {
       }
     }
   )
+  
   # End of the single landscape analysis
 
 
@@ -4922,9 +4923,7 @@ The application computes the difference between patch size and heterogeneity com
     condition = "input.find_best_comb > 0",
     segment(
       div(style = "font-size: 18px; font-weight: bold; margin-bottom: 15px;", "Saving candidate areas and associated metrics"),
-      p(HTML("Finally, to conclude the single landscape analysis, you can save the table containing the final, summed values for all environmental metrics for each candidate area. Enter a unique name for your landscape below. A .csv file containing the metrics for each combination (before weighting) is created. This results .csv file can be used to compare candidate areas in this landscape to other landscapes in the 'Multiple Landscapes' section of the app.<br><br>Click 'Save landscape metrics and candidate area performance csv' below to save the results file.<br><br>
-If you would like to export a KML file to view the top candidate areas chosen in the analysis outside this app (e.g., in Google Earth or ArcGIS), click 'Export top candidate area(s) to KML'. 
-")),
+      p(HTML("Finally, to conclude the single landscape analysis, you can save the table containing the final, summed values for all environmental metrics for each candidate area. Enter a unique name for your landscape below. A .csv file containing the metrics for each combination (before weighting) is created. This results .csv file can be used to compare candidate areas in this landscape to other landscapes in the 'Multiple Landscapes' section of the app.<br><br>Click 'Save landscape metrics and candidate area performance .CSV' below to save the results file.<br>")),
       br(),
       textInput("landscape_name", "Enter a unique name for your landscape:"),
       br(),
@@ -4936,9 +4935,10 @@ If you would like to export a KML file to view the top candidate areas chosen in
   conditionalPanel(
     condition = "output.landscape_added",
     segment(
-      downloadButton("download_data", "Save landscape metrics and candidate area performance csv", style = "height:60px; width:300px; font-size:25px;")),
+      downloadButton("download_data", "Save landscape metrics and candidate area performance .CSV", style = "height:60px; width:300px; font-size:25px;")),
       segment(
-        downloadButton("downloadKML", "Export top candidate area(s) to KML", style = "height:60px; width:300px; font-size:25px;")
+        p(HTML("If you would like to export a KML file to view the top candidate areas chosen in the analysis outside this app (e.g., in Google Earth or ArcGIS), click 'Export top candidate area(s) to .KML'.<br>")),
+        downloadButton("downloadKML", "Export top candidate area(s) to .KML", style = "height:60px; width:300px; font-size:25px;")
     )
   ),
 
