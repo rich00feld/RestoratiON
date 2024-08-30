@@ -2919,12 +2919,9 @@ server <- function(input, output, session) {
     centroids$label <- plot_pixels_sf$label
     
     output$map_best_comb <- renderLeaflet({
+      
       # Convert the extent to an sf object
-      extent_sf <- st_as_sfc(st_bbox(c(xmin = output_extent()@xmin, 
-                                       xmax = output_extent()@xmax, 
-                                       ymin = output_extent()@ymin, 
-                                       ymax = output_extent()@ymax), 
-                                     crs = st_crs(3162)))
+      extent_sf <- st_as_sfc(st_bbox(output_extent(), crs = st_crs(3162)))
       
       # Transform the extent to WGS84
       extent_wgs84 <- st_transform(extent_sf, crs = 4326)
