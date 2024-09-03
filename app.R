@@ -193,14 +193,14 @@ land_cover_labels <- data.frame(
   bind_rows(data.frame(
     Value = c(
       100, 101, 204, 
-      205, 250, 0, 1),
+      205, 250, 0, 1, 300),
     # These are custom colors we define  (I just threw these in, they are not necessarily "good"):
     color = c(
       "orangered", "deeppink", "#FF8333",
       "#8D33FF", "#3333FF", "#8B0000", 
-      "#FFD700"),
+      "#FFD700","lightgrey"),
     Land_Class = c("Degraded", "Candidate area", "Aggregate extraction", 
-                   "Topsoil/Peat extraction", "Undifferentiated", "Not included", "Included")
+                   "Topsoil/Peat extraction", "Undifferentiated", "Not included", "Included", "Buffer")
   ))
 
 
@@ -2837,9 +2837,6 @@ server <- function(input, output, session) {
     }
   })
 
-  
-  
-  
   observeEvent(input$find_best_comb, {
     # Merging the data sets
     merged_data <- final_data_table()
@@ -2893,16 +2890,13 @@ server <- function(input, output, session) {
       comb_pixels[-as.integer(comb)] <- NA
       crs(comb_pixels) <- "EPSG:3162"
       
-      # Create a new, finer resolution raster template to minimize re-sampling distortions
-      finer_raster <- rast(ext(comb_pixels), nrow = nrow(comb_pixels) * 15, ncol = ncol(comb_pixels) * 15)
-      # Resample to the finer resolution
-      comb_pixels_resampled <- resample(comb_pixels, finer_raster, method = "near")
-      # Now re-project to WGS84
-      comb_pixels_reproj <- project(comb_pixels_resampled, "EPSG:4326", method = "near")
-      comb_pixels_stars <- st_as_stars(comb_pixels_reproj)
+      # Convert raster pixels to polygons
+      comb_pixels <- as.polygons(comb_pixels, dissolve = TRUE)
+      # Convert Polygons to sf object
+      comb_pixels_sf <- st_as_sf(comb_pixels)
       
-      # # Convert the reprojected stars object to polygons
-      comb_pixels_sf <- st_as_sf(comb_pixels_stars, merge = TRUE, as_points = FALSE, na.rm = TRUE)
+      # Re-project the sf object to EPSG:4326
+      comb_pixels_sf <- st_transform(comb_pixels_sf, crs = 4326)
       
       # Assign labels to each polygon
       comb_pixels_sf$label <- as.character(i)
@@ -2925,12 +2919,9 @@ server <- function(input, output, session) {
     centroids$label <- plot_pixels_sf$label
     
     output$map_best_comb <- renderLeaflet({
+      
       # Convert the extent to an sf object
-      extent_sf <- st_as_sfc(st_bbox(c(xmin = output_extent()@xmin, 
-                                       xmax = output_extent()@xmax, 
-                                       ymin = output_extent()@ymin, 
-                                       ymax = output_extent()@ymax), 
-                                     crs = st_crs(3162)))
+      extent_sf <- st_as_sfc(st_bbox(output_extent(), crs = st_crs(3162)))
       
       # Transform the extent to WGS84
       extent_wgs84 <- st_transform(extent_sf, crs = 4326)
@@ -2952,16 +2943,21 @@ server <- function(input, output, session) {
           fillColor = "deeppink",
           fillOpacity = 0.7,
           color = "black",
-          weight = 0.5
+          weight = 0.5,
+          group = "Top Candidate Areas"  # Specify the group name for the polygons
         ) %>%
         addLabelOnlyMarkers(
           lng = centroid_coords[, 1],  # Longitude of the centroid
           lat = centroid_coords[, 2],  # Latitude of the centroid
           label = centroids$label,  # Use the labels from the centroids
-          labelOptions = labelOptions(noHide = TRUE, textOnly = TRUE)
+          labelOptions = labelOptions(noHide = TRUE, textOnly = TRUE, style = list(
+            "font-weight" = "bold",
+            "font-size" = "14px"
+          ))
         ) %>%
         addLayersControl(
           baseGroups = c("Map View", "Satellite View"),
+          overlayGroups = c("Top Candidate Areas"),
           options = layersControlOptions(collapsed = FALSE)
         ) %>%
         htmlwidgets::onRender("
@@ -2975,10 +2971,17 @@ server <- function(input, output, session) {
     # Create a list to store individual plot outputs
     plot_outputs <- lapply(seq_len(nrow(top_combinations)), function(i) {
       comb <- top_combinations$Pixels[i]
-      
       # Crop the 'Ontario_land_cover' raster to the specified extent
       cropped_raster <- cropped_polyrast()
       cropped_raster <- ifel(!is.na(cropped_raster), croppedOntario(), cropped_raster)
+      
+      # Here add the buffer
+      buffered_landscape <- polyrast_plot()
+      buffered_landscape <- resample(buffered_landscape, cropped_raster, method = "near")
+      # Identify pixels that are non-NA in target_landscape but NA in cropped_raster
+      mask_raster <- !is.na(buffered_landscape) & is.na(cropped_raster)
+      # Assign a value of 300 to those pixels in cropped_raster
+      cropped_raster[mask_raster] <- 300
       
       # Generate unique output ID for each plot
       output_id <- paste0("plot_", i)
@@ -4524,8 +4527,6 @@ server <- function(input, output, session) {
                     #Generate a filename based on landscape_name and current date/time
                     filename <- paste(landscape_name, "_", Sys.Date(), ".csv", sep = "")
                     csv_filename <- file.path(temp_dir, filename)
-                    
-
 
                     # Get the extent object from the reactive value
                     extent <- output_extent()
