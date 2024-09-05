@@ -28,7 +28,7 @@
 # library(devtools)
 # options(download.file.method = "wininet")
 # install_github("CRAN/rgdal")
-# install_github("bleutner/RStoolbox")
+# install.packages("RStoolbox")
 # install.packages("leaflet.providers")
 # install.packages("stars")
 
@@ -2465,33 +2465,32 @@ server <- function(input, output, session) {
     shinyjs::disable("calculate_env_metrics")
     shinyjs::disable("calculate_pca")
     notification_id_PCA <- showNotification("PCA calculation is running...", type = "message", duration = NULL)
-
     # Get all the environmental rasters from the reactive values
-    CLASS_00_env <- raster(croppedCLASS_00())
-    CLASS_05_env <- raster(croppedCLASS_05())
-    CLASS_06_env <- raster(croppedCLASS_06())
-    CLASS_12_env <- raster(croppedCLASS_12())
-    CLASS_13_env <- raster(croppedCLASS_13())
-    CLASS_14_env <- raster(croppedCLASS_14())
-    CLASS_15_env <- raster(croppedCLASS_15())
-    CLASS_16_env <- raster(croppedCLASS_16())
-    CLASS_18_env <- raster(croppedCLASS_18())
-    CLASS_21_env <- raster(croppedCLASS_21())
-    CLASS_23_env <- raster(croppedCLASS_23())
-    CLASS_24_env <- raster(croppedCLASS_24())
-    CLASS_25_env <- raster(croppedCLASS_25())
-    CLASS_26_env <- raster(croppedCLASS_26())
-    mean_temp_env <- raster(croppedmean_temp())
-    precipitation_env <- raster(croppedprecipitation())
-    Elevation_env <- raster(croppedElevation())
-    Soil_not_env <- raster(croppedSoil_not())
-    Soil_20_env <- raster(croppedSoil_20())
-    Soil_75_env <- raster(croppedSoil_75())
-    Soil_150_env <- raster(croppedSoil_150())
-    Soil_G150_env <- raster(croppedSoil_G150())
+    CLASS_00_env <- croppedCLASS_00()
+    CLASS_05_env <- croppedCLASS_05()
+    CLASS_06_env <- croppedCLASS_06()
+    CLASS_12_env <- croppedCLASS_12()
+    CLASS_13_env <- croppedCLASS_13()
+    CLASS_14_env <- croppedCLASS_14()
+    CLASS_15_env <- croppedCLASS_15()
+    CLASS_16_env <- croppedCLASS_16()
+    CLASS_18_env <- croppedCLASS_18()
+    CLASS_21_env <- croppedCLASS_21()
+    CLASS_23_env <- croppedCLASS_23()
+    CLASS_24_env <- croppedCLASS_24()
+    CLASS_25_env <- croppedCLASS_25()
+    CLASS_26_env <- croppedCLASS_26()
+    mean_temp_env <- croppedmean_temp()
+    precipitation_env <- croppedprecipitation()
+    Elevation_env <- croppedElevation()
+    Soil_not_env <- croppedSoil_not()
+    Soil_20_env <- croppedSoil_20()
+    Soil_75_env <- croppedSoil_75()
+    Soil_150_env <- croppedSoil_150()
+    Soil_G150_env <- croppedSoil_G150()
     
     # Create a rasterstack
-    raster_stack <- stack(
+    raster_stack <- c(
       mean_temp_env, precipitation_env, Elevation_env, Soil_not_env, Soil_20_env, Soil_75_env,
       Soil_150_env, Soil_G150_env, CLASS_00_env, CLASS_05_env, CLASS_06_env, CLASS_12_env,
       CLASS_13_env, CLASS_14_env, CLASS_15_env, CLASS_16_env, CLASS_18_env, CLASS_21_env,
@@ -2499,7 +2498,7 @@ server <- function(input, output, session) {
     )
 
     # create a rasterPCA with the raster stack (RStoolbox function)
-    pca_result_temp <- rasterPCA(raster_stack)
+    pca_result_temp <- rasterPCA(raster_stack, maskCheck=FALSE)
     # Store the PCA result in the reactive value
     pca_result(pca_result_temp)
 
@@ -2551,7 +2550,7 @@ server <- function(input, output, session) {
 
     # Extracting the PCA rasters based on user input
     pca_rasters <- lapply(1:num_pcs, function(i) {
-      rast(pca_result()$map[[paste0("PC", i)]])
+      pca_result()$map[[i]]
     })
 
     start_time_env <- Sys.time()
