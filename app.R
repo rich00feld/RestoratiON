@@ -218,6 +218,7 @@ plot_degraded_react <-reactiveVal()
 plot_degraded_protected_react <-reactiveVal()
 restored_land_plot_react <-reactiveVal()
 final_data_table <-reactiveVal()
+showSegment1 <- reactiveVal(FALSE)
 
 # BatchloopFinished <- reactiveVal(FALSE)
 
@@ -300,6 +301,41 @@ Other_effective_area_based_conservation_measures <- st_read("vectors/Other_Effec
 # Starting the Shiny server ##########################################
 
 server <- function(input, output, session) {
+  # Dynamically generate the splash page with the base64-encoded image
+  output$splash <- renderUI({
+    # Path to the image
+    image_path <- file.path(getwd(), "DALLE_RestoratiON.jpg")
+    
+    # Encode the image as a base64 string
+    encoded_image <- base64enc::dataURI(file = image_path, mime = "image/jpeg")
+    
+    # Use the base64 string in the CSS
+    div(class = "splash-container", style = paste0("background-image: url('", encoded_image, "');"),
+        div(class = "splash-title", "Welcome to the RestoratiON App"),
+        div(class = "splash-text-container",
+            div(class = "splash-text", 
+                "In this application, you can locate areas of degraded land in a selected geographic area. 
+                You can then identify multiple areas that are candidates for restoration, and determine how 
+                beneficial restoring each candidate area is based on a number of environmental metrics such as 
+                patch size, landscape heterogeneity, and connectivity. You may output the top candidate areas 
+                for restoration for further analysis."
+            )
+        ),
+        actionButton("go_button", "Let's go!", class = "go-button")
+    )
+  })
+  
+  # Server logic to handle the button click and proceed to the next section
+  observeEvent(input$go_button, {
+    # Hide the splash page and show Segment 1
+    showSegment1(TRUE)
+    output$splash <- renderUI(NULL) # Hide the splash page content
+  })
+  
+  # Define output for conditionally showing Segment 1
+  output$showSegment1 <- reactive({ showSegment1 })
+  outputOptions(output, "showSegment1", suspendWhenHidden = FALSE)
+  
   # Linked to UI Segment 1, initial choice ---- 
   # hide that UI element after an option is selected
 
@@ -2802,19 +2838,29 @@ server <- function(input, output, session) {
 
   # Code to create the metrics weighting UI element
   output$weights_ui <- renderUI({
-      merged_data<-final_data_table()
-
-      # Exclude some columns to get variable names
-      vars <- setdiff(names(merged_data), c("Pixels", "Candidate area"))
-
-      # Generate UI inputs for all variables
-      lapply(vars, function(var) {
-        numericInput(
-          inputId = paste0("weight_", gsub("[^a-zA-Z0-9]", "_", var)),
-          label = paste("Weight for", var, ":"),
-          value = 1
-        )
-      })
+    merged_data <- final_data_table()
+    
+    # Exclude some columns to get variable names
+    vars <- setdiff(names(merged_data), c("Pixels", "Candidate area"))
+    
+    # Identify the variables with "patch size" in their name
+    patch_size_vars <- grep("patch size", vars, value = TRUE, ignore.case = TRUE)
+    n_patch_size_vars <- length(patch_size_vars)
+    
+    # Set the default value for patch size variables and round to 3 decimal places
+    patch_size_value <- if (n_patch_size_vars > 0) round(1 / n_patch_size_vars, 3) else 1
+    
+    # Generate UI inputs for all variables
+    lapply(vars, function(var) {
+      # Determine the value based on whether the variable is a patch size or not
+      default_value <- if (var %in% patch_size_vars) patch_size_value else 1
+      
+      numericInput(
+        inputId = paste0("weight_", gsub("[^a-zA-Z0-9]", "_", var)),
+        label = paste("Weight for", var, ":"),
+        value = default_value
+      )
+    })
   })
 
   # Code to ensure a valid top combinations input value always exists to prevent crashing
@@ -4595,10 +4641,68 @@ server <- function(input, output, session) {
 ui <- shinyUI(semanticPage(
   title = "Restoration Prioritization",
   useShinyjs(),
+  
+  # Custom CSS for styling the splash page
+  tags$head(
+    tags$style(HTML("
+      .splash-container {
+        position: relative;
+        width: 100%;
+        height: 100vh;
+        background-size: cover;
+        background-position: center;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        text-align: center;
+        color: white;
+      }
+      .splash-title {
+        font-family: 'Arial', sans-serif;
+        font-size: 3em;
+        font-weight: bold;
+        text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+        margin-bottom: 20px;
+      }
+      .splash-text-container {
+        background-color: rgba(255, 255, 255, 0.8);
+        padding: 20px;
+        border-radius: 10px;
+        max-width: 600px;
+        margin-bottom: 30px;
+      }
+      .splash-text {
+        font-family: 'Arial', sans-serif;
+        font-size: 1.2em;
+        color: black;
+      }
+      .go-button {
+        background-color: #4CAF50; /* Green */
+        border: none;
+        color: white;
+        padding: 15px 32px;
+        text-align: center;
+        text-decoration: none;
+        display: inline-block;
+        font-size: 1.2em;
+        font-weight: bold;
+        border-radius: 8px;
+        cursor: pointer;
+        transition: background-color 0.3s;
+      }
+      .go-button:hover {
+        background-color: #45a049;
+      }
+    "))
+  ),
+  
+  # Splash page content
+  uiOutput("splash"),
 
   ## Segment 1: Initial Choice for app use ----
   conditionalPanel(
-    condition = "!output.showSingleLandscape && !output.showMultipleLandscapes && !output.showLandscapeVisualizer && !output.showBatchProcessing",
+    condition = "output.showSegment1 && !output.showSingleLandscape && !output.showMultipleLandscapes && !output.showLandscapeVisualizer && !output.showBatchProcessing",
     segment(
       div(style = "font-size: 18px; font-weight: bold; margin-bottom: 15px;", HTML("<br><br>Choosing an analysis type")),
       p(HTML("This application aims to identify degraded land areas within a chosen geographic region and determine which areas, when restored to nearby natural habitat types, will provide the greatest benefit based on user-selected criteria. <br><br>
