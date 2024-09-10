@@ -2838,19 +2838,29 @@ server <- function(input, output, session) {
 
   # Code to create the metrics weighting UI element
   output$weights_ui <- renderUI({
-      merged_data<-final_data_table()
-
-      # Exclude some columns to get variable names
-      vars <- setdiff(names(merged_data), c("Pixels", "Candidate area"))
-
-      # Generate UI inputs for all variables
-      lapply(vars, function(var) {
-        numericInput(
-          inputId = paste0("weight_", gsub("[^a-zA-Z0-9]", "_", var)),
-          label = paste("Weight for", var, ":"),
-          value = 1
-        )
-      })
+    merged_data <- final_data_table()
+    
+    # Exclude some columns to get variable names
+    vars <- setdiff(names(merged_data), c("Pixels", "Candidate area"))
+    
+    # Identify the variables with "patch size" in their name
+    patch_size_vars <- grep("patch size", vars, value = TRUE, ignore.case = TRUE)
+    n_patch_size_vars <- length(patch_size_vars)
+    
+    # Set the default value for patch size variables and round to 3 decimal places
+    patch_size_value <- if (n_patch_size_vars > 0) round(1 / n_patch_size_vars, 3) else 1
+    
+    # Generate UI inputs for all variables
+    lapply(vars, function(var) {
+      # Determine the value based on whether the variable is a patch size or not
+      default_value <- if (var %in% patch_size_vars) patch_size_value else 1
+      
+      numericInput(
+        inputId = paste0("weight_", gsub("[^a-zA-Z0-9]", "_", var)),
+        label = paste("Weight for", var, ":"),
+        value = default_value
+      )
+    })
   })
 
   # Code to ensure a valid top combinations input value always exists to prevent crashing
