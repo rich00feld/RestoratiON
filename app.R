@@ -5121,13 +5121,36 @@ The application computes the difference between patch size and heterogeneity com
   ),
 
 ## Segment 21: visualizing landscapes based on RDS files ----
+# JavaScript to set an upload limit client-side
+tags$script(HTML("
+    document.addEventListener('DOMContentLoaded', function() {
+      // Attach event listener to the file input
+      document.getElementById('vis_fileInput').addEventListener('change', function(event) {
+        let maxCollectiveSize = 3 * 1024 * 1024 * 1024; // 3 GB in bytes
+        let totalSize = 0;
+        
+        // Calculate the total size of all selected files
+        for (let i = 0; i < event.target.files.length; i++) {
+          totalSize += event.target.files[i].size;
+        }
+        
+        // If the total size exceeds the limit, show an alert and reset the file input
+        if (totalSize > maxCollectiveSize) {
+          alert('The total size of selected files exceeds 3 GB. Please select smaller files.');
+          event.target.value = '';  // Reset the file input element
+        }
+      });
+    });
+  ")),
+
+# UI for landscape visualizer
 conditionalPanel(
   condition = "output.showLandscapeVisualizer > 0",
   segment(
     div(style = "font-size: 18px; font-weight: bold; margin-bottom: 15px;", "Select landscapes to visualize"),
     p("This is a simple visualizer. Here users can select one or multiple results .RDS files from previously analyzed landscapes to visualize.
-      Individual plots containing habitat types in those landscapes are then displayed, and a breakdown of habitat type as a proportion (in percent) of pixels is 
-      output for each landscape."),
+        Individual plots containing habitat types in those landscapes are then displayed, and a breakdown of habitat type as a proportion (in percent) of pixels is 
+        output for each landscape."),
     fileInput("vis_fileInput", "Choose .RDS files", multiple = TRUE, accept = c(".rds")),
     br(),
     br(),
