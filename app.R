@@ -218,7 +218,7 @@ plot_degraded_react <-reactiveVal()
 plot_degraded_protected_react <-reactiveVal()
 restored_land_plot_react <-reactiveVal()
 final_data_table <-reactiveVal()
-showSegment1 <- reactiveVal(FALSE)
+plot_rds <-reactiveVal()
 
 # BatchloopFinished <- reactiveVal(FALSE)
 
@@ -299,16 +299,19 @@ Other_effective_area_based_conservation_measures <- st_read("vectors/Other_Effec
 
 # _----
 # Starting the Shiny server ##########################################
+# Set maximum upload size to 500 MB
+options(shiny.maxRequestSize = 500 * 1024^2)
 
 server <- function(input, output, session) {
+
   # Dynamically generate the splash page with the base64-encoded image
   output$splash <- renderUI({
     # Path to the image
     image_path <- file.path(getwd(), "DALLE_RestoratiON.jpg")
-    
+
     # Encode the image as a base64 string
     encoded_image <- base64enc::dataURI(file = image_path, mime = "image/jpeg")
-    
+
     # Use the base64 string in the CSS
     div(class = "splash-container", style = paste0("background-image: url('", encoded_image, "');"),
         div(class = "splash-title", "Welcome to the RestoratiON App"),
@@ -324,18 +327,18 @@ server <- function(input, output, session) {
         actionButton("go_button", "Let's go!", class = "go-button")
     )
   })
-  
+
   # Server logic to handle the button click and proceed to the next section
   observeEvent(input$go_button, {
     # Hide the splash page and show Segment 1
     showSegment1(TRUE)
     output$splash <- renderUI(NULL) # Hide the splash page content
   })
-  
+
   # Define output for conditionally showing Segment 1
   output$showSegment1 <- reactive({ showSegment1 })
   outputOptions(output, "showSegment1", suspendWhenHidden = FALSE)
-  
+
   # Linked to UI Segment 1, initial choice ---- 
   # hide that UI element after an option is selected
 
@@ -1042,12 +1045,23 @@ server <- function(input, output, session) {
       legend_plot1_react(legend_plot1)
       
       
+      plotly_object<-ggplotly(my_ggplot + theme(legend.position = "none",
+                                  axis.text = element_blank()),
+                tooltip = "value")
+      
+      # Combine plot objects into a list
+      plot_objects <- list(
+        legend = legend_plot1,
+        plotly = plotly_object
+      )
+      plot_rds(plot_objects)
+      
       # Users can hover over the map output below and the raster value will appear.
       # I'm not totally happy with this - sometimes hover doesn't work.
-      ggplotly(my_ggplot + theme(legend.position = "none",
-                                 axis.text = element_blank()), 
-               tooltip = "value")
-      
+     ggplotly(my_ggplot + theme(legend.position = "none",
+                                axis.text = element_blank()), 
+              tooltip = "value")
+     
     })
     
     output$rasterPlot1legend <- renderPlot({
@@ -1055,6 +1069,10 @@ server <- function(input, output, session) {
       grid.newpage()
       grid.draw(legend_plot1)
     })
+    
+    
+
+    
   
     
     # If the 'areas of conservation concern' option is selected in the previous UI Segment 2,
@@ -2862,7 +2880,7 @@ server <- function(input, output, session) {
       )
     })
   })
-
+  
   # Code to ensure a valid top combinations input value always exists to prevent crashing
   input_num_top_combinations_counter <- reactiveVal(0)
   num_top_combinations_react<-reactiveVal(1)
@@ -3139,6 +3157,18 @@ server <- function(input, output, session) {
         # Write sf object to KML file
         sf::st_write(export_sf(), dsn = file, driver = "kml")
       }
+    }
+  )
+  
+  output$downloadplotRDS <- downloadHandler(
+    filename = function() {
+      # Define the name of the downloaded file
+      paste(input$landscape_name, "_", Sys.Date(), ".RDS", sep = "")
+    },
+    content = function(file) {
+      plot_objects<-plot_rds()
+      # Save the list as an RDS file to the provided file path
+      saveRDS(plot_objects, file = file, compress = "xz")
     }
   )
   
@@ -3501,109 +3531,79 @@ server <- function(input, output, session) {
   )
   
   
+  # Linked to UI Segment 21, Visualizing landscapes based on RDS files ----
   
+  library(tools)  # For file_path_sans_ext
+  loaded_plots <- reactiveVal(list())
   
-  
-  
-
-  # Linked to UI Segment 21, Visualizing landscapes based on CSVs ----
-
-  # Create a reactiveValues object to store compared extents
-  vis_compared_extents <- reactiveValues(extents = list())
-
-  # Reactive expression to join .csv files, and extract extents for mapping
-  vis_landscape_merged <- reactive({
+  observeEvent(input$view_landscapes, {
     req(input$vis_fileInput)
-    files <- input$vis_fileInput$datapath
-
-    for (file in files) {
-      # Read the extents from the CSV file
-      extent_df <- read.csv(file, nrows = 1, header = FALSE, skip = 1, sep = ",")
-
-      # Extract extent values using indices and ensure they are numeric
-      xmin <- as.numeric(extent_df[1, 1])
-      ymin <- as.numeric(extent_df[1, 2])
-      xmax <- as.numeric(extent_df[1, 3])
-      ymax <- as.numeric(extent_df[1, 4])
-
-      landscape <- read.csv(file, nrows = 1, header = FALSE, skip = 3)[1, 1]
-
-      # Store extent values in compared_extents reactiveValues
-      vis_compared_extents$extents[[landscape]] <- c(xmin = xmin, ymin = ymin, xmax = xmax, ymax = ymax)
+    
+    # Initialize a list to store plot objects
+    plot_list <- list()
+    
+    # Retrieve file names
+    file_names <- input$vis_fileInput$name
+    
+    # Loop through each uploaded file
+    for (i in seq_along(input$vis_fileInput$datapath)) {
+      file <- input$vis_fileInput$datapath[i]
+      file_name <- tools::file_path_sans_ext(file_names[i])
+      
+      # Read the RDS file
+      plot_objects <- readRDS(file)
+      
+      # Print the file name for debugging
+      print(paste("Processing file:", file_name))
+      
+      # Ensure the RDS file contains the expected plot elements
+      if (is.list(plot_objects) && all(c("plotly", "legend") %in% names(plot_objects))) {
+        # Update the Plotly plot title
+        plot_objects$plotly <- plot_objects$plotly %>%
+          layout(title = file_name)
+        
+        # Append the plots to the list
+        plot_list[[file_name]] <- plot_objects
+      } else {
+        showNotification("Invalid RDS file format. Expected a list with plotly and legend elements.", type = "error")
+      }
+    }
+    
+    # Update the reactive value with the loaded plots
+    loaded_plots(plot_list)
+    
+ 
+    output$vis_dynamicPlots <- renderUI({
+      plot_output_list <- lapply(seq_along(plot_list), function(i) {
+        file_name <- names(plot_list)[i]
+        plot_objects <- plot_list[[file_name]]
+        
+        # Create UI for each plotly plot and legend
+        fluidRow(
+          column(width = 6, plotlyOutput(outputId = paste0("plotly_", i), height = "800px")),
+          column(width = 6, plotOutput(outputId = paste0("legend_", i), height = "800px"))
+        )
+      })
+      do.call(tagList, plot_output_list)
+    })
+    
+    for (i in seq_along(plot_list)) {
+      local({
+        my_i <- i
+        file_name <- names(plot_list)[my_i]
+        plot_objects <- plot_list[[file_name]]
+        
+        output[[paste0("plotly_", my_i)]] <- renderPlotly({
+          plot_objects$plotly
+        })
+        
+        output[[paste0("legend_", my_i)]] <- renderPlot({
+          grid.newpage()
+          grid.draw(plot_objects$legend)
+        })
+      })
     }
   })
-
-  observeEvent(input$view_landscapes, {
-    # Trigger the reading and processing of CSV files
-    vis_landscape_merged()
-
-    # Create a list to store individual plot outputs
-    plot_outputs <- lapply(names(vis_compared_extents$extents), function(landscape) {
-      # Retrieve extent values from compared_extents reactiveValues
-      extent_values <- vis_compared_extents$extents[[landscape]]
-
-      # Create an Extent object
-      extent_object <- extent(extent_values[1], extent_values[3], extent_values[2], extent_values[4])
-
-      # Crop the 'Ontario_land_cover' raster to the specified extent
-      cropped_raster <- crop(Ontario_land_cover, extent_object)
-
-      # Generate unique output ID for each plot
-      output_id <- paste0("plot_", landscape)
-
-	land_cover_labels <- land_cover_labels_react()
-
-      # Match raster values to land cover classes and convert to factor
-      mapped_values <- factor(land_cover_labels$Land_Class[match(values(cropped_raster), land_cover_labels$Value)])
-
-      # Create a categorical raster and set its categories
-      cat_raster <- rast(cropped_raster)
-      values(cat_raster) <- mapped_values
-      levels(cat_raster) <- data.frame(ID = 1:length(levels(mapped_values)), LC = levels(mapped_values))
-
-      num_classes <- length(levels(mapped_values))
-      color_palette <- viridis(num_classes, direction = -1)
-
-      # Plot the cropped raster
-      output[[output_id]] <- renderPlot({
-        plot(cat_raster, main = paste(landscape), col = color_palette)
-      })
-
-      # Add habitat breakdown table for each plot - similar to what was done in segment 4 of the single landscape analysis
-      habitat_breakdown_id <- paste0("habitatBreakdown_", landscape)
-      output[[habitat_breakdown_id]] <- renderTable({
-        # Calculate the percentage breakdown of habitat classes
-        habitat_counts <- table(mapped_values)
-
-        # Calculate percentages
-        habitat_percentages <- prop.table(habitat_counts) * 100
-
-        # Create a data frame with the breakdown
-        breakdown_df <- data.frame(
-          Habitat_Class = names(habitat_counts),
-          Percentage = habitat_percentages
-        )
-        names(breakdown_df)[ncol(breakdown_df)] <- "% of landscape"
-        names(breakdown_df)[1] <- "Habitat class"
-        breakdown_df$Percentage.mapped_values <- NULL
-        # Return the breakdown table
-        breakdown_df
-      })
-
-      # Return the plot and habitat breakdown UI components
-      tagList(
-        plotOutput(output_id),
-        tableOutput(habitat_breakdown_id)
-      )
-    })
-
-    # Output the list of plot outputs
-    output$vis_dynamicPlots <- renderUI({
-      plot_outputs
-    })
-  })
-  
-  
   
   
 #Linked to UI Segment 22, Batch Processing-----
@@ -4641,8 +4641,8 @@ server <- function(input, output, session) {
 ui <- shinyUI(semanticPage(
   title = "Restoration Prioritization",
   useShinyjs(),
-  
-  # Custom CSS for styling the splash page
+
+# Custom CSS for styling the splash page
   tags$head(
     tags$style(HTML("
       .splash-container {
@@ -4696,13 +4696,13 @@ ui <- shinyUI(semanticPage(
       }
     "))
   ),
-  
+
   # Splash page content
   uiOutput("splash"),
 
   ## Segment 1: Initial Choice for app use ----
   conditionalPanel(
-    condition = "output.showSegment1 && !output.showSingleLandscape && !output.showMultipleLandscapes && !output.showLandscapeVisualizer && !output.showBatchProcessing",
+        condition = "output.showSegment1 && !output.showSingleLandscape && !output.showMultipleLandscapes && !output.showLandscapeVisualizer && !output.showBatchProcessing",
     segment(
       div(style = "font-size: 18px; font-weight: bold; margin-bottom: 15px;", HTML("<br><br>Choosing an analysis type")),
       p(HTML("This application aims to identify degraded land areas within a chosen geographic region and determine which areas, when restored to nearby natural habitat types, will provide the greatest benefit based on user-selected criteria. <br><br>
@@ -5061,8 +5061,11 @@ The application computes the difference between patch size and heterogeneity com
       downloadButton("download_data", "Save landscape metrics and candidate area performance .CSV", style = "height:60px; width:300px; font-size:25px;")),
       segment(
         p(HTML("If you would like to export a KML file to view the top candidate areas chosen in the analysis outside this app (e.g., in Google Earth or ArcGIS), click 'Export top candidate area(s) to .KML'.<br>")),
-        downloadButton("downloadKML", "Export top candidate area(s) to .KML", style = "height:60px; width:300px; font-size:25px;")
-    )
+        downloadButton("downloadKML", "Export top candidate area(s) to .KML", style = "height:60px; width:300px; font-size:25px;")),
+      segment(
+        p(HTML("If you would like to view this landscape later, you can save an .RDS file to import back into the app to visualize.<br>")),
+      downloadButton("downloadplotRDS", "Save landscape visualization", 
+                     style = "height:60px; width:300px; font-size:25px;"))
   ),
 
   ## Segment 18: Loading and merging multiple landscapes (if that initial choice is selected in segment 1) ----
@@ -5116,23 +5119,23 @@ The application computes the difference between patch size and heterogeneity com
         downloadButton("download_multiple_KML", "Export top candidate area(s) to KML", style = "height:60px; width:300px; font-size:25px;"))
   ),
 
-  ## Segment 21: visualizing landscapes based on CSVs ----
-  conditionalPanel(
-    condition = "output.showLandscapeVisualizer > 0",
-    segment(
-      div(style = "font-size: 18px; font-weight: bold; margin-bottom: 15px;", "Select landscapes to visualize"),
-      p("This is a simple visualizer. Here users can select a single or multiple results .CSV files from  previously analyzed landscapes to visualize.
-       Individual plots containing habitat types in those landscapes are then displayed, and a breakdown of habitat type as a proportion (in percent) of pixels is 
-        output for each landscape."),
-      fileInput("vis_fileInput", "Choose .csv files", multiple = TRUE, accept = c("text/csv", "text/comma-separated-values,text/plain", ".csv")),
-      br(),
-      br(),
-      actionButton("view_landscapes", "View landscapes"),
-      br(),
-      br(),
-      uiOutput("vis_dynamicPlots")
-    )
-  ),
+## Segment 21: visualizing landscapes based on RDS files ----
+conditionalPanel(
+  condition = "output.showLandscapeVisualizer > 0",
+  segment(
+    div(style = "font-size: 18px; font-weight: bold; margin-bottom: 15px;", "Select landscapes to visualize"),
+    p("This is a simple visualizer. Here users can select one or multiple results .RDS files from previously analyzed landscapes to visualize.
+      Individual plots containing habitat types in those landscapes are then displayed, and a breakdown of habitat type as a proportion (in percent) of pixels is 
+      output for each landscape."),
+    fileInput("vis_fileInput", "Choose .RDS files", multiple = TRUE, accept = c(".rds")),
+    br(),
+    br(),
+    actionButton("view_landscapes", "View landscapes"),
+    br(),
+    br(),
+    uiOutput("vis_dynamicPlots")
+  )
+),
   
   
   ## Segment 22: Batch Processing Category Selection ----
