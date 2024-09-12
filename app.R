@@ -219,6 +219,7 @@ plot_degraded_protected_react <-reactiveVal()
 restored_land_plot_react <-reactiveVal()
 final_data_table <-reactiveVal()
 plot_rds <-reactiveVal()
+showSegment1 <- reactiveVal(FALSE)
 
 # BatchloopFinished <- reactiveVal(FALSE)
 
