@@ -674,7 +674,7 @@ server <- function(input, output, session) {
         label = ~NAME_E
       ) %>%
       addDrawToolbar(
-        targetGroup = "Drawn extent",
+        targetGroup = "Your drawn landscape",
         editOptions = FALSE,
         circleOptions = FALSE,
         polygonOptions = TRUE,
@@ -687,7 +687,7 @@ server <- function(input, output, session) {
       addLayersControl(
         baseGroups = c("Map View", "Satellite View"),
         overlayGroups = c(
-          "Drawn extent", "Lower / single-tier municipalities", "Upper municipalities / districts", "Provincial parks", "National parks",
+          "Your drawn landscape", "Lower / single-tier municipalities", "Upper municipalities / districts", "Provincial parks", "National parks",
           "Conservation reserves", "Conservation areas", "Non-governmental organization<br>reserves", "Natural heritage value areas", "Natural heritage system areas",
           "Far North protected areas", "Municipal heritage areas", "Migratory bird sanctuaries", "National wildlife areas", "Wilderness areas",
           "Crown plan protected areas", "Provincial planned protected areas", "National capital valued ecosystem",
@@ -713,6 +713,7 @@ server <- function(input, output, session) {
       hideGroup(group = "National capital valued ecosystem") %>%
       hideGroup(group = "Other effective area-based<br>conservation measures") %>%
       hideGroup(group = "National parks") %>%
+      hideGroup(group = "Your drawn landscape") %>%
       htmlwidgets::onRender("
     function(el, x) {
       var map = this;
@@ -4775,7 +4776,7 @@ Depending on your goals, you may wish to calculate connectivity and habitat patc
       div(style = "font-size: 18px; font-weight: bold; margin-bottom: 15px;", "Choosing a landscape"),
       p(HTML("You are ready to select a target landscape for analysis. You can choose to either draw or select the landscape:<br><br>
   <b>Option 1: Choose landscape extent by drawing a shape</b><br>
-  Ensure the “Drawn extent” selection is checked in the map checkbox panel on the righthand side of the map. Set a custom extent using the
+  Ensure the “Your drawn landscape” box is checked in the visibility checkbox panel on the righthand side of the map. Set a custom extent using the
   draw tools located at the top left of the map. Create a custom shape by first selecting the pentagon icon, then 
   clicking the map to drop points that define a target landscape. Or, create a rectangle by clicking the square icon, then dropping a single
   point and dragging to define a target landscape.<br><br>
