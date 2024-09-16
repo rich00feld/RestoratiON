@@ -4776,7 +4776,7 @@ Depending on your goals, you may wish to calculate connectivity and habitat patc
       p(HTML("You are ready to select a target landscape for analysis. You can choose to either draw or select the landscape:<br><br>
   <b>Option 1: Choose landscape extent by drawing a shape</b><br>
   Ensure the “Drawn extent” selection is checked in the map checkbox panel on the righthand side of the map. Set a custom extent using the
-  draw tools located at the top left of the map below the zoom buttons. Create a custom shape by first selecting the pentagon icon, then 
+  draw tools located at the top left of the map. Create a custom shape by first selecting the pentagon icon, then 
   clicking the map to drop points that define a target landscape. Or, create a rectangle by clicking the square icon, then dropping a single
   point and dragging to define a target landscape.<br><br>
   <b>Option 2: Choose landscape extent by selecting individual map features</b><br>
