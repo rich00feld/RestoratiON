@@ -1498,7 +1498,7 @@ server <- function(input, output, session) {
         # geom_sf(data = label_points_sf,
         #         aes(text = Label, color = Label), alpha = 0) +
         theme_minimal() + 
-        labs(title = "\nTarget landscape showing areas of degraded land\nand habitat classes considered suitable for restoration\n") +
+        labs(title = "\nTarget landscape showing degraded pixels and\n habitat types considered suitable for restoration\n") +
         theme(panel.grid = element_blank(), legend.margin = margin(c(0,0,0,0)),
               legend.key.size = unit(1.5, "cm"), # Adjust legend key size
               legend.text = element_text(size = 12, face = "bold"), # Adjust legend text size
@@ -1914,7 +1914,7 @@ server <- function(input, output, session) {
     # Get the names of the selected habitat classes to exclude
     selected_labels <- names(land_class_mapping)[land_class_mapping %in% choices_reactive()]
 
-    multiple_checkbox("selected_habitats", "You may only be interested in patch size or heterogeneity of certain habitats, e.g., meadow and alvar. If you would like to exclude habitat classes from the calculations, please select them below:\n", choices = selected_labels)
+    multiple_checkbox("selected_habitats", "You may be interested in calculating the restoration benefit for certain habitat types only. If you would like to exclude habitat types from patch size and heterogeneity calculations, please select them below:\n", choices = selected_labels)
   })
 
 
@@ -4706,21 +4706,21 @@ ui <- shinyUI(semanticPage(
         condition = "output.showSegment1 && !output.showSingleLandscape && !output.showMultipleLandscapes && !output.showLandscapeVisualizer && !output.showBatchProcessing",
     segment(
       div(style = "font-size: 18px; font-weight: bold; margin-bottom: 15px;", HTML("<br><br>Choosing an analysis type")),
-      p(HTML("This application aims to identify degraded land areas within a chosen geographic region and determine which areas, when restored to nearby natural habitat types, will provide the greatest benefit based on user-selected criteria. <br><br>
-      The entire province is divided into 300 by 300-metre units, called 'pixels'. Each pixel contains information on habitat type, environment, potential degradation sources (e.g., light pollution, mining activity), and the ease with which animals can move through the area ('movement cost'). While data is available for every pixel in the province, analyzing the entire province at once is impractical due to high computational costs and limited usefulness for restoration planners. Instead, you may select a specific segment of the province to analyze. <br><br>
+      p(HTML("The application identifies degraded land areas within a chosen landscape and determines which areas, when restored to nearby natural habitat types, provides the greatest potential biodiversity benefit based on user-selected criteria. <br><br>
+      The province of Ontario is divided into 300 by 300-metre units, called 'pixels'. Each pixel contains information on habitat type, environment, potential degradation sources (e.g., light pollution, mining activity), and the ease with which organisms can disperse across the landscape ('movement cost'). Analyzing the entire province at once is impractical due to high computational costs. Instead, select one or more specific landscapes to analyze or compare across previously analyzed landscapes. <br><br>
 <b>Choose an option to continue:</b><br>")),
       actionButton("single_landscape", "Calculate metrics for a single landscape"),
       br(),
       p(HTML("<i><p style='margin-left: 25px;'>Choose this if it’s your first time using the app or if you want to analyze a single landscape. This option will output app results in a single .csv file for review.</p></i>")),
+      actionButton("batch_processing", "Calculate metrics for multiple landscapes"),
+      br(),
+      p(HTML("<i><p style='margin-left: 25px;'>Choose this to calculate metrics for multiple landscapes belonging to a particular category (e.g. all muncipalities, all provincial parks).</p></i>")),
       actionButton("multiple_landscapes", "Compare metrics across multiple landscapes"),
       br(),
-      p(HTML("<i><p style='margin-left: 25px;'>Select this option if you want to compare restoration priorities across multiple landscapes. You must first create at least two results .csv files using the option above to compare multiple landscapes.</p></i>")),
+      p(HTML("<i><p style='margin-left: 25px;'>Choose this if you want to compare restoration priorities across multiple landscapes. You must first create at least two results .csv files using the single landscape option.</p></i>")),
       actionButton("landscape_visualizer", "Visualize landscape(s)"),
       br(),
-      p(HTML("<i><p style='margin-left: 25px;'>Use this to visualize the habitat classes of one or more landscapes based on results .csv files.</p></i>")),
-      actionButton("batch_processing", "Calculate landscape metrics for all features of a given category across Ontario"),
-      br(),
-      p(HTML("<i><p style='margin-left: 25px;'>Select this option to calculate metrics for all Ontario landscapes of a given category (e.g. all mincipalities, all provincial parks etc.).</p></i>"))
+      p(HTML("<i><p style='margin-left: 25px;'>Use this to visualize the habitat classes of one or more landscapes based on results .csv files.</p></i>"))
     )
   ),
 
@@ -4728,16 +4728,15 @@ ui <- shinyUI(semanticPage(
   conditionalPanel(
     condition = "(output.showSingleLandscape > 0 || output.showBatchProcessing > 0) && !output.showhabitat_based_calculations && !output.showprotected_based_calculations",
     segment(
-      div(style = "font-size: 18px; font-weight: bold; margin-bottom: 15px;", "Select what areas to consider when measuring connectivity and area of restored habitat"),
-      p(HTML("In the application, you will simulate restoring different degraded target areas. Multiple criteria are used to determine which target areas have the greatest overall benefit when restored. One such criterion is connectivity, which refers to how connected different habitat patches are. Patches that have greater connectivity typically exhibit landscape characteristics such as good vegetation cover or less anthropogenic disturbance that allow wildlife or plants to move among patches. A second criterion is the size of a particular habitat type once a degraded target area is restored; for example, restoration might increase the overall area of a wetland.<br><br>
-Depending on your goals, you may wish to calculate connectivity and habitat patch size in one of two ways.<br><br> 
+      div(style = "font-size: 18px; font-weight: bold; margin-bottom: 15px;", "Select what areas to consider when measuring the benefit of restoration"),
+      p(HTML("Here you have the option of highlighting the benefits that restoration may have on areas of conservation concern.<br><br> 
 <b>Choose an option below to continue:</b><br>
 ")),
       actionButton("habitat_based_calculations", "Focus on entire landscape"),
       br(),
-      p(HTML("<i><p style='margin-left: 25px;'>This option will measure the effect of restoring degraded land on the entire selected landscape.</p></i>")),
+      p(HTML("<i><p style='margin-left: 25px;'>Choose this to measure the effect of restoring degraded land on the entire selected landscape.</p></i>")),
       actionButton("protected_based_calculations", "Focus on areas of conservation concern"),
-      p(HTML("<i><p style='margin-left: 25px;'>This option will measure the effect of restoring degraded land in areas of conservation concern only. In the next step, you can choose to include one or more categories of conservation concern, such as provincial parks, conservation reserves, or municipal heritage areas. Calculations will measure the impact of restoring degraded target areas on the size and connectedness of habitat within these focal categories.</p></i>"))
+      p(HTML("<i><p style='margin-left: 25px;'>Choose this to measure the effect of restoring degraded land on the size and connectivity of patches belonging to one or more categories of conservation concern, such as provincial parks, conservation reserves, or municipal heritage areas.</p></i>"))
     )
   ),
 
@@ -4780,11 +4779,11 @@ Depending on your goals, you may wish to calculate connectivity and habitat patc
     condition = "(input.habitat_based_calculations > 0 || input.protected_based_calculations > 0) && output.showSingleLandscape > 0",
     segment(
       div(style = "font-size: 18px; font-weight: bold; margin-bottom: 15px;", "Choosing a landscape"),
-      p(HTML("You are ready to select a target landscape for analysis. You can choose to either draw or select the landscape:<br><br>
+      p(HTML("You are ready to select a target landscape to analyze. You can choose to draw a landscape or select from pre-defined categories:<br><br>
   <b>Option 1: Choose landscape extent by drawing a shape</b><br>
   Ensure the “Drawn extent” selection is checked in the map checkbox panel on the righthand side of the map. Set a custom extent using the
   draw tools located at the top left of the map below the zoom buttons. Create a custom shape by first selecting the pentagon icon, then 
-  clicking the map to drop points that define a target landscape. Or, create a rectangle by clicking the square icon, then dropping a single
+  clicking the map to drop points that define a target landscape. Alternatively, create a rectangle by clicking the square icon, then dropping a single
   point and dragging to define a target landscape.<br><br>
   <b>Option 2: Choose landscape extent by selecting individual map features</b><br>
   Turn on the visibility of map feature groups such as provincial parks or national wildlife areas using the checkboxes panel on the righthand
@@ -4795,12 +4794,12 @@ Depending on your goals, you may wish to calculate connectivity and habitat patc
       br(),
       br(),
       p(HTML("<b>Add a buffer around the target landscape</b><br>
-      We recommend adding a buffer to the selected landscape. A buffer is an area that extends outward from your target landscape by a specified number of metres. Buffers are useful in reducing the influence of distortions or artefacts that may arise because features outside your selected landscape are not included in application calculations. If you are considering restoration projects that may benefit more mobile species, your buffer size should be larger. Since the pixel units are 300 by 300 metres, any number entered here will be rounded down to the nearest multiple of 300.<br>")),
+      We recommend adding a buffer to the selected landscape. A buffer is an area that extends outward from your target landscape by a specified number of metres. Buffers are useful in reducing the influence of distortions or artefacts that may arise because features outside but near your selected landscape are not included when calculating restoration benefit. If you are considering restoration projects that may benefit more mobile species, your buffer size should be larger. Since the pixel units are 300 by 300 metres, any number entered here will be rounded down to the nearest multiple of 300.<br>")),
       numericInput("buffer_unit_value", "Enter an extent buffer value in metres (optional but recommended):", value = 1200),
       br(),
       br(),
       p(HTML("<b>Set the final extent</b><br>
-               Finally, press “Set extent” to confirm the final target landscape for analysis. An image of the selected landscape, including the buffer area, is displayed for you to review, with a breakdown of the respective proportion of habitat types it contains. If you chose to focus on areas of conservation concern, a map displaying any areas of conservation concern and which areas are included in the analysis is also displayed.<br><br>
+               Finally, press “Set extent” to confirm the final target landscape being analyzed. An image of the selected landscape, including the buffer area, is displayed for you to review, along with a breakdown of the proportion of habitat types.<br><br>
              When the landscape extent is set, a test is run on that landscape to see if it is large enough to calculate connectivity metrics. This will be explained in more detail as you progress through the application.<br>
                ")),
       actionButton("set_extent", "Set extent"),
@@ -4824,18 +4823,18 @@ fluidRow(
     segment(
       div(style = "font-size: 18px; font-weight: bold; margin-bottom: 15px;", "Defining degraded pixels"),
       p(HTML("The next step is defining which pixels qualify as “degraded land” based on user-defined threshold conditions. Using the sliders below, you can customize the criteria under
-      which pixels are considered degraded; these pixels are eligible for restoration. Conditions that could influence whether an area is considered degraded land include presence of active
-      mines, presence of abandoned mines, night light pollution, oil and gas extraction, aggregate extraction, topsoil extraction, and marginal farmland.<br><br>
+      which pixels are considered degraded; these pixels are eligible for restoration. Conditions that could influence whether a pixel is considered degraded land include presence of: active
+      mines, abandoned mines, night light pollution, oil and gas extraction, aggregate extraction, topsoil extraction, and marginal farmland.<br><br>
       The slider values indicate the severity of each degradation condition, and the slider position indicates the minimum threshold. For example, setting “Night Lights = 1” would mean that 
       land with the lowest levels of night light pollution would be considered degraded, and all areas with values above 1 would be considered degraded as well. Conversely, if the slider is
-      set to 10, only land with the highest levels of light pollution would be considered degraded. To exclude or ignore a condition entirely, set the slider to the maximum value. For night 
+      set to 10, only land with the highest levels of light pollution would be considered degraded. To exclude or ignore a condition entirely, set the slider to the “Not included” value. For night 
       lights, “Night lights = 11” means that light pollution is not considered a factor defining degraded land.<br><br> 
       For a given pixel, only one condition needs to be met to be considered degraded. For example, if a pixel meets the threshold you set for night lights, but not for aggregate extraction,
       it will still be considered degraded.<br><br>
-      After setting the thresholds, you can preview which land is defined as “degraded” in a map.")),
+      After setting the thresholds, you can preview a map showing the pixels defined as degraded.")),
       uiOutput("sliderPanel"),
       br(),
-      p(HTML("Click the “preview” button to see which pixels in your target landscape are defined as “degraded” with the condition set you chose. In the preview map, certain land values (e.g., water, urban areas, valuable cropland) that are considered unfit for restoration are excluded and are not mapped (shown in white below). Feel free to re-adjust the sliders and try again until you're happy with which areas are defined as “degraded”.")),
+      p(HTML("Click the “preview” button to see which pixels in your target landscape are defined as degraded based on the conditions you chose. In the preview map, habitat types considered unrestorable (water, urban areas, valuable cropland) are excluded and are not mapped (shown in white below). Feel free to re-adjust the sliders and try again until you're happy with which areas are defined as degraded.")),
       br(),
       actionButton("preview", "Preview"),
       fluidRow(
@@ -4855,7 +4854,7 @@ fluidRow(
     condition = "input.preview > 0",
     segment(
       div(style = "font-size: 18px; font-weight: bold; margin-bottom: 15px;", "Simulating restoration"),
-      p(HTML("The next step is to simulate the restoration of pixels that are defined as degraded. When 'simulate restoration' is clicked, each individual degraded pixel in the target landscape is replaced with the most prevalent natural habitat in the 8 pixels that surround it. The 3x3 pixel area surrounding each degraded pixel is called a 'neighborhood'. <br><br>
+      p(HTML("The next step is to simulate the restoration of pixels that are defined as degraded. When 'simulate restoration' is clicked, each individual degraded pixel in the target landscape is replaced with the most prevalent natural habitat in the 3x3 pixel neighbourhood (8 pixels total) that surround it. <br><br>
      If a degraded pixel is not surrounded by any natural habitat in the 3x3 neighborhood, which may occur when the degraded land is completely surrounded by water, urban areas, or farmland, the application will attempt to replace the degraded pixel using successively larger neighborhoods, which increase by 2 pixels each time (e.g., 5x5, 7x7, 9x9, etc.).<br><br> 
              This process continues until all degraded pixels are 'restored' to natural habitat in the target landscape. Click 'simulate restoration' to view the restored landscape, with degraded pixels replaced by natural habitat.")),
       actionButton("simulate_restoration", "Simulate restoration"),
@@ -4872,12 +4871,12 @@ fluidRow(
     condition = "input.simulate_restoration > 0 && !output.showAutoCombo && !output.showManualCombo",
     segment(
       div(style = "font-size: 18px; font-weight: bold; margin-bottom: 15px;", "Choosing how to define candidate areas for restoration"),
-      p(HTML("Your target landscape likely has multiple areas that are considered degraded land that could be restored. Eventually, the application will rank these 'candidate areas' to determine which degraded area, once restored, has the greatest positive impact. However, first you must choose how to <i>define</i> candidate areas for restoration. <br><br>
+      p(HTML("Your target landscape likely has multiple areas with one or more degraded pixels that can be restored. Eventually, the application will rank these 'candidate areas' to determine which, once restored, has the greatest potential biodiversity benefit. However, first you must choose how to <i>define</i> candidate areas for restoration. <br><br>
 <b>There are two options:</b>"
 	    )),
       br(),
       actionButton("automatic_combination", "Define candidate areas based on contiguous habitat type"),
-      p(HTML("<i><p style='margin-left: 25px;'>This option creates candidate areas by automatically dividing sections of degraded land into one or more groups. Each group shares the same habitat type and all pixels in the group are connected. 'Connected' means that at least one corner of a pixel touches the corner of another pixel in the candidate area. In general, this option will produce fewer candidate areas.</p></i>")),
+      p(HTML("<i><p style='margin-left: 25px;'>Choose this to create candidate areas by automatically grouping degraded pixels. Each group consists of pixels connected to each other and sharing the same post-restoration habitat type. 'Connected' means that at least one corner of a pixel touches the corner of another pixel. In general, this option will produce fewer candidate areas.</p></i>")),
       br(),
       actionButton("manual_combination", "Define candidate areas based on a set number of pixels"),
       p(HTML("<i><p style='margin-left: 25px;'>If your restoration efforts must be focused on a small area within a target landscape – e.g., only one or two 300 x 300 m pixels (9 – 18 hectares), you may wish to define candidate areas based on a set number of pixels, e.g., 1, 2, or 3. This option <b>does not constrain candidate areas to be contiguous</b>; instead, it groups all possible combinations of degraded pixels for restoration based on a set number of pixels.</p></i>"))
@@ -4905,16 +4904,16 @@ fluidRow(
   conditionalPanel(
     condition = "input.calculate_combinations > 0 || input.automatic_combination > 0",
     segment(
-      div(style = "font-size: 18px; font-weight: bold; margin-bottom: 15px;", "Calculating patch-size and heterogeneity metrics"),
-      p(HTML("Now, we can calculate the impact of restoring candidate areas on habitat patch size and landscape heterogeneity.<br><br>
-Patch size can be calculated as the mean size of contiguous areas of a particular habitat type. For each habitat type, the impact of restoration is measured by comparing patch size of the original landscape against the set of landscapes with each candidate area restored. 
+      div(style = "font-size: 18px; font-weight: bold; margin-bottom: 15px;", "Calculating patch size and heterogeneity metrics"),
+      p(HTML("Now, we can calculate the effect of restoring candidate areas on habitat patch size and landscape heterogeneity.<br><br>
+Patch size is calculated as the mean size of contiguous areas of a particular habitat type. For each habitat type, the effect of restoration is measured by comparing average patch size of the original landscape against the set of landscapes with each candidate area restored. 
 Landscape heterogeneity is a measure of how diverse a landscape is in terms of habitat types. Heterogeneity is measured as average roughness: the absolute deviation of surface values from the mean value. For the heterogeneity metric, the application measures the difference between the original landscape and each of the restored landscapes.<br><br>
-The application computes the difference between patch size and heterogeneity compared between the original and each restored landscape. Additionally, if you selected the option to focus on ‘areas of conservation concern’, only degraded areas that are restored within areas of conservation concern are counted towards increasing patch size or landscape heterogeneity. 
+The application computes the difference in patch size and heterogeneity between the original and each restored landscape. Additionally, if you selected the option to focus on ‘areas of conservation concern’, only degraded areas that are restored within areas of conservation concern are counted towards increasing patch size or landscape heterogeneity. 
 ")),
       br(),
       uiOutput("dynamic_checkboxes"),
       br(),
-      p(HTML("Click 'Calculate habitat metrics' to view results of patch size and heterogeneity calculations.")),
+      p(HTML("Click 'Calculate habitat metrics' to view difference in average patch size and heterogeneity between original and restored landscapes.")),
       br(),
       actionButton("calculate_metrics", "Calculate habitat metrics"),
       br(),
@@ -4928,7 +4927,7 @@ The application computes the difference between patch size and heterogeneity com
   conditionalPanel(
     condition = "input.calculate_metrics > 0",
     segment(
-      div(style = "font-size: 18px; font-weight: bold; margin-bottom: 15px;", "Merge patch-size results?"),
+      div(style = "font-size: 18px; font-weight: bold; margin-bottom: 15px;", "Merge patch size results?"),
       p("You may choose to merge patch size calculations across all habitat types, or keep results separate for each habitat type. If patch size results are merged, the sum of patch size results are combined across habitat types. If patch size for one habitat type is considered more valuable for the purposes of restoration than another, patch size metrics should be left separate so they can be weighted accordingly at a later step. You can try both options ('Merge' vs 'Do not merge') before making a final choice."),
       multiple_radio("merge_metrics",
         label = NULL,
@@ -4972,10 +4971,10 @@ The application computes the difference between patch size and heterogeneity com
     condition = "input.calculate_connectivity > 0",
     segment(
       div(style = "font-size: 18px; font-weight: bold; margin-bottom: 15px;", "Calculating environmental heterogeneity: creating principal component data layers"),
-      p(HTML("In this application, we assume that species cannot easily live in or travel through degraded land. Therefore, it is useful to measure environmental heterogeneity in the original landscape, excluding degraded areas, and compare that value against each restored landscape, including the restored candidate areas, to determine which candidate area provides the greatest benefits once restored.
+      p(HTML("If different species thrive in different combinations of environmental conditions, then a more environmentally diverse landscape shoud be able to support more species. Here, we measure environmental heterogeneity in the original landscape, excluding degraded areas, and compare that value against each restored landscape, where the restored candidate areas contribute their environmental conditions to overall heterogeneity.
       <br><br>
-	    There is a large set of variables to consider when measuring environmental heterogeneity, such as temperature, precipitation, and soil types. Principal Component Analysis (PCA) is a statistical method designed to simplify and reveal patterns in complex datasets. PCA takes all this information and creates multiple new variables, called principal components, which capture the most significant variations in the data. By focusing on these components, PCA helps reduce the complexity of the dataset, making it easier to visualize trends, understand relationships between variables, and compress the data while retaining essential information.<br><br>
-	    Here, we perform a PCA on several environmental layers (temperature, precipitation, elevation, and soil data) to create multiple principal component data layers (i.e. a map of pixels which cover the entire province, each pixel with a value set by the associated principal component). This information provides insights into the importance of each principal component in explaining variability in the environmental data. Using these principal component layers, we will measure environmental heterogeneity for each potential restored landscape, comparing them against the original, degraded landscape. The results of the PCA, including standard deviations and proportions of variance explained by each principal component, are displayed in a summary table.")),
+	    There is a large set of variables to consider when measuring environmental heterogeneity, such as temperature, precipitation, and soil types. Principal Component Analysis (PCA) is a statistical method that uses one variable, called a principal component, to summarize variation in multiple variables. Sites - pixels in our case - that share similar environmental conditions will receive a similar principal component score. Multiple principal components are used to indicate multiple environmental gradients. For example, one component may describe a gradient of hot to dry sites, while a second component may describe a gradient of wet to dry sites.<br><br>
+	    Here, we use a PCA of several environmental layers (temperature, precipitation, elevation, soil type, soil depth) to assign scores from each principal component to each pixel. Each principal component explains a proportion of the total environmental variation. For example, if almost all pixel-to-pixel variation was due to temperature variation, then one component might capture the environmental variation. If there were strong temperature and precipitaton gradients, and temperature and precipitation were uncorrelated, then there might be two gradients each explaining half of the pixel-to-pixel environmental variation. The contribution of each principal component to overall environmental variation is shown as standard deviation and proportion of variance in a summary table.")),
       actionButton("calculate_pca", "Calculate PCA and print summary"),
       br(),
       br(),
