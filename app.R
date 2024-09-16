@@ -4829,7 +4829,7 @@ fluidRow(
       After setting the thresholds, you can preview which land is defined as “degraded” in a map.")),
       uiOutput("sliderPanel"),
       br(),
-      p(HTML("Click the “preview” button to see which pixels in your target landscape are defined as “degraded” with the condition set you chose. In the preview map, certain land values (e.g., water, urban areas, valuable cropland) that are considered unfit for restoration are excluded and are not mapped (shown in white below). Feel free to re-adjust the sliders and try again until you're happy with which areas are defined as “degraded”.")),
+      p(HTML("Click the “preview” button to see which pixels in your target landscape are defined as “degraded” with the condition set you chose. In the preview map, certain land values considered unfit for restoration (open water, urban areas, urban parks, transportation, good farmland, and hay/ pasture land) are excluded and are not mapped (shown in white below). Feel free to re-adjust the sliders and try again until you're happy with which areas are defined as “degraded”.")),
       br(),
       actionButton("preview", "Preview"),
       fluidRow(
