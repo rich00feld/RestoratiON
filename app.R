@@ -219,8 +219,6 @@ plot_degraded_protected_react <-reactiveVal()
 restored_land_plot_react <-reactiveVal()
 final_data_table <-reactiveVal()
 plot_rds <-reactiveVal()
-showSegment1 <- reactiveVal(FALSE)
-
 # BatchloopFinished <- reactiveVal(FALSE)
 
 # Load the rasters ----
@@ -308,7 +306,7 @@ server <- function(input, output, session) {
   # Dynamically generate the splash page with the base64-encoded image
   output$splash <- renderUI({
     # Path to the image
-    image_path <- file.path(getwd(), "DALLE_RestoratiON.jpg")
+    image_path <- file.path(getwd(), "Splash_RestoratiON.jpg")
 
     # Encode the image as a base64 string
     encoded_image <- base64enc::dataURI(file = image_path, mime = "image/jpeg")
@@ -331,14 +329,9 @@ server <- function(input, output, session) {
 
   # Server logic to handle the button click and proceed to the next section
   observeEvent(input$go_button, {
-    # Hide the splash page and show Segment 1
-    showSegment1(TRUE)
+    # Hide the splash page
     output$splash <- renderUI(NULL) # Hide the splash page content
   })
-
-  # Define output for conditionally showing Segment 1
-  output$showSegment1 <- reactive({ showSegment1 })
-  outputOptions(output, "showSegment1", suspendWhenHidden = FALSE)
 
   # Linked to UI Segment 1, initial choice ---- 
   # hide that UI element after an option is selected
@@ -4703,7 +4696,7 @@ ui <- shinyUI(semanticPage(
 
   ## Segment 1: Initial Choice for app use ----
   conditionalPanel(
-        condition = "output.showSegment1 && !output.showSingleLandscape && !output.showMultipleLandscapes && !output.showLandscapeVisualizer && !output.showBatchProcessing",
+        condition = "input.go_button > 0 && !output.showSingleLandscape && !output.showMultipleLandscapes && !output.showLandscapeVisualizer && !output.showBatchProcessing",
     segment(
       div(style = "font-size: 18px; font-weight: bold; margin-bottom: 15px;", HTML("<br><br>Choosing an analysis type")),
       p(HTML("This application aims to identify degraded land areas within a chosen geographic region and determine which areas, when restored to nearby natural habitat types, will provide the greatest benefit based on user-selected criteria. <br><br>
