@@ -4832,6 +4832,9 @@ fluidRow(
       p(HTML("Click the “preview” button to see which pixels in your target landscape are defined as “degraded” with the condition set you chose. In the preview map, certain land values considered unfit for restoration (open water, urban areas, urban parks, transportation, good farmland, and hay/ pasture land) are excluded and are not mapped (shown in white below). Feel free to re-adjust the sliders and try again until you're happy with which areas are defined as “degraded”.")),
       br(),
       actionButton("preview", "Preview"),
+      br(),
+      br(),
+      div(style = "font-size: 20px;", textOutput("numDegradedPixels")),
       fluidRow(
         column(width = 6, plotlyOutput("degradedPlot", height = "800px")),
         column(width = 6, plotOutput("rasterPlot3legend", height = "800px"))),
@@ -4839,8 +4842,7 @@ fluidRow(
         condition = "input.protected_based_calculations > 0",
         fluidRow(
           column(width = 6, plotlyOutput("degradedprotectedPlot", height = "800px")),
-          column(width = 6, plotOutput("rasterPlot4legend", height = "800px")))),
-      div(style = "font-size: 20px;", textOutput("numDegradedPixels"))
+          column(width = 6, plotOutput("rasterPlot4legend", height = "800px"))))
     )
   ),
 
