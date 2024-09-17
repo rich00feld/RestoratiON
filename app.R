@@ -2066,7 +2066,8 @@ server <- function(input, output, session) {
 
     # Precompute values to save on overhead in the parallel process
     restored_values <- values(restored_land_values)
-    degraded_sa <- sa(sample_degraded_land_values)
+    degraded_sa <- lsm_l_shdi(sample_degraded_land_values)
+    degraded_sa <- degraded_sa$value
     degraded_patch_size <- lsm_c_area_mn(sample_degraded_land_values)
 
     calculate_metrics <- function(combination, degraded_raster, excluded_classes) {
@@ -2082,10 +2083,14 @@ server <- function(input, output, session) {
 
       # Calculate the differences for each class
       patch_size_diffs <- setNames(modified_patch_size$value - degraded_patch_size$value, paste0("patch_size_diff_class", modified_patch_size$class))
-
+      
+      # Calculate Shannon's Diversity Index
+      SDI<-lsm_l_shdi(modified_raster)
+      SDI<-SDI$value
+      
       # Combine the results
       c(
-        list(sa = sa(modified_raster), combination = paste(combination, collapse = "-")),
+        list(sa = SDI, combination = paste(combination, collapse = "-")),
         patch_size_diffs
       )
     }
@@ -2287,13 +2292,13 @@ server <- function(input, output, session) {
       # Round the values to 3 decimal places
       rounded_data <- result_habitat_data_updated()
       rounded_data[] <- lapply(rounded_data, function(x) if (is.numeric(x)) round(x, 3) else x)
-      # rename 'sa_difference' to 'Heterogeneity'
+      # rename 'sa_difference' to 'Shannon Diversity Index'
       if("sa_difference" %in% names(rounded_data)) {
-        names(rounded_data)[names(rounded_data) == 'sa_difference'] <- 'Heterogeneity'
+        names(rounded_data)[names(rounded_data) == 'sa_difference'] <- 'Shannon Diversity Index'
       }
-      # rename 'habitat_heterogeneity_difference' to 'Heterogeneity'
+      # rename 'habitat_heterogeneity_difference' to 'Shannon Diversity Index'
       if("habitat_heterogeneity_difference" %in% names(rounded_data)) {
-        names(rounded_data)[names(rounded_data) == 'habitat_heterogeneity_difference'] <- 'Heterogeneity'
+        names(rounded_data)[names(rounded_data) == 'habitat_heterogeneity_difference'] <- 'Shannon Diversity Index'
             }
       # rename 'protected_patch_size_difference' to 'Protected area patch size'
       if("protected_patch_size_difference" %in% names(rounded_data)) {
@@ -2328,16 +2333,13 @@ server <- function(input, output, session) {
       datatable(rounded_data, rownames = FALSE, 
                 options = list(scrollX = TRUE),         
                 caption = htmltools::tags$caption(
-                  style = 'caption-side: top; text-align: left; white-space: normal; width: 100%;',
-                  HTML("<br><strong style='font-size: 16px;'>Difference in mean patch size (hectares)
-                       and landscape heterogeneity between original and restored landscape for each candidate area.
-                       Positive values indicate that heterogeneity or patch size is greater in the restored landscape.</strong>")))
+                  style = 'caption-side: top; text-align: left; white-space: pre-wrap; width: auto;',
+                  HTML("<br><strong style='font-size: 16px;'>Difference in mean patch size (hectares) and landscape heterogeneity between original and restored landscape for each candidate area. Positive values indicate that heterogeneity or patch size is greater in the restored landscape.</strong>")))
     })
     
     output$subtitleText1 <- renderUI({
       req(result_habitat_data_updated())  # Ensure that the table data is ready
-      HTML("<p style='font-size: 14px; text-align: left;'>**Heterogeneity was calculated as average roughness (absolute deviation of surface values from the mean),
-           see <a href='https://besjournals.onlinelibrary.wiley.com/doi/full/10.1111/2041-210X.13677#mee313677-tbl-0002' target='_blank'>Smith et al. 2021</a>.
+      HTML("<p style='font-size: 14px; text-align: left;'>**Heterogeneity was calculated as Shannon Diversity Index
            <br>***Each candidate area has a unique ID: CA_001 (3 pixels) means candidate area 1, containing 3 pixels of degraded land.</p>")
     })
     
@@ -2468,7 +2470,7 @@ server <- function(input, output, session) {
       rounded_data <- result_connectivity()
       rounded_data[] <- lapply(rounded_data, function(x) if (is.numeric(x)) round(x, 3) else x)
       
-      # rename 'sa_difference' to 'Heterogeneity'
+      # rename 'reduced_resistance' to 'Reduced mean path resistance'
       if("reduced_resistance" %in% names(rounded_data)) {
         names(rounded_data)[names(rounded_data) == 'reduced_resistance'] <- 'Reduced mean path resistance'
       }
@@ -2492,7 +2494,7 @@ server <- function(input, output, session) {
       
       datatable(rounded_data, rownames = FALSE, options = list(scrollX = TRUE),
                 caption = htmltools::tags$caption(
-                  style = 'caption-side: top; text-align: left; white-space: normal; width: 100%;',
+                  style = 'caption-side: top; text-align: left; white-space: pre-wrap; width: auto;',
                   HTML("<br><strong style='font-size: 16px;'>Difference in mean path resistance between original and restored landscape for each candidate area.
                        Positive values indicate less resistance in the restored landscape.</strong>")))
     })
@@ -2575,7 +2577,7 @@ server <- function(input, output, session) {
       row.names(pca_table) <- NULL
       datatable(pca_table, rownames = FALSE, options = list(scrollX = TRUE),
                 caption = htmltools::tags$caption(
-                  style = 'caption-side: top; text-align: left; white-space: normal; width: 100%;',
+                  style = 'caption-side: top; text-align: left; white-space: pre-wrap; width: auto;',
                   HTML("<br><strong style='font-size: 16px;'>Summary of each environmental principal component.</strong>")))
     })
     
@@ -2715,7 +2717,7 @@ server <- function(input, output, session) {
       
       datatable(rounded_data, rownames = FALSE, options = list(scrollX = TRUE),
                 caption = htmltools::tags$caption(
-                  style = 'caption-side: top; text-align: left; white-space: normal; width: 100%;',
+                  style = 'caption-side: top; text-align: left; white-space: pre-wrap; width: auto;',
                   HTML("<br><strong style='font-size: 16px;'>Difference in environmental heterogeneity between original and restored landscape for each candidate area and each principal component.
                        Positive values indicate that environmental heterogeneity is greater in the restored landscape.</strong>")))
     })
@@ -2781,13 +2783,13 @@ server <- function(input, output, session) {
       rounded_data <- merged_data
       rounded_data[] <- lapply(rounded_data, function(x) if (is.numeric(x)) round(x, 3) else x)
       
-      # rename 'sa_difference' to 'Heterogeneity'
+      # rename 'sa_difference' to 'Shannon Diversity Index'
       if("sa_difference" %in% names(rounded_data)) {
-        names(rounded_data)[names(rounded_data) == 'sa_difference'] <- 'Heterogeneity'
+        names(rounded_data)[names(rounded_data) == 'sa_difference'] <- 'Shannon Diversity Index'
       }
-      # rename 'habitat_heterogeneity_difference' to 'Heterogeneity'
+      # rename 'habitat_heterogeneity_difference' to 'Shannon Diversity Index'
       if("habitat_heterogeneity_difference" %in% names(rounded_data)) {
-        names(rounded_data)[names(rounded_data) == 'habitat_heterogeneity_difference'] <- 'Heterogeneity'
+        names(rounded_data)[names(rounded_data) == 'habitat_heterogeneity_difference'] <- 'Shannon Diversity Index'
       }
       # rename 'protected_patch_size_difference' to 'Protected area patch size'
       if("protected_patch_size_difference" %in% names(rounded_data)) {
@@ -2839,7 +2841,7 @@ server <- function(input, output, session) {
       rounded_data <- rounded_data[ , !names(rounded_data) %in% "Pixels"]
       datatable(rounded_data, rownames = FALSE, options = list(scrollX = TRUE),
                 caption = htmltools::tags$caption(
-                  style = 'caption-side: top; text-align: left; white-space: normal; width: 100%;',
+                  style = 'caption-side: top; text-align: left; white-space: pre-wrap; width: auto;',
                   HTML("<br><strong style='font-size: 16px;'>Summary of scaled landscape metrics.</strong>")))
     })
       output$subtitleText4 <- renderUI({
@@ -3257,7 +3259,7 @@ server <- function(input, output, session) {
     
     datatable(rounded_data, rownames = FALSE, options = list(scrollX = TRUE),
               caption = htmltools::tags$caption(
-                style = 'caption-side: top; text-align: left; white-space: normal; width: 100%;',
+                style = 'caption-side: top; text-align: left; white-space: pre-wrap; width: auto;',
                 HTML("<br><strong style='font-size: 16px;'>Previously calculated metrics for candidate areas within the selected landscapes.</strong>")))
   })
 
@@ -4126,7 +4128,8 @@ server <- function(input, output, session) {
         
         # Precompute values to save on overhead in the parallel process
         restored_values <- values(restored_land_values)
-        degraded_sa <- sa(sample_degraded_land_values)
+        degraded_sa <- lsm_l_shdi(sample_degraded_land_values)
+        degraded_sa <- degraded_sa$value
         degraded_patch_size <- lsm_c_area_mn(sample_degraded_land_values)
         
         calculate_metrics <- function(combination, degraded_raster) {
@@ -4141,9 +4144,13 @@ server <- function(input, output, session) {
           # Calculate the differences for each class
           patch_size_diffs <- setNames(modified_patch_size$value - degraded_patch_size$value, paste0("patch_size_diff_class", modified_patch_size$class))
           
+          # Calculate Shannon's Diversity Index
+          SDI<-lsm_l_shdi(modified_raster)
+          SDI<-SDI$value
+          
           # Combine the results
           c(
-            list(sa = sa(modified_raster), combination = paste(combination, collapse = "-")),
+            list(sa = SDI, combination = paste(combination, collapse = "-")),
             patch_size_diffs
           )
         }
@@ -4503,13 +4510,13 @@ server <- function(input, output, session) {
                     merged_data$Landscape <- landscape_name
                     merged_data <- merged_data[c("Landscape", names(merged_data)[names(merged_data) != "Landscape"])]
                     
-                    # rename 'sa_difference' to 'Heterogeneity'
+                    # rename 'sa_difference' to 'Shannon Diversity Index'
                     if("sa_difference" %in% names(merged_data)) {
-                      names(merged_data)[names(merged_data) == 'sa_difference'] <- 'Heterogeneity'
+                      names(merged_data)[names(merged_data) == 'sa_difference'] <- 'Shannon Diversity Index'
                     }
-                    # rename 'habitat_heterogeneity_difference' to 'Heterogeneity'
+                    # rename 'habitat_heterogeneity_difference' to 'Shannon Diversity Index'
                     if("habitat_heterogeneity_difference" %in% names(merged_data)) {
-                      names(merged_data)[names(merged_data) == 'habitat_heterogeneity_difference'] <- 'Heterogeneity'
+                      names(merged_data)[names(merged_data) == 'habitat_heterogeneity_difference'] <- 'Shannon Diversity Index'
                     }
                     # rename 'protected_patch_size_difference' to 'Protected area patch size'
                     if("protected_patch_size_difference" %in% names(merged_data)) {
