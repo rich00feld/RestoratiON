@@ -319,7 +319,7 @@ server <- function(input, output, session) {
                 "In this application, you locate areas of degraded land in a selected 
                 geographic area in Ontario, identify candidate areas to restore, 
                 and measure the potential benefit that restoring each canadidate area has on landscape-scale biodiversity 
-                based on changes to patch size, connectivity, and environmental diversity. 
+                based on changes to patch size, connectivity, and environmental heterogeneity. 
                 You can rank candidate areas within and between landscapes by their restoration benefit ."
             )
         ),
@@ -2316,7 +2316,7 @@ server <- function(input, output, session) {
                 options = list(scrollX = TRUE),         
                 caption = htmltools::tags$caption(
                   style = 'caption-side: top; text-align: left; white-space: pre-wrap; width: auto;',
-                  HTML("<br><strong style='font-size: 16px;'>Difference in mean patch size (hectares) between original and restored landscape for each candidate area. Positive values indicate that patch size is greater in the restored landscape.</strong>")))
+                  HTML("<br><strong style='font-size: 16px;'>Difference in average patch size (hectares) between original and restored landscape for each candidate area. Positive values indicate that patch size is greater in the restored landscape.</strong>")))
     })
     
     output$subtitleText1 <- renderUI({
@@ -4668,7 +4668,7 @@ ui <- shinyUI(semanticPage(
       p(HTML("<i><p style='margin-left: 25px;'>Choose this to calculate metrics for multiple landscapes belonging to a particular category (e.g., muncipalities, provincial parks).</p></i>")),
       actionButton("multiple_landscapes", "Compare metrics across multiple landscapes"),
       br(),
-      p(HTML("<i><p style='margin-left: 25px;'>Choose this if you want to compare restoration priorities across multiple landscapes. You must first create at least two results .csv files using the single or multiple landscape options.</p></i>")),
+      p(HTML("<i><p style='margin-left: 25px;'>Choose this if you want to compare restoration priorities across multiple landscapes. You must first create at least two results .csv files using the single landscape or category options.</p></i>")),
       actionButton("landscape_visualizer", "Visualize landscape(s)"),
       br(),
       p(HTML("<i><p style='margin-left: 25px;'>Choose this to visualize the habitat types of one or more landscapes based on results .csv files.</p></i>"))
@@ -4859,7 +4859,7 @@ fluidRow(
     segment(
       div(style = "font-size: 18px; font-weight: bold; margin-bottom: 15px;", "Calculating patch size"),
       p(HTML("Now, we can calculate the effect of restoring candidate areas on habitat patch size.<br><br>
-Patch size is calculated as the mean size of contiguous areas of a particular habitat type. For each habitat type, the effect of restoration is measured by comparing average patch size of the original landscape against the set of landscapes with each candidate area restored.  
+Patch size is calculated as the average size of contiguous areas of a particular habitat type. For each habitat type, the effect of restoration is measured by comparing average patch size of the original landscape against the set of landscapes with each candidate area restored.  
 The application computes the difference in patch size between the original and each restored landscape. Additionally, if you selected the option to focus on ‘areas of conservation concern’, the change in the size of the conservation area is shown, regardless of habitat type. 
 ")),
       br(),
@@ -4880,7 +4880,7 @@ The application computes the difference in patch size between the original and e
     condition = "input.calculate_metrics > 0",
     segment(
       div(style = "font-size: 18px; font-weight: bold; margin-bottom: 15px;", "Merge patch size results?"),
-      p("You may choose to merge patch size calculations across all habitat types, or keep results separate for each habitat type. If patch size results are merged, the change in patch size for each habitat type are summed across all habitat types. If patch size for one habitat type is considered more valuable for the purposes of restoration than another, patch size metrics should be left separate so they can be weighted accordingly at a later step. You can try both options ('Merge' vs 'Do not merge') before making a final choice."),
+      p("You may choose to merge patch size calculations across all habitat types, or keep results separate for each habitat type. If patch size results are merged, the change in average patch size for each habitat type are summed across all habitat types. If patch size for one habitat type is considered more valuable for the purposes of restoration than another, patch size metrics should be left separate so they can be weighted accordingly at a later step. You can try both options ('Merge' vs 'Do not merge') before making a final choice."),
       multiple_radio("merge_metrics",
         label = NULL,
         choices = c("Merge", "Do not merge"),
@@ -4940,7 +4940,7 @@ The application computes the difference in patch size between the original and e
     condition = "input.calculate_pca > 0",
     segment(
       div(style = "font-size: 18px; font-weight: bold; margin-bottom: 15px;", "Calculating environmental heterogeneity: comparing degraded and restored landscapes"),
-      p(HTML("Here, we measure the difference in environmental heterogeneity between the original landscape against the set of landscapes with each candidate area restored, based on the scores from the principal component analysis. In the original landscape, degraded pixels are treated as if they have no value, whereas restored pixels are given their principal component scores.
+      p(HTML("Here, we measure the difference in environmental heterogeneity between the original landscape against the set of landscapes with each candidate area restored, based on the scores from the principal component analysis. In the original landscape, degraded pixels are treated as if they have no value, whereas after restoration pixels are given their principal component scores.
       <br><br>
       Heterogeneity, or variation in the landscape, is calculated by measuring the “average surface roughness” of the landscape – essentially a measure of how the environmental values for each pixel differ from the mean environmental value of all pixels in the landscape. Therefore, surface roughness indicates whether pixels are mostly similar to or different from each other. If restoration adds pixels to the landscape that have relatively novel environmental conditions, surface roughness increases from pre- to post-restoration. 
       <br><br> 
@@ -4965,7 +4965,7 @@ The application computes the difference in patch size between the original and e
     condition = "input.calculate_env_metrics > 0",
     segment(
       div(style = "font-size: 18px; font-weight: bold; margin-bottom: 15px;", "Merging and scaling results"),
-      p("To prepare to identify the best candidate area(s) to restore, results from all previous calculations are merged into a single table. The values for each metric (patch size, connectivity, heterogeneity) for each candidate area are scaled to be comparable. For each metric, the value for each candidate area is subtracted from the mean value for all candidate areas and the result is dividing by the standard deviation. After scaling, values in the table below express the number of standard deviations a candidate area's value is from the mean for that metric."),
+      p("To identify the best candidate area(s) to restore, results from all previous calculations are merged into a single table. The values for each metric (patch size, connectivity, heterogeneity) for each candidate area are scaled to be comparable. For each metric, the value for each candidate area is subtracted from the mean value for all candidate areas and the result is divided by the standard deviation. After scaling, values in the table below express the number of standard deviations a candidate area's value is from the mean for that metric."),
       actionButton("merge_and_display", "Merge and scale results"),
       br(),
       br(),
