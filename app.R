@@ -196,9 +196,9 @@ land_cover_labels <- data.frame(
       205, 250, 0, 1, 300),
     # These are custom colors we define  (I just threw these in, they are not necessarily "good"):
     color = c(
-      "orangered", "deeppink", "#FF8333",
-      "#8D33FF", "#3333FF", "#8B0000", 
-      "#FFD700","lightgrey"),
+      "#4B0092", "deeppink", "#FF8333",
+      "royalblue", "khaki", "#FFD700", 
+      "mediumspringgreen","lightgrey"),
     Land_Class = c("Degraded", "Candidate area", "Aggregate extraction", 
                    "Topsoil/Peat extraction", "Undifferentiated", "Not included", "Included", "Buffer")
   ))
@@ -316,11 +316,11 @@ server <- function(input, output, session) {
         div(class = "splash-title", "Welcome to the RestoratiON App"),
         div(class = "splash-text-container",
             div(class = "splash-text", 
-                "In this application, you can locate areas of degraded land in a selected geographic area. 
-                You can then identify multiple areas that are candidates for restoration, and determine how 
-                beneficial restoring each candidate area is based on a number of environmental metrics such as 
-                patch size, landscape heterogeneity, and connectivity. You may output the top candidate areas 
-                for restoration for further analysis."
+                "In this application, you locate areas of degraded land in a selected 
+                geographic area in Ontario, identify candidate areas to restore, 
+                and measure the potential benefit that restoring each canadidate area has on landscape-scale biodiversity 
+                based on changes to patch size, connectivity, and environmental diversity. 
+                You can rank candidate areas within and between landscapes by their restoration benefit ."
             )
         ),
         actionButton("go_button", "Let's go!", class = "go-button")
@@ -1313,7 +1313,7 @@ server <- function(input, output, session) {
           tags$p(id = "mine_max_label", "Not included", style = "text-align: right; margin-top: -20px;")
         ),
         div(
-          sliderInput("amis_slider", HTML("<br><b>Abandoned mines</b><br><i>1 = Pixels with 1 or more abandoned mines are degraded.<br>3 = Only pixels with 3 abandoned 
+          sliderInput("amis_slider", HTML("<br><b>Abandoned mines</b><br><i>1 = Pixels with 1 or more abandoned mines are degraded.<br>3 = Only pixels with 3 or more abandoned 
                       mines are degraded.</i><br><br>"), min = 1, max = 4, value = 1, step = 1),
           tags$p(id = "amis_max_label", "Not included", style = "text-align: right; margin-top: -20px;")
         ),
@@ -1337,7 +1337,7 @@ server <- function(input, output, session) {
         ),
         div(
           sliderInput("undifferentiated_slider", HTML("<br><b>Undifferentiated land</b><br><i>1 = Brownfields and marginal farmland are considered degraded land. Note that any pixels classified as 'undifferentiated' 
-                      by the Southern Ontario Land Resource Information System, SOLRIS, that were also classified as 'good farmland' in the Canada Land Inventory will not be classed 
+                      by the Southern Ontario Land Resource Information System, SOLRIS, that are also classified as 'good farmland' in the Canada Land Inventory will not be classed 
                       as degraded here.</i><br><br>"), min = 1, max = 2, value = 1, step = 1),
           tags$p(id = "undifferentiated_max_label", "Not included", style = "text-align: right; margin-top: -20px;")
         )
@@ -1492,7 +1492,7 @@ server <- function(input, output, session) {
         # geom_sf(data = label_points_sf,
         #         aes(text = Label, color = Label), alpha = 0) +
         theme_minimal() + 
-        labs(title = "\nTarget landscape showing areas of degraded land\nand habitat classes considered suitable for restoration\n") +
+        labs(title = "\nTarget landscape showing degraded pixels and\nhabitat types considered suitable for restoration\n") +
         theme(panel.grid = element_blank(), legend.margin = margin(c(0,0,0,0)),
               legend.key.size = unit(1.5, "cm"), # Adjust legend key size
               legend.text = element_text(size = 12, face = "bold"), # Adjust legend text size
@@ -1908,7 +1908,7 @@ server <- function(input, output, session) {
     # Get the names of the selected habitat classes to exclude
     selected_labels <- names(land_class_mapping)[land_class_mapping %in% choices_reactive()]
 
-    multiple_checkbox("selected_habitats", "You may only be interested in patch size or heterogeneity of certain habitats, e.g., meadow and alvar. If you would like to exclude habitat classes from the calculations, please select them below:\n", choices = selected_labels)
+    multiple_checkbox("selected_habitats", HTML("You may be interested in calculating the benefit of restoring certain habitat types only. If you would like to exclude habitat classes from the patch size calculations, please select them below:<br><br>"),  choices = selected_labels)
   })
 
 
@@ -2066,8 +2066,6 @@ server <- function(input, output, session) {
 
     # Precompute values to save on overhead in the parallel process
     restored_values <- values(restored_land_values)
-    degraded_sa <- lsm_l_shdi(sample_degraded_land_values)
-    degraded_sa <- degraded_sa$value
     degraded_patch_size <- lsm_c_area_mn(sample_degraded_land_values)
 
     calculate_metrics <- function(combination, degraded_raster, excluded_classes) {
@@ -2084,13 +2082,9 @@ server <- function(input, output, session) {
       # Calculate the differences for each class
       patch_size_diffs <- setNames(modified_patch_size$value - degraded_patch_size$value, paste0("patch_size_diff_class", modified_patch_size$class))
       
-      # Calculate Shannon's Diversity Index
-      SDI<-lsm_l_shdi(modified_raster)
-      SDI<-SDI$value
-      
       # Combine the results
       c(
-        list(sa = SDI, combination = paste(combination, collapse = "-")),
+        list(combination = paste(combination, collapse = "-")),
         patch_size_diffs
       )
     }
@@ -2103,13 +2097,12 @@ server <- function(input, output, session) {
     calculate_metrics_parallel <- function(combination) {
       excluded_classes <- as.numeric(selected_habitats)
       metrics <- calculate_metrics(combination, sample_degraded_land_values, excluded_classes)
-      sa_difference <- as.numeric(metrics$sa) - as.numeric(degraded_sa)
 
       # Extract patch size and cohesion differences
       patch_size_diffs <- metrics[names(metrics) %in% paste0("patch_size_diff_class", degraded_patch_size$class)]
 
       # Combine results into a data frame
-      data.frame(combination = metrics$combination, sa_difference, patch_size_diffs)
+      data.frame(combination = metrics$combination, patch_size_diffs)
     }
 
     # Use future_map_dfr to parallelize the computation for all combinations
@@ -2224,9 +2217,6 @@ server <- function(input, output, session) {
       # combine this patch size metric with the other results table
       hab_result_combined <- merge(result_habitat_data(), protected_result, by = "combination")
 
-      hab_result_combined <- hab_result_combined %>%
-        rename(habitat_heterogeneity_difference = sa_difference)
-
 
       result_habitat_data(hab_result_combined)
     }
@@ -2292,25 +2282,17 @@ server <- function(input, output, session) {
       # Round the values to 3 decimal places
       rounded_data <- result_habitat_data_updated()
       rounded_data[] <- lapply(rounded_data, function(x) if (is.numeric(x)) round(x, 3) else x)
-      # rename 'sa_difference' to 'Shannon Diversity Index'
-      if("sa_difference" %in% names(rounded_data)) {
-        names(rounded_data)[names(rounded_data) == 'sa_difference'] <- 'Shannon Diversity Index'
-      }
-      # rename 'habitat_heterogeneity_difference' to 'Shannon Diversity Index'
-      if("habitat_heterogeneity_difference" %in% names(rounded_data)) {
-        names(rounded_data)[names(rounded_data) == 'habitat_heterogeneity_difference'] <- 'Shannon Diversity Index'
-            }
       # rename 'protected_patch_size_difference' to 'Protected area patch size'
       if("protected_patch_size_difference" %in% names(rounded_data)) {
-        names(rounded_data)[names(rounded_data) == 'protected_patch_size_difference'] <- 'Protected area patch size'
+        names(rounded_data)[names(rounded_data) == 'protected_patch_size_difference'] <- 'Change in protected area patch size'
       }
       # rename 'sum_habitat_patch_size_diff' to 'Sum patch size' if present
       if("sum_habitat_patch_size_diff" %in% names(rounded_data)) {
-        names(rounded_data)[names(rounded_data) == 'sum_habitat_patch_size_diff'] <- 'Sum habitat patch size'
+        names(rounded_data)[names(rounded_data) == 'sum_habitat_patch_size_diff'] <- 'Sum change in habitat patch size'
       }
       # Use a pattern matching approach to rename the 'patch_size_diff' columns if they are present
       new_names <- names(rounded_data)
-      new_names <- gsub("^patch_size_diff_(.+?) \\(Class \\d+\\)$", "\\1 patch size", new_names)
+      new_names <- gsub("^patch_size_diff_(.+?) \\(Class \\d+\\)$", "Change in \\1 patch size", new_names)
       # Assign the new names back to the data frame
       names(rounded_data) <- new_names
       
@@ -2334,13 +2316,12 @@ server <- function(input, output, session) {
                 options = list(scrollX = TRUE),         
                 caption = htmltools::tags$caption(
                   style = 'caption-side: top; text-align: left; white-space: pre-wrap; width: auto;',
-                  HTML("<br><strong style='font-size: 16px;'>Difference in mean patch size (hectares) and landscape heterogeneity between original and restored landscape for each candidate area. Positive values indicate that heterogeneity or patch size is greater in the restored landscape.</strong>")))
+                  HTML("<br><strong style='font-size: 16px;'>Difference in mean patch size (hectares) between original and restored landscape for each candidate area. Positive values indicate that patch size is greater in the restored landscape.</strong>")))
     })
     
     output$subtitleText1 <- renderUI({
       req(result_habitat_data_updated())  # Ensure that the table data is ready
-      HTML("<p style='font-size: 14px; text-align: left;'>**Heterogeneity was calculated as Shannon Diversity Index
-           <br>***Each candidate area has a unique ID: CA_001 (3 pixels) means candidate area 1, containing 3 pixels of degraded land.</p>")
+      HTML("<p style='font-size: 14px; text-align: left;'>**Each candidate area has a unique ID: CA_001 (3 pixels) means candidate area 1, containing 3 pixels of degraded land.</p>")
     })
     
   })
@@ -2495,8 +2476,7 @@ server <- function(input, output, session) {
       datatable(rounded_data, rownames = FALSE, options = list(scrollX = TRUE),
                 caption = htmltools::tags$caption(
                   style = 'caption-side: top; text-align: left; white-space: pre-wrap; width: auto;',
-                  HTML("<br><strong style='font-size: 16px;'>Difference in mean path resistance between original and restored landscape for each candidate area.
-                       Positive values indicate less resistance in the restored landscape.</strong>")))
+                  HTML("<br><strong style='font-size: 16px;'>Difference in mean path resistance between original and restored landscape for each candidate area. Positive values indicate less resistance in the restored landscape.</strong>")))
     })
 
      output$subtitleText2 <- renderUI({
@@ -2718,13 +2698,12 @@ server <- function(input, output, session) {
       datatable(rounded_data, rownames = FALSE, options = list(scrollX = TRUE),
                 caption = htmltools::tags$caption(
                   style = 'caption-side: top; text-align: left; white-space: pre-wrap; width: auto;',
-                  HTML("<br><strong style='font-size: 16px;'>Difference in environmental heterogeneity between original and restored landscape for each candidate area and each principal component.
-                       Positive values indicate that environmental heterogeneity is greater in the restored landscape.</strong>")))
+                  HTML("<br><strong style='font-size: 16px;'>Difference in environmental heterogeneity between original and restored landscape for each candidate area and each principal component. Positive values indicate that environmental heterogeneity is greater in the restored landscape.</strong>")))
     })
 
     output$subtitleText3 <- renderUI({
       req(result_env_data()) # Ensure that the table data is ready
-      HTML("<p style='font-size: 14px; text-align: left;'><em>In some cases, restoring degraded land will reduce overall heterogeneity of the landscape. Consider a situation where the landscape has only 10 total pixels; 3 are 3 different types, and 7 are degraded. Restoring the 7 degraded pixels to one type would reduce overall heterogeneity.</em><br>
+      HTML("<p style='font-size: 14px; text-align: left;'><em>In some cases, restoring degraded land will reduce overall heterogeneity of the landscape. Consider a situation where the landscape has only 10 total pixels; 3 pixels sample very different environments, and 7 are degraded but cover very similar environments. Restoring the 7 degraded pixels to one minimally varying environmental condition would reduce overall heterogeneity.</em><br>
        <br>**Each candidate area has a unique ID (e.g., CA-001 (3 pixels) means candidate area 1, containing 3 pixels of degraded land).</p>")
     })
     
@@ -2782,22 +2761,13 @@ server <- function(input, output, session) {
       # Round the values to 3 decimal places
       rounded_data <- merged_data
       rounded_data[] <- lapply(rounded_data, function(x) if (is.numeric(x)) round(x, 3) else x)
-      
-      # rename 'sa_difference' to 'Shannon Diversity Index'
-      if("sa_difference" %in% names(rounded_data)) {
-        names(rounded_data)[names(rounded_data) == 'sa_difference'] <- 'Shannon Diversity Index'
-      }
-      # rename 'habitat_heterogeneity_difference' to 'Shannon Diversity Index'
-      if("habitat_heterogeneity_difference" %in% names(rounded_data)) {
-        names(rounded_data)[names(rounded_data) == 'habitat_heterogeneity_difference'] <- 'Shannon Diversity Index'
-      }
       # rename 'protected_patch_size_difference' to 'Protected area patch size'
       if("protected_patch_size_difference" %in% names(rounded_data)) {
-        names(rounded_data)[names(rounded_data) == 'protected_patch_size_difference'] <- 'Protected area patch size'
+        names(rounded_data)[names(rounded_data) == 'protected_patch_size_difference'] <- 'Change in protected area patch size'
       }
       # rename 'sum_habitat_patch_size_diff' to 'Sum patch size' if present
       if("sum_habitat_patch_size_diff" %in% names(rounded_data)) {
-        names(rounded_data)[names(rounded_data) == 'sum_habitat_patch_size_diff'] <- 'Sum habitat patch size'
+        names(rounded_data)[names(rounded_data) == 'sum_habitat_patch_size_diff'] <- 'Sum change in habitat patch size'
       }
       # rename 'reduced_resistance' to 'Reduced mean path resistance'
       if("reduced_resistance" %in% names(rounded_data)) {
@@ -2805,7 +2775,7 @@ server <- function(input, output, session) {
       }
       # Use a pattern matching approach to rename the 'patch_size_diff' and 'ENV_PC' columns if they are present
       new_names <- names(rounded_data)
-      new_names <- gsub("^patch_size_diff_(.+?) \\(Class \\d+\\)$", "\\1 patch size", new_names)
+      new_names <- gsub("^patch_size_diff_(.+?) \\(Class \\d+\\)$", "Change in \\1 patch size", new_names)
       new_names <- gsub("Env_PC(\\d+)_sa_diff", "PC\\1 environmental heterogeneity", new_names)
       names(rounded_data) <- new_names
       
@@ -4128,8 +4098,6 @@ server <- function(input, output, session) {
         
         # Precompute values to save on overhead in the parallel process
         restored_values <- values(restored_land_values)
-        degraded_sa <- lsm_l_shdi(sample_degraded_land_values)
-        degraded_sa <- degraded_sa$value
         degraded_patch_size <- lsm_c_area_mn(sample_degraded_land_values)
         
         calculate_metrics <- function(combination, degraded_raster) {
@@ -4144,13 +4112,9 @@ server <- function(input, output, session) {
           # Calculate the differences for each class
           patch_size_diffs <- setNames(modified_patch_size$value - degraded_patch_size$value, paste0("patch_size_diff_class", modified_patch_size$class))
           
-          # Calculate Shannon's Diversity Index
-          SDI<-lsm_l_shdi(modified_raster)
-          SDI<-SDI$value
-          
           # Combine the results
           c(
-            list(sa = SDI, combination = paste(combination, collapse = "-")),
+            list(combination = paste(combination, collapse = "-")),
             patch_size_diffs
           )
         }
@@ -4161,13 +4125,12 @@ server <- function(input, output, session) {
         calculate_metrics_parallel <- function(combination) {
           
           metrics <- calculate_metrics(combination, sample_degraded_land_values)
-          sa_difference <- as.numeric(metrics$sa) - as.numeric(degraded_sa)
           
           # Extract patch size and cohesion differences
           patch_size_diffs <- metrics[names(metrics) %in% paste0("patch_size_diff_class", degraded_patch_size$class)]
           
           # Combine results into a data frame
-          data.frame(combination = metrics$combination, sa_difference, patch_size_diffs)
+          data.frame(combination = metrics$combination, patch_size_diffs)
         }
         
         # Use future_map_dfr to parallelize the computation for all combinations
@@ -4274,9 +4237,6 @@ server <- function(input, output, session) {
           
           # combine this patch size metric with the other results table
           hab_result_combined <- merge(result_habitat_data(), protected_result, by = "combination")
-          
-          hab_result_combined <- hab_result_combined %>%
-            rename(habitat_heterogeneity_difference = sa_difference)
           
           
           result_habitat_data(hab_result_combined)
@@ -4509,22 +4469,13 @@ server <- function(input, output, session) {
                     # Add a new column 'landscape' with the provided landscape name to the merged data
                     merged_data$Landscape <- landscape_name
                     merged_data <- merged_data[c("Landscape", names(merged_data)[names(merged_data) != "Landscape"])]
-                    
-                    # rename 'sa_difference' to 'Shannon Diversity Index'
-                    if("sa_difference" %in% names(merged_data)) {
-                      names(merged_data)[names(merged_data) == 'sa_difference'] <- 'Shannon Diversity Index'
-                    }
-                    # rename 'habitat_heterogeneity_difference' to 'Shannon Diversity Index'
-                    if("habitat_heterogeneity_difference" %in% names(merged_data)) {
-                      names(merged_data)[names(merged_data) == 'habitat_heterogeneity_difference'] <- 'Shannon Diversity Index'
-                    }
                     # rename 'protected_patch_size_difference' to 'Protected area patch size'
-                    if("protected_patch_size_difference" %in% names(merged_data)) {
-                      names(merged_data)[names(merged_data) == 'protected_patch_size_difference'] <- 'Protected area patch size'
+                    if("protected_patch_size_difference" %in% names(rounded_data)) {
+                      names(rounded_data)[names(rounded_data) == 'protected_patch_size_difference'] <- 'Change in protected area patch size'
                     }
                     # rename 'sum_habitat_patch_size_diff' to 'Sum patch size' if present
-                    if("sum_habitat_patch_size_diff" %in% names(merged_data)) {
-                      names(merged_data)[names(merged_data) == 'sum_habitat_patch_size_diff'] <- 'Sum habitat patch size'
+                    if("sum_habitat_patch_size_diff" %in% names(rounded_data)) {
+                      names(rounded_data)[names(rounded_data) == 'sum_habitat_patch_size_diff'] <- 'Sum change in habitat patch size'
                     }
                     # rename 'reduced_resistance' to 'Reduced mean path resistance'
                     if("reduced_resistance" %in% names(merged_data)) {
@@ -4532,7 +4483,7 @@ server <- function(input, output, session) {
                     }
                     # Use a pattern matching approach to rename the 'patch_size_diff' and 'ENV_PC' columns if they are present
                     new_names <- names(merged_data)
-                    new_names <- gsub("^patch_size_diff_(.+?) \\(Class \\d+\\)$", "\\1 patch size", new_names)
+                    new_names <- gsub("^patch_size_diff_(.+?) \\(Class \\d+\\)$", "Change in \\1 patch size", new_names)
                     new_names <- gsub("Env_PC(\\d+)_sa_diff", "PC\\1 environmental heterogeneity", new_names)
                     names(merged_data) <- new_names
                     
@@ -4707,38 +4658,36 @@ ui <- shinyUI(semanticPage(
         condition = "input.go_button > 0 && !output.showSingleLandscape && !output.showMultipleLandscapes && !output.showLandscapeVisualizer && !output.showBatchProcessing",
     segment(
       div(style = "font-size: 18px; font-weight: bold; margin-bottom: 15px;", HTML("<br><br>Choosing an analysis type")),
-      p(HTML("This application aims to identify degraded land areas within a chosen geographic region and determine which areas, when restored to nearby natural habitat types, will provide the greatest benefit based on user-selected criteria. <br><br>
-      The entire province is divided into 300 by 300-metre units, called 'pixels'. Each pixel contains information on habitat type, environment, potential degradation sources (e.g., light pollution, mining activity), and the ease with which animals can move through the area ('movement cost'). While data is available for every pixel in the province, analyzing the entire province at once is impractical due to high computational costs and limited usefulness for restoration planners. Instead, you may select a specific segment of the province to analyze. <br><br>
+      p(HTML("The province of Ontario is divided into 300 by 300 metre units, called 'pixels'. Each pixel contains information on habitat type, environment, potential degradation sources (e.g., light pollution, mining activity), and how easily it can be used by organisms crossing the landscape ('movement cost'). Analyzing the entire province at once is impractical due to high computational costs. Instead, select one or more specific landscapes to analyze or compare across previously analyzed landscapes. <br><br>
 <b>Choose an option to continue:</b><br>")),
       actionButton("single_landscape", "Calculate metrics for a single landscape"),
       br(),
       p(HTML("<i><p style='margin-left: 25px;'>Choose this if it’s your first time using the app or if you want to analyze a single landscape. This option will output app results in a single .csv file for review.</p></i>")),
+      actionButton("batch_processing", "Calculate metrics for all landscapes of a given category"),
+      br(),
+      p(HTML("<i><p style='margin-left: 25px;'>Choose this to calculate metrics for multiple landscapes belonging to a particular category (e.g., muncipalities, provincial parks).</p></i>")),
       actionButton("multiple_landscapes", "Compare metrics across multiple landscapes"),
       br(),
-      p(HTML("<i><p style='margin-left: 25px;'>Select this option if you want to compare restoration priorities across multiple landscapes. You must first create at least two results .csv files using the option above to compare multiple landscapes.</p></i>")),
+      p(HTML("<i><p style='margin-left: 25px;'>Choose this if you want to compare restoration priorities across multiple landscapes. You must first create at least two results .csv files using the single or multiple landscape options.</p></i>")),
       actionButton("landscape_visualizer", "Visualize landscape(s)"),
       br(),
-      p(HTML("<i><p style='margin-left: 25px;'>Use this to visualize the habitat classes of one or more landscapes based on results .csv files.</p></i>")),
-      actionButton("batch_processing", "Calculate landscape metrics for all features of a given category across Ontario"),
-      br(),
-      p(HTML("<i><p style='margin-left: 25px;'>Select this option to calculate metrics for all Ontario landscapes of a given category (e.g. all mincipalities, all provincial parks etc.).</p></i>"))
-    )
+      p(HTML("<i><p style='margin-left: 25px;'>Choose this to visualize the habitat types of one or more landscapes based on results .csv files.</p></i>"))
+       )
   ),
 
   ## Segment 2:  Calculation type (any habitat or conservation areas) choice ----
   conditionalPanel(
     condition = "(output.showSingleLandscape > 0 || output.showBatchProcessing > 0) && !output.showhabitat_based_calculations && !output.showprotected_based_calculations",
     segment(
-      div(style = "font-size: 18px; font-weight: bold; margin-bottom: 15px;", "Select what areas to consider when measuring connectivity and area of restored habitat"),
-      p(HTML("In the application, you will simulate restoring different degraded target areas. Multiple criteria are used to determine which target areas have the greatest overall benefit when restored. One such criterion is connectivity, which refers to how connected different habitat patches are. Patches that have greater connectivity typically exhibit landscape characteristics such as good vegetation cover or less anthropogenic disturbance that allow wildlife or plants to move among patches. A second criterion is the size of a particular habitat type once a degraded target area is restored; for example, restoration might increase the overall area of a wetland.<br><br>
-Depending on your goals, you may wish to calculate connectivity and habitat patch size in one of two ways.<br><br> 
+      div(style = "font-size: 18px; font-weight: bold; margin-bottom: 15px;", "Select what areas to consider when measuring the benefit of restoration"),
+      p(HTML("Here you have the option of highlighting the benefits that restoration may have on areas of conservation concern.<br><br> 
 <b>Choose an option below to continue:</b><br>
 ")),
       actionButton("habitat_based_calculations", "Focus on entire landscape"),
       br(),
-      p(HTML("<i><p style='margin-left: 25px;'>This option will measure the effect of restoring degraded land on the entire selected landscape.</p></i>")),
+      p(HTML("<i><p style='margin-left: 25px;'>Choose this to measure the effect of restoring degraded land on the entire landscape.</p></i>")),
       actionButton("protected_based_calculations", "Focus on areas of conservation concern"),
-      p(HTML("<i><p style='margin-left: 25px;'>This option will measure the effect of restoring degraded land in areas of conservation concern only. In the next step, you can choose to include one or more categories of conservation concern, such as provincial parks, conservation reserves, or municipal heritage areas. Calculations will measure the impact of restoring degraded target areas on the size and connectedness of habitat within these focal categories.</p></i>"))
+      p(HTML("<i><p style='margin-left: 25px;'>Choose this to measure the effect of restoring degraded land on the size and connectivity of patches belonging to one or more categories of conservation concern,  such as provincial parks, conservation reserves, or municipal heritage areas.</p></i>"))
     )
   ),
 
@@ -4781,27 +4730,27 @@ Depending on your goals, you may wish to calculate connectivity and habitat patc
     condition = "(input.habitat_based_calculations > 0 || input.protected_based_calculations > 0) && output.showSingleLandscape > 0",
     segment(
       div(style = "font-size: 18px; font-weight: bold; margin-bottom: 15px;", "Choosing a landscape"),
-      p(HTML("You are ready to select a target landscape for analysis. You can choose to either draw or select the landscape:<br><br>
+      p(HTML("You are ready to select a target landscape to analyze. You can choose to draw a landscape or select a landscape from pre-defined categories:<br><br>
   <b>Option 1: Choose landscape extent by drawing a shape</b><br>
-  Ensure the “Your drawn landscape” box is checked in the visibility checkbox panel on the righthand side of the map. Set a custom extent using the
+  Ensure the “Your drawn landscape” box is checked in the panel on the righthand side of the map. Set a custom extent using the
   draw tools located at the top left of the map. Create a custom shape by first selecting the pentagon icon, then 
-  clicking the map to drop points that define a target landscape. Or, create a rectangle by clicking the square icon, then dropping a single
+  clicking the map to drop points that define a target landscape. Alternatively, create a rectangle by clicking the square icon, then dropping a single
   point and dragging to define a target landscape.<br><br>
-  <b>Option 2: Choose landscape extent by selecting individual map features</b><br>
-  Turn on the visibility of map feature groups such as provincial parks or national wildlife areas using the checkboxes panel on the righthand
-             side of the map. Hover over the map to view the names of individual features within the group. Then, select a single feature by clicking
+  <b>Option 2: Choose landscape extent by selecting a map feature</b><br>
+  Make different features visible by clicking the checkboxes on the panel on the righthand
+             side of the map. Hover over the map to view the names of individual features. Then, select a single feature by clicking
              on it (e.g., a single provincial park).<br>"
 )),
       leafletOutput("map", height = 600),
       br(),
       br(),
       p(HTML("<b>Add a buffer around the target landscape</b><br>
-      We recommend adding a buffer to the selected landscape. A buffer is an area that extends outward from your target landscape by a specified number of metres. Buffers are useful in reducing the influence of distortions or artefacts that may arise because features outside your selected landscape are not included in application calculations. If you are considering restoration projects that may benefit more mobile species, your buffer size should be larger. Since the pixel units are 300 by 300 metres, any number entered here will be rounded down to the nearest multiple of 300.<br>")),
+      We recommend adding a buffer to the selected landscape. A buffer is an area that extends outward from your target landscape by a specified number of metres. Buffers are useful in reducing the influence of distortions or artefacts that may arise because features outside but near your selected landscape are not included when calculating restoration benefit. If you are considering restoration projects that may benefit more mobile species, your buffer size should be larger. Since the pixel units are 300 by 300 metres, any number entered here will be rounded down to the nearest multiple of 300.<br>")),
       numericInput("buffer_unit_value", "Enter an extent buffer value in metres (optional but recommended):", value = 1200),
       br(),
       br(),
       p(HTML("<b>Set the final extent</b><br>
-               Finally, press “Set extent” to confirm the final target landscape for analysis. An image of the selected landscape, including the buffer area, is displayed for you to review, with a breakdown of the respective proportion of habitat types it contains. If you chose to focus on areas of conservation concern, a map displaying any areas of conservation concern and which areas are included in the analysis is also displayed.<br><br>
+               Finally, press “Set extent” to confirm the final target landscape to analyze. An image of the selected landscape, including the buffer area, is displayed for you to review, along with the proportion of total area covered by different habitat types.<br><br>
              When the landscape extent is set, a test is run on that landscape to see if it is large enough to calculate connectivity metrics. This will be explained in more detail as you progress through the application.<br>
                ")),
       actionButton("set_extent", "Set extent"),
@@ -4824,19 +4773,19 @@ fluidRow(
     condition = "input.set_extent > 0",
     segment(
       div(style = "font-size: 18px; font-weight: bold; margin-bottom: 15px;", "Defining degraded pixels"),
-      p(HTML("The next step is defining which pixels qualify as “degraded land” based on user-defined threshold conditions. Using the sliders below, you can customize the criteria under
-      which pixels are considered degraded; these pixels are eligible for restoration. Conditions that could influence whether an area is considered degraded land include presence of active
-      mines, presence of abandoned mines, night light pollution, oil and gas extraction, aggregate extraction, topsoil extraction, and marginal farmland.<br><br>
-      The slider values indicate the severity of each degradation condition, and the slider position indicates the minimum threshold. For example, setting “Night Lights = 1” would mean that 
+      p(HTML("The next step is defining which pixels qualify as “degraded land” based on user-defined thresholds. Using the sliders below, you can customize the criteria under
+      which pixels are considered degraded; these pixels are eligible for restoration. Conditions that could influence whether a pixel is considered degraded land include presence of active
+      mines, abandoned mines, night light pollution, oil and gas extraction, aggregate extraction, topsoil extraction, and marginal farmland.<br><br>
+      The slider values indicate the severity of each degradation condition, and the slider position indicates the minimum threshold. For example, setting “Night lights = 1” would mean that 
       land with the lowest levels of night light pollution would be considered degraded, and all areas with values above 1 would be considered degraded as well. Conversely, if the slider is
-      set to 10, only land with the highest levels of light pollution would be considered degraded. To exclude or ignore a condition entirely, set the slider to the maximum value. For night 
+      set to 10, only land with the highest levels of light pollution would be considered degraded. To exclude or ignore a condition entirely, set the slider to “Not included”. For night 
       lights, “Night lights = 11” means that light pollution is not considered a factor defining degraded land.<br><br> 
       For a given pixel, only one condition needs to be met to be considered degraded. For example, if a pixel meets the threshold you set for night lights, but not for aggregate extraction,
       it will still be considered degraded.<br><br>
-      After setting the thresholds, you can preview which land is defined as “degraded” in a map.")),
+      After setting the thresholds, you can preview the pixels defined as “degraded” in a map.")),
       uiOutput("sliderPanel"),
       br(),
-      p(HTML("Click the “preview” button to see which pixels in your target landscape are defined as “degraded” with the condition set you chose. In the preview map, certain land values considered unfit for restoration (open water, urban areas, urban parks, transportation, good farmland, and hay/ pasture land) are excluded and are not mapped (shown in white below). Feel free to re-adjust the sliders and try again until you're happy with which areas are defined as “degraded”.")),
+      p(HTML("Click the “preview” button to see which pixels in your target landscape are defined as degraded based on the conditions you chose. In the preview map, habitat types considered unrestorable (open water, urban areas, urban parks, transportation, good farmland, and hay/ pasture land) are excluded and not mapped (shown in white below). Feel free to re-adjust the sliders and try again until you're happy with which areas are defined as degraded.")),
       br(),
       actionButton("preview", "Preview"),
       br(),
@@ -4858,9 +4807,9 @@ fluidRow(
     condition = "input.preview > 0",
     segment(
       div(style = "font-size: 18px; font-weight: bold; margin-bottom: 15px;", "Simulating restoration"),
-      p(HTML("The next step is to simulate the restoration of pixels that are defined as degraded. When 'simulate restoration' is clicked, each individual degraded pixel in the target landscape is replaced with the most prevalent natural habitat in the 8 pixels that surround it. The 3x3 pixel area surrounding each degraded pixel is called a 'neighborhood'. <br><br>
+      p(HTML("The next step is to simulate the restoration of pixels that are defined as degraded. When 'simulate restoration' is clicked, each individual degraded pixel in the target landscape is replaced with the most prevalent natural habitat in the 3x3 pixel neighbourhood (8 pixels total) that surround it. <br><br>
      If a degraded pixel is not surrounded by any natural habitat in the 3x3 neighborhood, which may occur when the degraded land is completely surrounded by water, urban areas, or farmland, the application will attempt to replace the degraded pixel using successively larger neighborhoods, which increase by 2 pixels each time (e.g., 5x5, 7x7, 9x9, etc.).<br><br> 
-             This process continues until all degraded pixels are 'restored' to natural habitat in the target landscape. Click 'simulate restoration' to view the restored landscape, with degraded pixels replaced by natural habitat.")),
+             The process continues until all degraded pixels are 'restored' to natural habitat. Click 'simulate restoration' to view the restored landscape, with degraded pixels replaced by natural habitat.")),
       actionButton("simulate_restoration", "Simulate restoration"),
       fluidRow(
         column(width = 6, plotlyOutput("restorationPlot", height = "800px")),
@@ -4875,12 +4824,12 @@ fluidRow(
     condition = "input.simulate_restoration > 0 && !output.showAutoCombo && !output.showManualCombo",
     segment(
       div(style = "font-size: 18px; font-weight: bold; margin-bottom: 15px;", "Choosing how to define candidate areas for restoration"),
-      p(HTML("Your target landscape likely has multiple areas that are considered degraded land that could be restored. Eventually, the application will rank these 'candidate areas' to determine which degraded area, once restored, has the greatest positive impact. However, first you must choose how to <i>define</i> candidate areas for restoration. <br><br>
+      p(HTML("Your target landscape likely has multiple areas with one or more degraded pixels that can be restored. Eventually, the application will rank these 'candidate areas' to determine which, once restored, has the greatest potential biodiversity benefit. However, first you must choose how to <i>define</i> candidate areas for restoration. <br><br>
 <b>There are two options:</b>"
 	    )),
       br(),
       actionButton("automatic_combination", "Define candidate areas based on contiguous habitat type"),
-      p(HTML("<i><p style='margin-left: 25px;'>This option creates candidate areas by automatically dividing sections of degraded land into one or more groups. Each group shares the same habitat type and all pixels in the group are connected. 'Connected' means that at least one corner of a pixel touches the corner of another pixel in the candidate area. In general, this option will produce fewer candidate areas.</p></i>")),
+      p(HTML("<i><p style='margin-left: 25px;'>This option creates candidate areas by automatically dividing sections of degraded land into one or more groups. The pixels in each group share the same habitat type and are connected to each other. 'Connected' means that at least one corner of a pixel touches the corner of another pixel. In general, this option will produce fewer candidate areas.</p></i>")),
       br(),
       actionButton("manual_combination", "Define candidate areas based on a set number of pixels"),
       p(HTML("<i><p style='margin-left: 25px;'>If your restoration efforts must be focused on a small area within a target landscape – e.g., only one or two 300 x 300 m pixels (9 – 18 hectares), you may wish to define candidate areas based on a set number of pixels, e.g., 1, 2, or 3. This option <b>does not constrain candidate areas to be contiguous</b>; instead, it groups all possible combinations of degraded pixels for restoration based on a set number of pixels.</p></i>"))
@@ -4908,16 +4857,15 @@ fluidRow(
   conditionalPanel(
     condition = "input.calculate_combinations > 0 || input.automatic_combination > 0",
     segment(
-      div(style = "font-size: 18px; font-weight: bold; margin-bottom: 15px;", "Calculating patch-size and heterogeneity metrics"),
-      p(HTML("Now, we can calculate the impact of restoring candidate areas on habitat patch size and landscape heterogeneity.<br><br>
-Patch size can be calculated as the mean size of contiguous areas of a particular habitat type. For each habitat type, the impact of restoration is measured by comparing patch size of the original landscape against the set of landscapes with each candidate area restored. 
-Landscape heterogeneity is a measure of how diverse a landscape is in terms of habitat types. Heterogeneity is measured as average roughness: the absolute deviation of surface values from the mean value. For the heterogeneity metric, the application measures the difference between the original landscape and each of the restored landscapes.<br><br>
-The application computes the difference between patch size and heterogeneity compared between the original and each restored landscape. Additionally, if you selected the option to focus on ‘areas of conservation concern’, only degraded areas that are restored within areas of conservation concern are counted towards increasing patch size or landscape heterogeneity. 
+      div(style = "font-size: 18px; font-weight: bold; margin-bottom: 15px;", "Calculating patch size"),
+      p(HTML("Now, we can calculate the effect of restoring candidate areas on habitat patch size.<br><br>
+Patch size is calculated as the mean size of contiguous areas of a particular habitat type. For each habitat type, the effect of restoration is measured by comparing average patch size of the original landscape against the set of landscapes with each candidate area restored.  
+The application computes the difference in patch size between the original and each restored landscape. Additionally, if you selected the option to focus on ‘areas of conservation concern’, the change in the size of the conservation area is shown, regardless of habitat type. 
 ")),
       br(),
       uiOutput("dynamic_checkboxes"),
       br(),
-      p(HTML("Click 'Calculate habitat metrics' to view results of patch size and heterogeneity calculations.")),
+      p(HTML("Click 'Calculate habitat metrics' to view results of patch size calculations.")),
       br(),
       actionButton("calculate_metrics", "Calculate habitat metrics"),
       br(),
@@ -4931,8 +4879,8 @@ The application computes the difference between patch size and heterogeneity com
   conditionalPanel(
     condition = "input.calculate_metrics > 0",
     segment(
-      div(style = "font-size: 18px; font-weight: bold; margin-bottom: 15px;", "Merge patch-size results?"),
-      p("You may choose to merge patch size calculations across all habitat types, or keep results separate for each habitat type. If patch size results are merged, the sum of patch size results are combined across habitat types. If patch size for one habitat type is considered more valuable for the purposes of restoration than another, patch size metrics should be left separate so they can be weighted accordingly at a later step. You can try both options ('Merge' vs 'Do not merge') before making a final choice."),
+      div(style = "font-size: 18px; font-weight: bold; margin-bottom: 15px;", "Merge patch size results?"),
+      p("You may choose to merge patch size calculations across all habitat types, or keep results separate for each habitat type. If patch size results are merged, the change in patch size for each habitat type are summed across all habitat types. If patch size for one habitat type is considered more valuable for the purposes of restoration than another, patch size metrics should be left separate so they can be weighted accordingly at a later step. You can try both options ('Merge' vs 'Do not merge') before making a final choice."),
       multiple_radio("merge_metrics",
         label = NULL,
         choices = c("Merge", "Do not merge"),
@@ -4975,10 +4923,10 @@ The application computes the difference between patch size and heterogeneity com
     condition = "input.calculate_connectivity > 0",
     segment(
       div(style = "font-size: 18px; font-weight: bold; margin-bottom: 15px;", "Calculating environmental heterogeneity: creating principal component data layers"),
-      p(HTML("In this application, we assume that species cannot easily live in or travel through degraded land. Therefore, it is useful to measure environmental heterogeneity in the original landscape, excluding degraded areas, and compare that value against each restored landscape, including the restored candidate areas, to determine which candidate area provides the greatest benefits once restored.
+      p(HTML("If different species thrive in different combinations of environmental conditions, then a more environmentally heterogeneous landscape shoud be able to support more species. Here, we measure environmental heterogeneity in the original landscape, excluding degraded areas, and compare that value against each restored landscape, where the restored candidate areas contribute their environmental conditions to overall heterogeneity.
       <br><br>
-	    There is a large set of variables to consider when measuring environmental heterogeneity, such as temperature, precipitation, and soil types. Principal Component Analysis (PCA) is a statistical method designed to simplify and reveal patterns in complex datasets. PCA takes all this information and creates multiple new variables, called principal components, which capture the most significant variations in the data. By focusing on these components, PCA helps reduce the complexity of the dataset, making it easier to visualize trends, understand relationships between variables, and compress the data while retaining essential information.<br><br>
-	    Here, we perform a PCA on several environmental layers (temperature, precipitation, elevation, and soil data) to create multiple principal component data layers (i.e. a map of pixels which cover the entire province, each pixel with a value set by the associated principal component). This information provides insights into the importance of each principal component in explaining variability in the environmental data. Using these principal component layers, we will measure environmental heterogeneity for each potential restored landscape, comparing them against the original, degraded landscape. The results of the PCA, including standard deviations and proportions of variance explained by each principal component, are displayed in a summary table.")),
+	    There is a large set of variables to consider when measuring environmental heterogeneity, such as temperature, precipitation, and soil types. Principal Component Analysis (PCA) is a statistical method that uses one variable, called a principal component, to summarize variation in multiple variables. Sites - pixels in our case - that share similar environmental conditions will receive a similar principal component score. Because there can be multiple axes of environmental variation - e.g., hot vs cold sites, wet vs dry sites - there are multiple principal components.<br><br>
+	    Here, we use PCA to summarize several environmental layers (temperature, precipitation, elevation, soil type, soil depth) and assign scores from each principal component to each pixel. Each principal component explains a proportion of the total environmental variation. For example, if almost all pixel-to-pixel variation is due to temperature variation, then one component might capture most of the total environmental variation. If there are strong temperature and precipitaton gradients, and temperature and precipitation are uncorrelated, then there might be two gradients each explaining half of the pixel-to-pixel environmental variation. The contribution of each principal component to overall environmental variation is shown as standard deviation and proportion of variance in a summary table.")),
       actionButton("calculate_pca", "Calculate PCA and print summary"),
       br(),
       br(),
@@ -4992,9 +4940,9 @@ The application computes the difference between patch size and heterogeneity com
     condition = "input.calculate_pca > 0",
     segment(
       div(style = "font-size: 18px; font-weight: bold; margin-bottom: 15px;", "Calculating environmental heterogeneity: comparing degraded and restored landscapes"),
-      p(HTML("Here, we measure the difference in environmental heterogeneity between each restored landscape and the degraded landscape, based on the principal component data layers. Degraded pixels are treated as if they have no value in the principal component layers, whereas restored pixels are given the corresponding principal component value.
+      p(HTML("Here, we measure the difference in environmental heterogeneity between the original landscape against the set of landscapes with each candidate area restored, based on the scores from the principal component analysis. In the original landscape, degraded pixels are treated as if they have no value, whereas restored pixels are given their principal component scores.
       <br><br>
-      Heterogeneity, or variation in the landscape, is calculated by measuring the “average surface roughness” of the landscape – essentially a measure of how the environmental values for each pixel differ from the mean environmental value of all pixels in the landscape. Surface roughness can therefore represent how environmentally variable or diverse the landscape is. In the next step, environmental heterogeneity for each restored candidate landscape is compared against the degraded landscape. 
+      Heterogeneity, or variation in the landscape, is calculated by measuring the “average surface roughness” of the landscape – essentially a measure of how the environmental values for each pixel differ from the mean environmental value of all pixels in the landscape. Therefore, surface roughness indicates whether pixels are mostly similar to or different from each other. If restoration adds pixels to the landscape that have relatively novel environmental conditions, surface roughness increases from pre- to post-restoration. 
       <br><br> 
       You have the option to select how many of the principal component layers to include in the analysis. The default is to use the first two principal components, as they typically contain > 99% of the environmental variation. Results are output in a table for each candidate area.")),
       numericInput("num_pcs", "Number of principal components:",
@@ -5017,7 +4965,7 @@ The application computes the difference between patch size and heterogeneity com
     condition = "input.calculate_env_metrics > 0",
     segment(
       div(style = "font-size: 18px; font-weight: bold; margin-bottom: 15px;", "Merging and scaling results"),
-      p("To prepare to identify the best candidate area(s) to restore, results from all previous calculations are merged into a single table. The values for each metric (e.g., patch size, heterogeneity, connectivity) for each candidate area are scaled to comparable values using the 'Z-Score Scaling' method. This method transforms values for each metric by subtracting the mean value for all candidate areas and dividing by the standard deviation. After this transformation, values in the table below express the number of standard deviations a data point is from the mean for that metric."),
+      p("To prepare to identify the best candidate area(s) to restore, results from all previous calculations are merged into a single table. The values for each metric (patch size, connectivity, heterogeneity) for each candidate area are scaled to be comparable. For each metric, the value for each candidate area is subtracted from the mean value for all candidate areas and the result is dividing by the standard deviation. After scaling, values in the table below express the number of standard deviations a candidate area's value is from the mean for that metric."),
       actionButton("merge_and_display", "Merge and scale results"),
       br(),
       br(),
