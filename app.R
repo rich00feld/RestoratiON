@@ -196,7 +196,7 @@ land_cover_labels <- data.frame(
       205, 250, 0, 1, 300),
     # These are custom colors we define  (I just threw these in, they are not necessarily "good"):
     color = c(
-      "purple4", "deeppink", "#FF8333",
+      "#4B0092", "deeppink", "#FF8333",
       "royalblue", "khaki", "#FFD700", 
       "mediumspringgreen","lightgrey"),
     Land_Class = c("Degraded", "Candidate area", "Aggregate extraction", 
@@ -2284,15 +2284,15 @@ server <- function(input, output, session) {
       rounded_data[] <- lapply(rounded_data, function(x) if (is.numeric(x)) round(x, 3) else x)
       # rename 'protected_patch_size_difference' to 'Protected area patch size'
       if("protected_patch_size_difference" %in% names(rounded_data)) {
-        names(rounded_data)[names(rounded_data) == 'protected_patch_size_difference'] <- 'Protected area patch size'
+        names(rounded_data)[names(rounded_data) == 'protected_patch_size_difference'] <- 'Change in protected area patch size'
       }
       # rename 'sum_habitat_patch_size_diff' to 'Sum patch size' if present
       if("sum_habitat_patch_size_diff" %in% names(rounded_data)) {
-        names(rounded_data)[names(rounded_data) == 'sum_habitat_patch_size_diff'] <- 'Sum habitat patch size'
+        names(rounded_data)[names(rounded_data) == 'sum_habitat_patch_size_diff'] <- 'Sum change in habitat patch size'
       }
       # Use a pattern matching approach to rename the 'patch_size_diff' columns if they are present
       new_names <- names(rounded_data)
-      new_names <- gsub("^patch_size_diff_(.+?) \\(Class \\d+\\)$", "\\1 patch size", new_names)
+      new_names <- gsub("^patch_size_diff_(.+?) \\(Class \\d+\\)$", "Change in \\1 patch size", new_names)
       # Assign the new names back to the data frame
       names(rounded_data) <- new_names
       
@@ -2763,11 +2763,11 @@ server <- function(input, output, session) {
       rounded_data[] <- lapply(rounded_data, function(x) if (is.numeric(x)) round(x, 3) else x)
       # rename 'protected_patch_size_difference' to 'Protected area patch size'
       if("protected_patch_size_difference" %in% names(rounded_data)) {
-        names(rounded_data)[names(rounded_data) == 'protected_patch_size_difference'] <- 'Protected area patch size'
+        names(rounded_data)[names(rounded_data) == 'protected_patch_size_difference'] <- 'Change in protected area patch size'
       }
       # rename 'sum_habitat_patch_size_diff' to 'Sum patch size' if present
       if("sum_habitat_patch_size_diff" %in% names(rounded_data)) {
-        names(rounded_data)[names(rounded_data) == 'sum_habitat_patch_size_diff'] <- 'Sum habitat patch size'
+        names(rounded_data)[names(rounded_data) == 'sum_habitat_patch_size_diff'] <- 'Sum change in habitat patch size'
       }
       # rename 'reduced_resistance' to 'Reduced mean path resistance'
       if("reduced_resistance" %in% names(rounded_data)) {
@@ -2775,7 +2775,7 @@ server <- function(input, output, session) {
       }
       # Use a pattern matching approach to rename the 'patch_size_diff' and 'ENV_PC' columns if they are present
       new_names <- names(rounded_data)
-      new_names <- gsub("^patch_size_diff_(.+?) \\(Class \\d+\\)$", "\\1 patch size", new_names)
+      new_names <- gsub("^patch_size_diff_(.+?) \\(Class \\d+\\)$", "Change in \\1 patch size", new_names)
       new_names <- gsub("Env_PC(\\d+)_sa_diff", "PC\\1 environmental heterogeneity", new_names)
       names(rounded_data) <- new_names
       
@@ -4470,12 +4470,12 @@ server <- function(input, output, session) {
                     merged_data$Landscape <- landscape_name
                     merged_data <- merged_data[c("Landscape", names(merged_data)[names(merged_data) != "Landscape"])]
                     # rename 'protected_patch_size_difference' to 'Protected area patch size'
-                    if("protected_patch_size_difference" %in% names(merged_data)) {
-                      names(merged_data)[names(merged_data) == 'protected_patch_size_difference'] <- 'Protected area patch size'
+                    if("protected_patch_size_difference" %in% names(rounded_data)) {
+                      names(rounded_data)[names(rounded_data) == 'protected_patch_size_difference'] <- 'Change in protected area patch size'
                     }
                     # rename 'sum_habitat_patch_size_diff' to 'Sum patch size' if present
-                    if("sum_habitat_patch_size_diff" %in% names(merged_data)) {
-                      names(merged_data)[names(merged_data) == 'sum_habitat_patch_size_diff'] <- 'Sum habitat patch size'
+                    if("sum_habitat_patch_size_diff" %in% names(rounded_data)) {
+                      names(rounded_data)[names(rounded_data) == 'sum_habitat_patch_size_diff'] <- 'Sum change in habitat patch size'
                     }
                     # rename 'reduced_resistance' to 'Reduced mean path resistance'
                     if("reduced_resistance" %in% names(merged_data)) {
@@ -4483,7 +4483,7 @@ server <- function(input, output, session) {
                     }
                     # Use a pattern matching approach to rename the 'patch_size_diff' and 'ENV_PC' columns if they are present
                     new_names <- names(merged_data)
-                    new_names <- gsub("^patch_size_diff_(.+?) \\(Class \\d+\\)$", "\\1 patch size", new_names)
+                    new_names <- gsub("^patch_size_diff_(.+?) \\(Class \\d+\\)$", "Change in \\1 patch size", new_names)
                     new_names <- gsub("Env_PC(\\d+)_sa_diff", "PC\\1 environmental heterogeneity", new_names)
                     names(merged_data) <- new_names
                     
