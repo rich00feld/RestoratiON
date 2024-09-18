@@ -1908,7 +1908,7 @@ server <- function(input, output, session) {
     # Get the names of the selected habitat classes to exclude
     selected_labels <- names(land_class_mapping)[land_class_mapping %in% choices_reactive()]
 
-    multiple_checkbox("selected_habitats", "You may be interested in calculating the benefit of restoring certain habitat types only. If you would like to exclude habitat classes from the patch size calculations, please select them below:\n", choices = selected_labels)
+    multiple_checkbox("selected_habitats", HTML("You may be interested in calculating the benefit of restoring certain habitat types only. If you would like to exclude habitat classes from the patch size calculations, please select them below:<br><br>"),  choices = selected_labels)
   })
 
 
