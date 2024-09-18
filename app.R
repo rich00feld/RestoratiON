@@ -196,9 +196,9 @@ land_cover_labels <- data.frame(
       205, 250, 0, 1, 300),
     # These are custom colors we define  (I just threw these in, they are not necessarily "good"):
     color = c(
-      "orangered", "deeppink", "#FF8333",
-      "#8D33FF", "#3333FF", "#8B0000", 
-      "#FFD700","lightgrey"),
+      "purple4", "deeppink", "#FF8333",
+      "royalblue", "khaki", "#FFD700", 
+      "mediumspringgreen","lightgrey"),
     Land_Class = c("Degraded", "Candidate area", "Aggregate extraction", 
                    "Topsoil/Peat extraction", "Undifferentiated", "Not included", "Included", "Buffer")
   ))
@@ -2066,8 +2066,6 @@ server <- function(input, output, session) {
 
     # Precompute values to save on overhead in the parallel process
     restored_values <- values(restored_land_values)
-    degraded_sa <- lsm_l_shdi(sample_degraded_land_values)
-    degraded_sa <- degraded_sa$value
     degraded_patch_size <- lsm_c_area_mn(sample_degraded_land_values)
 
     calculate_metrics <- function(combination, degraded_raster, excluded_classes) {
@@ -2084,13 +2082,9 @@ server <- function(input, output, session) {
       # Calculate the differences for each class
       patch_size_diffs <- setNames(modified_patch_size$value - degraded_patch_size$value, paste0("patch_size_diff_class", modified_patch_size$class))
       
-      # Calculate Shannon's Diversity Index
-      SDI<-lsm_l_shdi(modified_raster)
-      SDI<-SDI$value
-      
       # Combine the results
       c(
-        list(sa = SDI, combination = paste(combination, collapse = "-")),
+        list(combination = paste(combination, collapse = "-")),
         patch_size_diffs
       )
     }
@@ -2103,13 +2097,12 @@ server <- function(input, output, session) {
     calculate_metrics_parallel <- function(combination) {
       excluded_classes <- as.numeric(selected_habitats)
       metrics <- calculate_metrics(combination, sample_degraded_land_values, excluded_classes)
-      sa_difference <- as.numeric(metrics$sa) - as.numeric(degraded_sa)
 
       # Extract patch size and cohesion differences
       patch_size_diffs <- metrics[names(metrics) %in% paste0("patch_size_diff_class", degraded_patch_size$class)]
 
       # Combine results into a data frame
-      data.frame(combination = metrics$combination, sa_difference, patch_size_diffs)
+      data.frame(combination = metrics$combination, patch_size_diffs)
     }
 
     # Use future_map_dfr to parallelize the computation for all combinations
@@ -2224,9 +2217,6 @@ server <- function(input, output, session) {
       # combine this patch size metric with the other results table
       hab_result_combined <- merge(result_habitat_data(), protected_result, by = "combination")
 
-      hab_result_combined <- hab_result_combined %>%
-        rename(habitat_heterogeneity_difference = sa_difference)
-
 
       result_habitat_data(hab_result_combined)
     }
@@ -2292,14 +2282,6 @@ server <- function(input, output, session) {
       # Round the values to 3 decimal places
       rounded_data <- result_habitat_data_updated()
       rounded_data[] <- lapply(rounded_data, function(x) if (is.numeric(x)) round(x, 3) else x)
-      # rename 'sa_difference' to 'Shannon Diversity Index'
-      if("sa_difference" %in% names(rounded_data)) {
-        names(rounded_data)[names(rounded_data) == 'sa_difference'] <- 'Shannon Diversity Index'
-      }
-      # rename 'habitat_heterogeneity_difference' to 'Shannon Diversity Index'
-      if("habitat_heterogeneity_difference" %in% names(rounded_data)) {
-        names(rounded_data)[names(rounded_data) == 'habitat_heterogeneity_difference'] <- 'Shannon Diversity Index'
-            }
       # rename 'protected_patch_size_difference' to 'Protected area patch size'
       if("protected_patch_size_difference" %in% names(rounded_data)) {
         names(rounded_data)[names(rounded_data) == 'protected_patch_size_difference'] <- 'Protected area patch size'
@@ -2334,13 +2316,12 @@ server <- function(input, output, session) {
                 options = list(scrollX = TRUE),         
                 caption = htmltools::tags$caption(
                   style = 'caption-side: top; text-align: left; white-space: pre-wrap; width: auto;',
-                  HTML("<br><strong style='font-size: 16px;'>Difference in mean patch size (hectares) and landscape heterogeneity between original and restored landscape for each candidate area. Positive values indicate that heterogeneity or patch size is greater in the restored landscape.</strong>")))
+                  HTML("<br><strong style='font-size: 16px;'>Difference in mean patch size (hectares) between original and restored landscape for each candidate area. Positive values indicate that patch size is greater in the restored landscape.</strong>")))
     })
     
     output$subtitleText1 <- renderUI({
       req(result_habitat_data_updated())  # Ensure that the table data is ready
-      HTML("<p style='font-size: 14px; text-align: left;'>**Heterogeneity was calculated as Shannon Diversity Index
-           <br>***Each candidate area has a unique ID: CA_001 (3 pixels) means candidate area 1, containing 3 pixels of degraded land.</p>")
+      HTML("<p style='font-size: 14px; text-align: left;'>**Each candidate area has a unique ID: CA_001 (3 pixels) means candidate area 1, containing 3 pixels of degraded land.</p>")
     })
     
   })
@@ -2780,15 +2761,6 @@ server <- function(input, output, session) {
       # Round the values to 3 decimal places
       rounded_data <- merged_data
       rounded_data[] <- lapply(rounded_data, function(x) if (is.numeric(x)) round(x, 3) else x)
-      
-      # rename 'sa_difference' to 'Shannon Diversity Index'
-      if("sa_difference" %in% names(rounded_data)) {
-        names(rounded_data)[names(rounded_data) == 'sa_difference'] <- 'Shannon Diversity Index'
-      }
-      # rename 'habitat_heterogeneity_difference' to 'Shannon Diversity Index'
-      if("habitat_heterogeneity_difference" %in% names(rounded_data)) {
-        names(rounded_data)[names(rounded_data) == 'habitat_heterogeneity_difference'] <- 'Shannon Diversity Index'
-      }
       # rename 'protected_patch_size_difference' to 'Protected area patch size'
       if("protected_patch_size_difference" %in% names(rounded_data)) {
         names(rounded_data)[names(rounded_data) == 'protected_patch_size_difference'] <- 'Protected area patch size'
@@ -4126,8 +4098,6 @@ server <- function(input, output, session) {
         
         # Precompute values to save on overhead in the parallel process
         restored_values <- values(restored_land_values)
-        degraded_sa <- lsm_l_shdi(sample_degraded_land_values)
-        degraded_sa <- degraded_sa$value
         degraded_patch_size <- lsm_c_area_mn(sample_degraded_land_values)
         
         calculate_metrics <- function(combination, degraded_raster) {
@@ -4142,13 +4112,9 @@ server <- function(input, output, session) {
           # Calculate the differences for each class
           patch_size_diffs <- setNames(modified_patch_size$value - degraded_patch_size$value, paste0("patch_size_diff_class", modified_patch_size$class))
           
-          # Calculate Shannon's Diversity Index
-          SDI<-lsm_l_shdi(modified_raster)
-          SDI<-SDI$value
-          
           # Combine the results
           c(
-            list(sa = SDI, combination = paste(combination, collapse = "-")),
+            list(combination = paste(combination, collapse = "-")),
             patch_size_diffs
           )
         }
@@ -4159,13 +4125,12 @@ server <- function(input, output, session) {
         calculate_metrics_parallel <- function(combination) {
           
           metrics <- calculate_metrics(combination, sample_degraded_land_values)
-          sa_difference <- as.numeric(metrics$sa) - as.numeric(degraded_sa)
           
           # Extract patch size and cohesion differences
           patch_size_diffs <- metrics[names(metrics) %in% paste0("patch_size_diff_class", degraded_patch_size$class)]
           
           # Combine results into a data frame
-          data.frame(combination = metrics$combination, sa_difference, patch_size_diffs)
+          data.frame(combination = metrics$combination, patch_size_diffs)
         }
         
         # Use future_map_dfr to parallelize the computation for all combinations
@@ -4272,9 +4237,6 @@ server <- function(input, output, session) {
           
           # combine this patch size metric with the other results table
           hab_result_combined <- merge(result_habitat_data(), protected_result, by = "combination")
-          
-          hab_result_combined <- hab_result_combined %>%
-            rename(habitat_heterogeneity_difference = sa_difference)
           
           
           result_habitat_data(hab_result_combined)
@@ -4507,15 +4469,6 @@ server <- function(input, output, session) {
                     # Add a new column 'landscape' with the provided landscape name to the merged data
                     merged_data$Landscape <- landscape_name
                     merged_data <- merged_data[c("Landscape", names(merged_data)[names(merged_data) != "Landscape"])]
-                    
-                    # rename 'sa_difference' to 'Shannon Diversity Index'
-                    if("sa_difference" %in% names(merged_data)) {
-                      names(merged_data)[names(merged_data) == 'sa_difference'] <- 'Shannon Diversity Index'
-                    }
-                    # rename 'habitat_heterogeneity_difference' to 'Shannon Diversity Index'
-                    if("habitat_heterogeneity_difference" %in% names(merged_data)) {
-                      names(merged_data)[names(merged_data) == 'habitat_heterogeneity_difference'] <- 'Shannon Diversity Index'
-                    }
                     # rename 'protected_patch_size_difference' to 'Protected area patch size'
                     if("protected_patch_size_difference" %in% names(merged_data)) {
                       names(merged_data)[names(merged_data) == 'protected_patch_size_difference'] <- 'Protected area patch size'
@@ -4907,7 +4860,7 @@ fluidRow(
       div(style = "font-size: 18px; font-weight: bold; margin-bottom: 15px;", "Calculating patch size"),
       p(HTML("Now, we can calculate the effect of restoring candidate areas on habitat patch size.<br><br>
 Patch size is calculated as the mean size of contiguous areas of a particular habitat type. For each habitat type, the effect of restoration is measured by comparing average patch size of the original landscape against the set of landscapes with each candidate area restored.  
-The application computes the difference in patch size between the original and each restored landscape. Additionally, if you selected the option to focus on ‘areas of conservation concern’, the change in the size of the conservation area is shown, irregardless of habitat type. 
+The application computes the difference in patch size between the original and each restored landscape. Additionally, if you selected the option to focus on ‘areas of conservation concern’, the change in the size of the conservation area is shown, regardless of habitat type. 
 ")),
       br(),
       uiOutput("dynamic_checkboxes"),
