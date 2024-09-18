@@ -28,7 +28,7 @@
 # library(devtools)
 # options(download.file.method = "wininet")
 # install_github("CRAN/rgdal")
-# install_github("bleutner/RStoolbox")
+# install.packages("RStoolbox")
 # install.packages("leaflet.providers")
 # install.packages("stars")
 
@@ -193,14 +193,14 @@ land_cover_labels <- data.frame(
   bind_rows(data.frame(
     Value = c(
       100, 101, 204, 
-      205, 250, 0, 1),
+      205, 250, 0, 1, 300),
     # These are custom colors we define  (I just threw these in, they are not necessarily "good"):
     color = c(
-      "#FF33B5", "#33FFF3", "#FF8333",
-      "#8D33FF", "#3333FF", "#8B0000", 
-      "#FFD700"),
-    Land_Class = c("Degraded", "Priority pixels", "Aggregate extraction", 
-                   "Topsoil/Peat extraction", "Undifferentiated", "Not included", "Included")
+      "#4B0092", "deeppink", "#FF8333",
+      "royalblue", "khaki", "#FFD700", 
+      "mediumspringgreen","lightgrey"),
+    Land_Class = c("Degraded", "Candidate area", "Aggregate extraction", 
+                   "Topsoil/Peat extraction", "Undifferentiated", "Not included", "Included", "Buffer")
   ))
 
 
@@ -218,7 +218,7 @@ plot_degraded_react <-reactiveVal()
 plot_degraded_protected_react <-reactiveVal()
 restored_land_plot_react <-reactiveVal()
 final_data_table <-reactiveVal()
-
+plot_rds <-reactiveVal()
 # BatchloopFinished <- reactiveVal(FALSE)
 
 # Load the rasters ----
@@ -298,8 +298,41 @@ Other_effective_area_based_conservation_measures <- st_read("vectors/Other_Effec
 
 # _----
 # Starting the Shiny server ##########################################
+# Set maximum upload size to 500 MB
+options(shiny.maxRequestSize = 500 * 1024^2)
 
 server <- function(input, output, session) {
+
+  # Dynamically generate the splash page with the base64-encoded image
+  output$splash <- renderUI({
+    # Path to the image
+    image_path <- file.path(getwd(), "Splash_RestoratiON.jpg")
+
+    # Encode the image as a base64 string
+    encoded_image <- base64enc::dataURI(file = image_path, mime = "image/jpeg")
+
+    # Use the base64 string in the CSS
+    div(class = "splash-container", style = paste0("background-image: url('", encoded_image, "');"),
+        div(class = "splash-title", "Welcome to the RestoratiON App"),
+        div(class = "splash-text-container",
+            div(class = "splash-text", 
+                "In this application, you locate areas of degraded land in a selected 
+                geographic area in Ontario, identify candidate areas to restore, 
+                and measure the potential benefit that restoring each canadidate area has on landscape-scale biodiversity 
+                based on changes to patch size, connectivity, and environmental heterogeneity. 
+                You can rank candidate areas within and between landscapes by their restoration benefit ."
+            )
+        ),
+        actionButton("go_button", "Let's go!", class = "go-button")
+    )
+  })
+
+  # Server logic to handle the button click and proceed to the next section
+  observeEvent(input$go_button, {
+    # Hide the splash page
+    output$splash <- renderUI(NULL) # Hide the splash page content
+  })
+
   # Linked to UI Segment 1, initial choice ---- 
   # hide that UI element after an option is selected
 
@@ -456,7 +489,7 @@ server <- function(input, output, session) {
   # Set up the leaflet map ----
   # Set colors for each polygon layer. IDs for each individual polygon are set with layerId =
   output$map <- renderLeaflet({
-    leaflet() %>%
+    leaflet(options = leafletOptions(zoomControl = FALSE)) %>%
       addTiles(group = "Map View") %>%
       addProviderTiles(providers$Esri.WorldImagery, group = "Satellite View") %>%
       setView(lng = -84.3870, lat = 50.2538, zoom = 5) %>%
@@ -641,7 +674,7 @@ server <- function(input, output, session) {
         label = ~NAME_E
       ) %>%
       addDrawToolbar(
-        targetGroup = "Drawn extent",
+        targetGroup = "Your drawn landscape",
         editOptions = FALSE,
         circleOptions = FALSE,
         polygonOptions = TRUE,
@@ -654,7 +687,7 @@ server <- function(input, output, session) {
       addLayersControl(
         baseGroups = c("Map View", "Satellite View"),
         overlayGroups = c(
-          "Drawn extent", "Lower / single-tier municipalities", "Upper municipalities / districts", "Provincial parks", "National parks",
+          "Your drawn landscape", "Lower / single-tier municipalities", "Upper municipalities / districts", "Provincial parks", "National parks",
           "Conservation reserves", "Conservation areas", "Non-governmental organization<br>reserves", "Natural heritage value areas", "Natural heritage system areas",
           "Far North protected areas", "Municipal heritage areas", "Migratory bird sanctuaries", "National wildlife areas", "Wilderness areas",
           "Crown plan protected areas", "Provincial planned protected areas", "National capital valued ecosystem",
@@ -679,7 +712,14 @@ server <- function(input, output, session) {
       hideGroup(group = "Provincial planned protected areas") %>%
       hideGroup(group = "National capital valued ecosystem") %>%
       hideGroup(group = "Other effective area-based<br>conservation measures") %>%
-      hideGroup(group = "National parks")
+      hideGroup(group = "National parks") %>%
+      hideGroup(group = "Your drawn landscape") %>%
+      htmlwidgets::onRender("
+    function(el, x) {
+      var map = this;
+      L.control.zoom({ position: 'bottomright' }).addTo(map);
+    }
+  ")
   })
 
   # Schedule the removal of the loading notification after the rendering is complete
@@ -854,7 +894,6 @@ server <- function(input, output, session) {
       showNotification("Please draw a rectangle on the map or click on a polygon to set the extent", type = "warning")
       return()
     }
-
     # A notification to display until this code is finished running
     notification_id_extent <- showNotification("Setting extent and testing calculation viability...", type = "message", duration = NULL)
     # Create a buffer around the extent_coord, 0 if no value was input
@@ -1000,14 +1039,24 @@ server <- function(input, output, session) {
       legend_plot1 <- cowplot::get_plot_component(my_ggplot, 'guide-box-right', return_all = TRUE)
       legend_plot1_react(legend_plot1)
       
-
+      
+      plotly_object<-ggplotly(my_ggplot + theme(legend.position = "none",
+                                  axis.text = element_blank()),
+                tooltip = "value")
+      
+      # Combine plot objects into a list
+      plot_objects <- list(
+        legend = legend_plot1,
+        plotly = plotly_object
+      )
+      plot_rds(plot_objects)
       
       # Users can hover over the map output below and the raster value will appear.
       # I'm not totally happy with this - sometimes hover doesn't work.
-      ggplotly(my_ggplot + theme(legend.position = "none",
-                                 axis.text = element_blank()), 
-               tooltip = "value")
-      
+     ggplotly(my_ggplot + theme(legend.position = "none",
+                                axis.text = element_blank()), 
+              tooltip = "value")
+     
     })
     
     output$rasterPlot1legend <- renderPlot({
@@ -1015,6 +1064,10 @@ server <- function(input, output, session) {
       grid.newpage()
       grid.draw(legend_plot1)
     })
+    
+    
+
+    
   
     
     # If the 'areas of conservation concern' option is selected in the previous UI Segment 2,
@@ -1260,7 +1313,7 @@ server <- function(input, output, session) {
           tags$p(id = "mine_max_label", "Not included", style = "text-align: right; margin-top: -20px;")
         ),
         div(
-          sliderInput("amis_slider", HTML("<br><b>Abandoned mines</b><br><i>1 = Pixels with 1 or more abandoned mines are degraded.<br>3 = Only pixels with 3 abandoned 
+          sliderInput("amis_slider", HTML("<br><b>Abandoned mines</b><br><i>1 = Pixels with 1 or more abandoned mines are degraded.<br>3 = Only pixels with 3 or more abandoned 
                       mines are degraded.</i><br><br>"), min = 1, max = 4, value = 1, step = 1),
           tags$p(id = "amis_max_label", "Not included", style = "text-align: right; margin-top: -20px;")
         ),
@@ -1284,7 +1337,7 @@ server <- function(input, output, session) {
         ),
         div(
           sliderInput("undifferentiated_slider", HTML("<br><b>Undifferentiated land</b><br><i>1 = Brownfields and marginal farmland are considered degraded land. Note that any pixels classified as 'undifferentiated' 
-                      by the Southern Ontario Land Resource Information System, SOLRIS, that were also classified as 'good farmland' in the Canada Land Inventory will not be classed 
+                      by the Southern Ontario Land Resource Information System, SOLRIS, that are also classified as 'good farmland' in the Canada Land Inventory will not be classed 
                       as degraded here.</i><br><br>"), min = 1, max = 2, value = 1, step = 1),
           tags$p(id = "undifferentiated_max_label", "Not included", style = "text-align: right; margin-top: -20px;")
         )
@@ -1439,7 +1492,7 @@ server <- function(input, output, session) {
         # geom_sf(data = label_points_sf,
         #         aes(text = Label, color = Label), alpha = 0) +
         theme_minimal() + 
-        labs(title = "\nTarget landscape showing areas of degraded land\nand habitat classes considered suitable for restoration\n") +
+        labs(title = "\nTarget landscape showing degraded pixels and\nhabitat types considered suitable for restoration\n") +
         theme(panel.grid = element_blank(), legend.margin = margin(c(0,0,0,0)),
               legend.key.size = unit(1.5, "cm"), # Adjust legend key size
               legend.text = element_text(size = 12, face = "bold"), # Adjust legend text size
@@ -1855,7 +1908,7 @@ server <- function(input, output, session) {
     # Get the names of the selected habitat classes to exclude
     selected_labels <- names(land_class_mapping)[land_class_mapping %in% choices_reactive()]
 
-    multiple_checkbox("selected_habitats", "You may only be interested in patch size or heterogeneity of certain habitats, e.g., meadow and alvar. If you would like to exclude habitat classes from the calculations, please select them below:\n", choices = selected_labels)
+    multiple_checkbox("selected_habitats", HTML("You may be interested in calculating the benefit of restoring certain habitat types only. If you would like to exclude habitat classes from the patch size calculations, please select them below:<br><br>"),  choices = selected_labels)
   })
 
 
@@ -2013,7 +2066,6 @@ server <- function(input, output, session) {
 
     # Precompute values to save on overhead in the parallel process
     restored_values <- values(restored_land_values)
-    degraded_sa <- sa(sample_degraded_land_values)
     degraded_patch_size <- lsm_c_area_mn(sample_degraded_land_values)
 
     calculate_metrics <- function(combination, degraded_raster, excluded_classes) {
@@ -2029,10 +2081,10 @@ server <- function(input, output, session) {
 
       # Calculate the differences for each class
       patch_size_diffs <- setNames(modified_patch_size$value - degraded_patch_size$value, paste0("patch_size_diff_class", modified_patch_size$class))
-
+      
       # Combine the results
       c(
-        list(sa = sa(modified_raster), combination = paste(combination, collapse = "-")),
+        list(combination = paste(combination, collapse = "-")),
         patch_size_diffs
       )
     }
@@ -2045,13 +2097,12 @@ server <- function(input, output, session) {
     calculate_metrics_parallel <- function(combination) {
       excluded_classes <- as.numeric(selected_habitats)
       metrics <- calculate_metrics(combination, sample_degraded_land_values, excluded_classes)
-      sa_difference <- as.numeric(metrics$sa) - as.numeric(degraded_sa)
 
       # Extract patch size and cohesion differences
       patch_size_diffs <- metrics[names(metrics) %in% paste0("patch_size_diff_class", degraded_patch_size$class)]
 
       # Combine results into a data frame
-      data.frame(combination = metrics$combination, sa_difference, patch_size_diffs)
+      data.frame(combination = metrics$combination, patch_size_diffs)
     }
 
     # Use future_map_dfr to parallelize the computation for all combinations
@@ -2166,9 +2217,6 @@ server <- function(input, output, session) {
       # combine this patch size metric with the other results table
       hab_result_combined <- merge(result_habitat_data(), protected_result, by = "combination")
 
-      hab_result_combined <- hab_result_combined %>%
-        rename(habitat_heterogeneity_difference = sa_difference)
-
 
       result_habitat_data(hab_result_combined)
     }
@@ -2234,25 +2282,17 @@ server <- function(input, output, session) {
       # Round the values to 3 decimal places
       rounded_data <- result_habitat_data_updated()
       rounded_data[] <- lapply(rounded_data, function(x) if (is.numeric(x)) round(x, 3) else x)
-      # rename 'sa_difference' to 'Heterogeneity'
-      if("sa_difference" %in% names(rounded_data)) {
-        names(rounded_data)[names(rounded_data) == 'sa_difference'] <- 'Heterogeneity'
-      }
-      # rename 'habitat_heterogeneity_difference' to 'Heterogeneity'
-      if("habitat_heterogeneity_difference" %in% names(rounded_data)) {
-        names(rounded_data)[names(rounded_data) == 'habitat_heterogeneity_difference'] <- 'Heterogeneity'
-            }
       # rename 'protected_patch_size_difference' to 'Protected area patch size'
       if("protected_patch_size_difference" %in% names(rounded_data)) {
-        names(rounded_data)[names(rounded_data) == 'protected_patch_size_difference'] <- 'Protected area patch size'
+        names(rounded_data)[names(rounded_data) == 'protected_patch_size_difference'] <- 'Change in protected area patch size'
       }
       # rename 'sum_habitat_patch_size_diff' to 'Sum patch size' if present
       if("sum_habitat_patch_size_diff" %in% names(rounded_data)) {
-        names(rounded_data)[names(rounded_data) == 'sum_habitat_patch_size_diff'] <- 'Sum habitat patch size'
+        names(rounded_data)[names(rounded_data) == 'sum_habitat_patch_size_diff'] <- 'Sum change in habitat patch size'
       }
       # Use a pattern matching approach to rename the 'patch_size_diff' columns if they are present
       new_names <- names(rounded_data)
-      new_names <- gsub("^patch_size_diff_(.+?) \\(Class \\d+\\)$", "\\1 patch size", new_names)
+      new_names <- gsub("^patch_size_diff_(.+?) \\(Class \\d+\\)$", "Change in \\1 patch size", new_names)
       # Assign the new names back to the data frame
       names(rounded_data) <- new_names
       
@@ -2272,19 +2312,16 @@ server <- function(input, output, session) {
         # Combine CA number with pixel information
         paste0(ca_number, " (", num_pixels, " pixels)")
       })
-      datatable(rounded_data, rownames = FALSE, options = list(scrollX = TRUE), ,
+      datatable(rounded_data, rownames = FALSE, 
+                options = list(scrollX = TRUE),         
                 caption = htmltools::tags$caption(
-                  style = 'caption-side: top; text-align: left;',
-                  HTML("<br><strong style='font-size: 16px;'>Difference in mean patch size (hectares)
-                       and landscape heterogeneity between original and restored landscape for each candidate area.
-                       Positive values indicate that heterogeneity or patch size is greater in the restored landscape.
-                       Each candidate area has a unique ID (e.g, CA-001 (3 pixels) means candidate area 1, containing 3 pixels of degraded land).</strong>")))
+                  style = 'caption-side: top; text-align: left; white-space: pre-wrap; width: auto;',
+                  HTML("<br><strong style='font-size: 16px;'>Difference in average patch size (hectares) between original and restored landscape for each candidate area. Positive values indicate that patch size is greater in the restored landscape.</strong>")))
     })
     
     output$subtitleText1 <- renderUI({
       req(result_habitat_data_updated())  # Ensure that the table data is ready
-      HTML("<p style='font-size: 14px; text-align: left;'>**Heterogeneity was calculated as average roughness (absolute deviation of surface values from the mean),
-           see <a href='https://besjournals.onlinelibrary.wiley.com/doi/full/10.1111/2041-210X.13677#mee313677-tbl-0002' target='_blank'>Smith et al. 2021</a>.</p>")
+      HTML("<p style='font-size: 14px; text-align: left;'>**Each candidate area has a unique ID: CA_001 (3 pixels) means candidate area 1, containing 3 pixels of degraded land.</p>")
     })
     
   })
@@ -2414,7 +2451,7 @@ server <- function(input, output, session) {
       rounded_data <- result_connectivity()
       rounded_data[] <- lapply(rounded_data, function(x) if (is.numeric(x)) round(x, 3) else x)
       
-      # rename 'sa_difference' to 'Heterogeneity'
+      # rename 'reduced_resistance' to 'Reduced mean path resistance'
       if("reduced_resistance" %in% names(rounded_data)) {
         names(rounded_data)[names(rounded_data) == 'reduced_resistance'] <- 'Reduced mean path resistance'
       }
@@ -2436,7 +2473,15 @@ server <- function(input, output, session) {
           paste0(ca_number, " (", num_pixels, " pixels)")
         })
       
-      datatable(rounded_data, rownames = FALSE, options = list(scrollX = TRUE))
+      datatable(rounded_data, rownames = FALSE, options = list(scrollX = TRUE),
+                caption = htmltools::tags$caption(
+                  style = 'caption-side: top; text-align: left; white-space: pre-wrap; width: auto;',
+                  HTML("<br><strong style='font-size: 16px;'>Difference in mean path resistance between original and restored landscape for each candidate area. Positive values indicate less resistance in the restored landscape.</strong>")))
+    })
+
+     output$subtitleText2 <- renderUI({
+      req(result_connectivity())  # Ensure that the table data is ready
+      HTML("<p style='font-size: 14px; text-align: left;'>**Each candidate area has a unique ID (e.g, CA-001 (3 pixels) means candidate area 1, containing 3 pixels of degraded land).</p>")
     })
     
     
@@ -2451,33 +2496,32 @@ server <- function(input, output, session) {
     shinyjs::disable("calculate_env_metrics")
     shinyjs::disable("calculate_pca")
     notification_id_PCA <- showNotification("PCA calculation is running...", type = "message", duration = NULL)
-
     # Get all the environmental rasters from the reactive values
-    CLASS_00_env <- raster(croppedCLASS_00())
-    CLASS_05_env <- raster(croppedCLASS_05())
-    CLASS_06_env <- raster(croppedCLASS_06())
-    CLASS_12_env <- raster(croppedCLASS_12())
-    CLASS_13_env <- raster(croppedCLASS_13())
-    CLASS_14_env <- raster(croppedCLASS_14())
-    CLASS_15_env <- raster(croppedCLASS_15())
-    CLASS_16_env <- raster(croppedCLASS_16())
-    CLASS_18_env <- raster(croppedCLASS_18())
-    CLASS_21_env <- raster(croppedCLASS_21())
-    CLASS_23_env <- raster(croppedCLASS_23())
-    CLASS_24_env <- raster(croppedCLASS_24())
-    CLASS_25_env <- raster(croppedCLASS_25())
-    CLASS_26_env <- raster(croppedCLASS_26())
-    mean_temp_env <- raster(croppedmean_temp())
-    precipitation_env <- raster(croppedprecipitation())
-    Elevation_env <- raster(croppedElevation())
-    Soil_not_env <- raster(croppedSoil_not())
-    Soil_20_env <- raster(croppedSoil_20())
-    Soil_75_env <- raster(croppedSoil_75())
-    Soil_150_env <- raster(croppedSoil_150())
-    Soil_G150_env <- raster(croppedSoil_G150())
+    CLASS_00_env <- croppedCLASS_00()
+    CLASS_05_env <- croppedCLASS_05()
+    CLASS_06_env <- croppedCLASS_06()
+    CLASS_12_env <- croppedCLASS_12()
+    CLASS_13_env <- croppedCLASS_13()
+    CLASS_14_env <- croppedCLASS_14()
+    CLASS_15_env <- croppedCLASS_15()
+    CLASS_16_env <- croppedCLASS_16()
+    CLASS_18_env <- croppedCLASS_18()
+    CLASS_21_env <- croppedCLASS_21()
+    CLASS_23_env <- croppedCLASS_23()
+    CLASS_24_env <- croppedCLASS_24()
+    CLASS_25_env <- croppedCLASS_25()
+    CLASS_26_env <- croppedCLASS_26()
+    mean_temp_env <- croppedmean_temp()
+    precipitation_env <- croppedprecipitation()
+    Elevation_env <- croppedElevation()
+    Soil_not_env <- croppedSoil_not()
+    Soil_20_env <- croppedSoil_20()
+    Soil_75_env <- croppedSoil_75()
+    Soil_150_env <- croppedSoil_150()
+    Soil_G150_env <- croppedSoil_G150()
     
     # Create a rasterstack
-    raster_stack <- stack(
+    raster_stack <- c(
       mean_temp_env, precipitation_env, Elevation_env, Soil_not_env, Soil_20_env, Soil_75_env,
       Soil_150_env, Soil_G150_env, CLASS_00_env, CLASS_05_env, CLASS_06_env, CLASS_12_env,
       CLASS_13_env, CLASS_14_env, CLASS_15_env, CLASS_16_env, CLASS_18_env, CLASS_21_env,
@@ -2485,7 +2529,7 @@ server <- function(input, output, session) {
     )
 
     # create a rasterPCA with the raster stack (RStoolbox function)
-    pca_result_temp <- rasterPCA(raster_stack)
+    pca_result_temp <- rasterPCA(raster_stack, maskCheck=FALSE)
     # Store the PCA result in the reactive value
     pca_result(pca_result_temp)
 
@@ -2511,7 +2555,10 @@ server <- function(input, output, session) {
       pca_table[] <- lapply(pca_table, function(x) if (is.numeric(x)) round(x, 3) else x)
 
       row.names(pca_table) <- NULL
-      datatable(pca_table, rownames = FALSE, options = list(scrollX = TRUE))
+      datatable(pca_table, rownames = FALSE, options = list(scrollX = TRUE),
+                caption = htmltools::tags$caption(
+                  style = 'caption-side: top; text-align: left; white-space: pre-wrap; width: auto;',
+                  HTML("<br><strong style='font-size: 16px;'>Summary of each environmental principal component.</strong>")))
     })
     
     removeNotification(notification_id_PCA)
@@ -2534,7 +2581,7 @@ server <- function(input, output, session) {
 
     # Extracting the PCA rasters based on user input
     pca_rasters <- lapply(1:num_pcs, function(i) {
-      rast(pca_result()$map[[paste0("PC", i)]])
+      pca_result()$map[[i]]
     })
 
     start_time_env <- Sys.time()
@@ -2648,7 +2695,16 @@ server <- function(input, output, session) {
         paste0(ca_number, " (", num_pixels, " pixels)")
       })
       
-      datatable(rounded_data, rownames = FALSE, options = list(scrollX = TRUE))
+      datatable(rounded_data, rownames = FALSE, options = list(scrollX = TRUE),
+                caption = htmltools::tags$caption(
+                  style = 'caption-side: top; text-align: left; white-space: pre-wrap; width: auto;',
+                  HTML("<br><strong style='font-size: 16px;'>Difference in environmental heterogeneity between original and restored landscape for each candidate area and each principal component. Positive values indicate that environmental heterogeneity is greater in the restored landscape.</strong>")))
+    })
+
+    output$subtitleText3 <- renderUI({
+      req(result_env_data()) # Ensure that the table data is ready
+      HTML("<p style='font-size: 14px; text-align: left;'><em>In some cases, restoring degraded land will reduce overall heterogeneity of the landscape. Consider a situation where the landscape has only 10 total pixels; 3 pixels sample very different environments, and 7 are degraded but cover very similar environments. Restoring the 7 degraded pixels to one minimally varying environmental condition would reduce overall heterogeneity.</em><br>
+       <br>**Each candidate area has a unique ID (e.g., CA-001 (3 pixels) means candidate area 1, containing 3 pixels of degraded land).</p>")
     })
     
     
@@ -2693,6 +2749,7 @@ server <- function(input, output, session) {
     # Scale the columns except 'combination'
     columns_to_scale <- setdiff(names(merged_data), "combination")
     scaled_data <- as.data.frame(lapply(merged_data[columns_to_scale], scale))
+    colnames(scaled_data) <- colnames(merged_data[columns_to_scale])
     # Replace NAs with 0s after scaling (NAs were produced when the scale was applied to values of 0)
     scaled_data[is.na(scaled_data)] <- 0
     # Combine scaled columns with 'combination'
@@ -2704,22 +2761,13 @@ server <- function(input, output, session) {
       # Round the values to 3 decimal places
       rounded_data <- merged_data
       rounded_data[] <- lapply(rounded_data, function(x) if (is.numeric(x)) round(x, 3) else x)
-      
-      # rename 'sa_difference' to 'Heterogeneity'
-      if("sa_difference" %in% names(rounded_data)) {
-        names(rounded_data)[names(rounded_data) == 'sa_difference'] <- 'Heterogeneity'
-      }
-      # rename 'habitat_heterogeneity_difference' to 'Heterogeneity'
-      if("habitat_heterogeneity_difference" %in% names(rounded_data)) {
-        names(rounded_data)[names(rounded_data) == 'habitat_heterogeneity_difference'] <- 'Heterogeneity'
-      }
       # rename 'protected_patch_size_difference' to 'Protected area patch size'
       if("protected_patch_size_difference" %in% names(rounded_data)) {
-        names(rounded_data)[names(rounded_data) == 'protected_patch_size_difference'] <- 'Protected area patch size'
+        names(rounded_data)[names(rounded_data) == 'protected_patch_size_difference'] <- 'Change in protected area patch size'
       }
       # rename 'sum_habitat_patch_size_diff' to 'Sum patch size' if present
       if("sum_habitat_patch_size_diff" %in% names(rounded_data)) {
-        names(rounded_data)[names(rounded_data) == 'sum_habitat_patch_size_diff'] <- 'Sum habitat patch size'
+        names(rounded_data)[names(rounded_data) == 'sum_habitat_patch_size_diff'] <- 'Sum change in habitat patch size'
       }
       # rename 'reduced_resistance' to 'Reduced mean path resistance'
       if("reduced_resistance" %in% names(rounded_data)) {
@@ -2727,7 +2775,7 @@ server <- function(input, output, session) {
       }
       # Use a pattern matching approach to rename the 'patch_size_diff' and 'ENV_PC' columns if they are present
       new_names <- names(rounded_data)
-      new_names <- gsub("^patch_size_diff_(.+?) \\(Class \\d+\\)$", "\\1 patch size", new_names)
+      new_names <- gsub("^patch_size_diff_(.+?) \\(Class \\d+\\)$", "Change in \\1 patch size", new_names)
       new_names <- gsub("Env_PC(\\d+)_sa_diff", "PC\\1 environmental heterogeneity", new_names)
       names(rounded_data) <- new_names
       
@@ -2760,7 +2808,14 @@ server <- function(input, output, session) {
         paste0(ca_number, " (", num_pixels, " pixels)")
       })
       final_data_table(rounded_data)
-      datatable(rounded_data, rownames = FALSE, options = list(scrollX = TRUE))
+      rounded_data <- rounded_data[ , !names(rounded_data) %in% "Pixels"]
+      datatable(rounded_data, rownames = FALSE, options = list(scrollX = TRUE),
+                caption = htmltools::tags$caption(
+                  style = 'caption-side: top; text-align: left; white-space: pre-wrap; width: auto;',
+                  HTML("<br><strong style='font-size: 16px;'>Summary of scaled landscape metrics.</strong>")))
+    })
+      output$subtitleText4 <- renderUI({
+      HTML("<p style='font-size: 14px; text-align: left;'>**Each candidate area has a unique ID (e.g, CA-001 (3 pixels) means candidate area 1, containing 3 pixels of degraded land).</p>")
     })
   })
 
@@ -2768,24 +2823,34 @@ server <- function(input, output, session) {
 
   # Code to create the metrics weighting UI element
   output$weights_ui <- renderUI({
-      merged_data<-final_data_table()
-
-      # Exclude some columns to get variable names
-      vars <- setdiff(names(merged_data), c("Pixels", "Candidate area"))
-
-      # Generate UI inputs for all variables
-      lapply(vars, function(var) {
-        numericInput(
-          inputId = paste0("weight_", gsub("[^a-zA-Z0-9]", "_", var)),
-          label = paste("Weight for", var, ":"),
-          value = 1
-        )
-      })
+    merged_data <- final_data_table()
+    
+    # Exclude some columns to get variable names
+    vars <- setdiff(names(merged_data), c("Pixels", "Candidate area"))
+    
+    # Identify the variables with "patch size" in their name
+    patch_size_vars <- grep("patch size", vars, value = TRUE, ignore.case = TRUE)
+    n_patch_size_vars <- length(patch_size_vars)
+    
+    # Set the default value for patch size variables and round to 3 decimal places
+    patch_size_value <- if (n_patch_size_vars > 0) round(1 / n_patch_size_vars, 3) else 1
+    
+    # Generate UI inputs for all variables
+    lapply(vars, function(var) {
+      # Determine the value based on whether the variable is a patch size or not
+      default_value <- if (var %in% patch_size_vars) patch_size_value else 1
+      
+      numericInput(
+        inputId = paste0("weight_", gsub("[^a-zA-Z0-9]", "_", var)),
+        label = paste("Weight for", var, ":"),
+        value = default_value
+      )
+    })
   })
-
+  
   # Code to ensure a valid top combinations input value always exists to prevent crashing
   input_num_top_combinations_counter <- reactiveVal(0)
-  num_top_combinations_react<-reactiveVal()
+  num_top_combinations_react<-reactiveVal(1)
   
   # Increment the counter each time the top combinations input changes
   observeEvent(input$num_top_combinations, {
@@ -2793,7 +2858,7 @@ server <- function(input, output, session) {
   })
   
   observeEvent(input$num_top_combinations, {
-    if (input_num_top_combinations_counter() > 1) {
+    if (input_num_top_combinations_counter() >= 1) {
       if (!is.null(input$num_top_combinations) && input$num_top_combinations >= 1) {
         num_top_combinations_react(input$num_top_combinations)
       } else {
@@ -2802,9 +2867,6 @@ server <- function(input, output, session) {
     }
   })
 
-  
-  
-  
   observeEvent(input$find_best_comb, {
     # Merging the data sets
     merged_data <- final_data_table()
@@ -2817,7 +2879,6 @@ server <- function(input, output, session) {
       weight_input_id <- paste0("weight_", gsub("[^a-zA-Z0-9]", "_", var))
       merged_data[[var]] <- merged_data[[var]] * input[[weight_input_id]]
     }
-    
     # Calculate the sum of weighted values for each combination
     merged_data$`Sum weighted` <- rowSums(merged_data[, vars, drop = FALSE])
     merged_data_reactive(merged_data)
@@ -2825,6 +2886,7 @@ server <- function(input, output, session) {
     # Identify the top N combinations with the maximum sum of weighted values
     num_top_combinations<-num_top_combinations_react()
     top_combinations <- merged_data[order(merged_data$`Sum weighted`, decreasing = TRUE), ][1:num_top_combinations, "Pixels"]
+    top_combinations_text <-merged_data[order(merged_data$`Sum weighted`, decreasing = TRUE), ][1:num_top_combinations, c("Pixels", "Candidate area")]
     
     # Convert top_combinations to a data frame
     top_combinations <- data.frame(Pixels = top_combinations)
@@ -2834,14 +2896,14 @@ server <- function(input, output, session) {
     
     # Render the best combination index as text in the UI
     output$bestCombinationName <- renderUI({
-      formatted_output <- mapply(function(i, comb) {
+      formatted_output <- mapply(function(i, CA) {
         paste0(
           "<div>",
-          paste0("<b>#", i, "&nbsp;&nbsp;&nbsp;", "<br>Index:&nbsp;&nbsp;&nbsp;", comb, "</b>"),
+          paste0("<b>#", i, ":&nbsp;&nbsp;&nbsp;", CA, "</b>"),
           "</div>\n",
           ifelse(i < num_top_combinations, "<br>", "")
         )
-      }, 1:num_top_combinations, top_combinations$Pixels)
+      }, 1:num_top_combinations, top_combinations_text$`Candidate area`)
       
       HTML(paste(formatted_output, collapse = ""))
     })
@@ -2851,28 +2913,23 @@ server <- function(input, output, session) {
     all_indices <- 1:length(values(degraded_pixels()))
     
     plot_polygons <- list()
-    # browser()
     for (i in 1:nrow(top_combinations)) {
       comb <- unlist(strsplit(as.character(top_combinations[i, "Pixels"]), "-"))
       # Subset the pixels for the current combination
       comb_pixels <- plot_pixels
       comb_pixels[-as.integer(comb)] <- NA
+      crs(comb_pixels) <- "EPSG:3162"
       
-      # Define target CRS
-      target_crs <- "+proj=longlat +datum=WGS84"
+      # Convert raster pixels to polygons
+      comb_pixels <- as.polygons(comb_pixels, dissolve = TRUE)
+      # Convert Polygons to sf object
+      comb_pixels_sf <- st_as_sf(comb_pixels)
       
-      # Reproject the raster using stars for accurate transformation
-      # Convert SpatRaster to stars object
-      comb_pixels_stars <- st_as_stars(comb_pixels)
-      
-      # Warp the stars object to the target CRS
-      comb_pixels_stars <- st_warp(comb_pixels_stars, crs = target_crs)
-      
-      # Convert the reprojected stars object to polygons
-      comb_pixels_sf <- st_as_sf(comb_pixels_stars, merge = FALSE, as_points = FALSE, na.rm = TRUE)
+      # Re-project the sf object to EPSG:4326
+      comb_pixels_sf <- st_transform(comb_pixels_sf, crs = 4326)
       
       # Assign labels to each polygon
-      comb_pixels_sf$label <- as.character(i) #Warning: Error in [[<-.data.frame: replacement has 1 row, data has 0 sometimes occurs
+      comb_pixels_sf$label <- as.character(i)
       
       # Store polygons in the list
       plot_polygons[[i]] <- comb_pixels_sf
@@ -2891,41 +2948,75 @@ server <- function(input, output, session) {
     # Ensure centroids keep the label information
     centroids$label <- plot_pixels_sf$label
     
-    # Use the centroids and labels from plot_pixels_sf when adding labels to the map
     output$map_best_comb <- renderLeaflet({
-      leaflet() %>%
+      
+      # Convert the extent to an sf object
+      extent_sf <- st_as_sfc(st_bbox(output_extent(), crs = st_crs(3162)))
+      
+      # Transform the extent to WGS84
+      extent_wgs84 <- st_transform(extent_sf, crs = 4326)
+      
+      # Extract the coordinates for the bounding box in WGS84 as a list
+      bbox <- as.list(st_bbox(extent_wgs84))
+      
+      leaflet(options = leafletOptions(zoomControl = FALSE)) %>%
+        addControl(
+          html = "<h4 style='text-align: center; margin: 0;'>Top candidate areas for restoration</h4>", 
+          position = "topleft"
+        ) %>%
         addTiles(group = "Map View") %>%
         addProviderTiles(providers$Esri.WorldImagery, group = "Satellite View") %>%
-        setView(lng = -84.3870, lat = 50.2538, zoom = 5) %>%
+        fitBounds(lng1 = bbox$xmin, lat1 = bbox$ymin, 
+                  lng2 = bbox$xmax, lat2 = bbox$ymax) %>%
         addPolygons(
           data = plot_pixels_sf,
-          fillColor = "turquoise",
+          fillColor = "deeppink",
           fillOpacity = 0.7,
           color = "black",
-          weight = 0.5
+          weight = 0.5,
+          group = "Top Candidate Areas"  # Specify the group name for the polygons
         ) %>%
         addLabelOnlyMarkers(
           lng = centroid_coords[, 1],  # Longitude of the centroid
           lat = centroid_coords[, 2],  # Latitude of the centroid
           label = centroids$label,  # Use the labels from the centroids
-          labelOptions = labelOptions(noHide = TRUE, textOnly = TRUE)
+          labelOptions = labelOptions(noHide = TRUE, textOnly = TRUE, style = list(
+            "font-weight" = "bold",
+            "font-size" = "14px"
+          ))
         ) %>%
-      addLayersControl(
-        baseGroups = c("Map View", "Satellite View"))
+        addLayersControl(
+          baseGroups = c("Map View", "Satellite View"),
+          overlayGroups = c("Top Candidate Areas"),
+          options = layersControlOptions(collapsed = FALSE)
+        ) %>%
+        htmlwidgets::onRender("
+    function(el, x) {
+      var map = this;
+      L.control.zoom({ position: 'bottomright' }).addTo(map);
+    }
+  ")
     })
     
     # Create a list to store individual plot outputs
     plot_outputs <- lapply(seq_len(nrow(top_combinations)), function(i) {
       comb <- top_combinations$Pixels[i]
-      
       # Crop the 'Ontario_land_cover' raster to the specified extent
       cropped_raster <- cropped_polyrast()
       cropped_raster <- ifel(!is.na(cropped_raster), croppedOntario(), cropped_raster)
       
+      # Here add the buffer
+      buffered_landscape <- polyrast_plot()
+      buffered_landscape <- resample(buffered_landscape, cropped_raster, method = "near")
+      # Identify pixels that are non-NA in target_landscape but NA in cropped_raster
+      mask_raster <- !is.na(buffered_landscape) & is.na(cropped_raster)
+      # Assign a value of 300 to those pixels in cropped_raster
+      cropped_raster[mask_raster] <- 300
+      
       # Generate unique output ID for each plot
       output_id <- paste0("plot_", i)
       
-	    land_cover_labels <- land_cover_labels_react()
+      land_cover_labels <- land_cover_labels_react()
       
       # Extract pixel indices from the combination string
       best_combination_indices <- as.numeric(strsplit(comb, "-")[[1]])
@@ -2940,27 +3031,16 @@ server <- function(input, output, session) {
       values(cat_raster) <- mapped_values
       levels(cat_raster) <- data.frame(ID = 1:length(levels(mapped_values)), LC = levels(mapped_values))
       
-      # Define colors
+      # Define colors based on the reactive land_cover_labels
       num_classes <- length(levels(mapped_values))
-      color_palette <- viridis(num_classes, direction = -1)
+      color_palette <- land_cover_labels$color[match(levels(mapped_values), land_cover_labels$Land_Class)]
       
-      degraded_idx <- which(levels(mapped_values) == "Degraded")
-      if (length(degraded_idx) > 0) color_palette[degraded_idx] <- "orangered"
-      
-      priority_idx <- which(levels(mapped_values) == "Priority pixels")
-      if (length(priority_idx) > 0) color_palette[priority_idx] <- "turquoise1"
-      
-      protected_idx <- which(levels(mapped_values) == "Included")
-      if (length(protected_idx) > 0) color_palette[protected_idx] <- "lightseagreen"
-      
-      not_protected_idx <- which(levels(mapped_values) == "Not included")
-      if (length(not_protected_idx) > 0) color_palette[not_protected_idx] <- "yellow2"
-      
-      plot(cat_raster, main = paste("Top combination", i), col = color_palette)
-      
-      # Plot the cropped raster
+      # Plot the cropped raster with the custom colors
       output[[output_id]] <- renderPlot({
-        plot(cat_raster, main = paste("#", i), col = color_palette)
+        plot(cat_raster, main = paste("Candidate area for restoration #", i, ":", top_combinations_text$`Candidate area`[i]), col = color_palette, 
+             axes = FALSE, 
+             box = FALSE)
+        # box(lty = "blank")  # Remove the plot border
       })
       
       plotOutput(output_id)
@@ -3032,7 +3112,6 @@ server <- function(input, output, session) {
     }
   )
   
-  
   # Download KML button
   output$downloadKML <- downloadHandler(
     filename = function() {
@@ -3047,6 +3126,19 @@ server <- function(input, output, session) {
       }
     }
   )
+  
+  output$downloadplotRDS <- downloadHandler(
+    filename = function() {
+      # Define the name of the downloaded file
+      paste(input$landscape_name, "_", Sys.Date(), ".RDS", sep = "")
+    },
+    content = function(file) {
+      plot_objects<-plot_rds()
+      # Save the list as an RDS file to the provided file path
+      saveRDS(plot_objects, file = file, compress = "xz")
+    }
+  )
+  
   # End of the single landscape analysis
 
 
@@ -3104,7 +3196,7 @@ server <- function(input, output, session) {
       polygons_list[[length(polygons_list) + 1]] <- sfc_polygon
 
       # Read and store data, skipping the first two lines (the extent information)
-      df <- read.csv(file, skip = 2, stringsAsFactors = FALSE, sep = ",")
+      df <- read.csv(file, skip = 2, stringsAsFactors = FALSE, sep = ",", check.names = FALSE)
       df <- df[, names(df) != "Sum weighted"]
       if (nrow(df) == 0) {
         stop("One of the files is empty: ", file)
@@ -3135,7 +3227,15 @@ server <- function(input, output, session) {
     rounded_data <- landscape_merged()$data
     rounded_data[] <- lapply(rounded_data, function(x) if (is.numeric(x)) round(x, 3) else x)
     
-    datatable(rounded_data, rownames = FALSE, options = list(scrollX = TRUE))
+    datatable(rounded_data, rownames = FALSE, options = list(scrollX = TRUE),
+              caption = htmltools::tags$caption(
+                style = 'caption-side: top; text-align: left; white-space: pre-wrap; width: auto;',
+                HTML("<br><strong style='font-size: 16px;'>Previously calculated metrics for candidate areas within the selected landscapes.</strong>")))
+  })
+
+  output$subtitleText5 <- renderUI({
+    req(landscape_merged()$data)  # Ensure that the table data is ready
+    HTML("<p style='font-size: 14px; text-align: left;'>**Each candidate area has a unique ID (e.g, CA-001 (3 pixels) means candidate area 1, containing 3 pixels of degraded land).</p>")
   })
 
 
@@ -3230,18 +3330,17 @@ server <- function(input, output, session) {
       values(cropped_raster)[best_combination_indices] <- 101
       cropped_raster[cropped_raster != 101] <- NA
       
-      # Define target CRS
-      target_crs <- "+proj=longlat +datum=WGS84"
       
-      # Reproject the raster using stars for accurate transformation
-      # Convert SpatRaster to stars object
-      plot_pixels_stars <- st_as_stars(cropped_raster)
-      
-      # Warp the stars object to the target CRS
-      plot_pixels_stars <- st_warp(plot_pixels_stars, crs = target_crs)
+      # Create a new, finer resolution raster template to minimize re-sampling distortions
+      finer_raster <- rast(ext(cropped_raster), nrow = nrow(cropped_raster) * 15, ncol = ncol(cropped_raster) * 15)
+      # Resample to the finer resolution
+      comb_pixels_resampled <- resample(cropped_raster, finer_raster, method = "near")
+      # Now re-project to WGS84
+      comb_pixels_reproj <- project(comb_pixels_resampled, "EPSG:4326", method = "near")
+      comb_pixels_stars <- st_as_stars(comb_pixels_reproj)
       
       # Convert the reprojected stars object to polygons
-      plot_pixels_sf <- st_as_sf(plot_pixels_stars, merge = FALSE, as_points = FALSE, na.rm = TRUE)
+      plot_pixels_sf <- st_as_sf(comb_pixels_stars, merge = TRUE, as_points = FALSE, na.rm = TRUE)
       
       # Store the plot_pixels_sf in the KML_output list
       KML_output[[i]] <- plot_pixels_sf
@@ -3399,109 +3498,79 @@ server <- function(input, output, session) {
   )
   
   
+  # Linked to UI Segment 21, Visualizing landscapes based on RDS files ----
   
+  library(tools)  # For file_path_sans_ext
+  loaded_plots <- reactiveVal(list())
   
-  
-  
-
-  # Linked to UI Segment 21, Visualizing landscapes based on CSVs ----
-
-  # Create a reactiveValues object to store compared extents
-  vis_compared_extents <- reactiveValues(extents = list())
-
-  # Reactive expression to join .csv files, and extract extents for mapping
-  vis_landscape_merged <- reactive({
+  observeEvent(input$view_landscapes, {
     req(input$vis_fileInput)
-    files <- input$vis_fileInput$datapath
-
-    for (file in files) {
-      # Read the extents from the CSV file
-      extent_df <- read.csv(file, nrows = 1, header = FALSE, skip = 1, sep = ",")
-
-      # Extract extent values using indices and ensure they are numeric
-      xmin <- as.numeric(extent_df[1, 1])
-      ymin <- as.numeric(extent_df[1, 2])
-      xmax <- as.numeric(extent_df[1, 3])
-      ymax <- as.numeric(extent_df[1, 4])
-
-      landscape <- read.csv(file, nrows = 1, header = FALSE, skip = 3)[1, 1]
-
-      # Store extent values in compared_extents reactiveValues
-      vis_compared_extents$extents[[landscape]] <- c(xmin = xmin, ymin = ymin, xmax = xmax, ymax = ymax)
+    
+    # Initialize a list to store plot objects
+    plot_list <- list()
+    
+    # Retrieve file names
+    file_names <- input$vis_fileInput$name
+    
+    # Loop through each uploaded file
+    for (i in seq_along(input$vis_fileInput$datapath)) {
+      file <- input$vis_fileInput$datapath[i]
+      file_name <- tools::file_path_sans_ext(file_names[i])
+      
+      # Read the RDS file
+      plot_objects <- readRDS(file)
+      
+      # Print the file name for debugging
+      print(paste("Processing file:", file_name))
+      
+      # Ensure the RDS file contains the expected plot elements
+      if (is.list(plot_objects) && all(c("plotly", "legend") %in% names(plot_objects))) {
+        # Update the Plotly plot title
+        plot_objects$plotly <- plot_objects$plotly %>%
+          layout(title = file_name)
+        
+        # Append the plots to the list
+        plot_list[[file_name]] <- plot_objects
+      } else {
+        showNotification("Invalid RDS file format. Expected a list with plotly and legend elements.", type = "error")
+      }
+    }
+    
+    # Update the reactive value with the loaded plots
+    loaded_plots(plot_list)
+    
+ 
+    output$vis_dynamicPlots <- renderUI({
+      plot_output_list <- lapply(seq_along(plot_list), function(i) {
+        file_name <- names(plot_list)[i]
+        plot_objects <- plot_list[[file_name]]
+        
+        # Create UI for each plotly plot and legend
+        fluidRow(
+          column(width = 6, plotlyOutput(outputId = paste0("plotly_", i), height = "800px")),
+          column(width = 6, plotOutput(outputId = paste0("legend_", i), height = "800px"))
+        )
+      })
+      do.call(tagList, plot_output_list)
+    })
+    
+    for (i in seq_along(plot_list)) {
+      local({
+        my_i <- i
+        file_name <- names(plot_list)[my_i]
+        plot_objects <- plot_list[[file_name]]
+        
+        output[[paste0("plotly_", my_i)]] <- renderPlotly({
+          plot_objects$plotly
+        })
+        
+        output[[paste0("legend_", my_i)]] <- renderPlot({
+          grid.newpage()
+          grid.draw(plot_objects$legend)
+        })
+      })
     }
   })
-
-  observeEvent(input$view_landscapes, {
-    # Trigger the reading and processing of CSV files
-    vis_landscape_merged()
-
-    # Create a list to store individual plot outputs
-    plot_outputs <- lapply(names(vis_compared_extents$extents), function(landscape) {
-      # Retrieve extent values from compared_extents reactiveValues
-      extent_values <- vis_compared_extents$extents[[landscape]]
-
-      # Create an Extent object
-      extent_object <- extent(extent_values[1], extent_values[3], extent_values[2], extent_values[4])
-
-      # Crop the 'Ontario_land_cover' raster to the specified extent
-      cropped_raster <- crop(Ontario_land_cover, extent_object)
-
-      # Generate unique output ID for each plot
-      output_id <- paste0("plot_", landscape)
-
-	land_cover_labels <- land_cover_labels_react()
-
-      # Match raster values to land cover classes and convert to factor
-      mapped_values <- factor(land_cover_labels$Land_Class[match(values(cropped_raster), land_cover_labels$Value)])
-
-      # Create a categorical raster and set its categories
-      cat_raster <- rast(cropped_raster)
-      values(cat_raster) <- mapped_values
-      levels(cat_raster) <- data.frame(ID = 1:length(levels(mapped_values)), LC = levels(mapped_values))
-
-      num_classes <- length(levels(mapped_values))
-      color_palette <- viridis(num_classes, direction = -1)
-
-      # Plot the cropped raster
-      output[[output_id]] <- renderPlot({
-        plot(cat_raster, main = paste(landscape), col = color_palette)
-      })
-
-      # Add habitat breakdown table for each plot - similar to what was done in segment 4 of the single landscape analysis
-      habitat_breakdown_id <- paste0("habitatBreakdown_", landscape)
-      output[[habitat_breakdown_id]] <- renderTable({
-        # Calculate the percentage breakdown of habitat classes
-        habitat_counts <- table(mapped_values)
-
-        # Calculate percentages
-        habitat_percentages <- prop.table(habitat_counts) * 100
-
-        # Create a data frame with the breakdown
-        breakdown_df <- data.frame(
-          Habitat_Class = names(habitat_counts),
-          Percentage = habitat_percentages
-        )
-        names(breakdown_df)[ncol(breakdown_df)] <- "% of landscape"
-        names(breakdown_df)[1] <- "Habitat class"
-        breakdown_df$Percentage.mapped_values <- NULL
-        # Return the breakdown table
-        breakdown_df
-      })
-
-      # Return the plot and habitat breakdown UI components
-      tagList(
-        plotOutput(output_id),
-        tableOutput(habitat_breakdown_id)
-      )
-    })
-
-    # Output the list of plot outputs
-    output$vis_dynamicPlots <- renderUI({
-      plot_outputs
-    })
-  })
-  
-  
   
   
 #Linked to UI Segment 22, Batch Processing-----
@@ -4029,7 +4098,6 @@ server <- function(input, output, session) {
         
         # Precompute values to save on overhead in the parallel process
         restored_values <- values(restored_land_values)
-        degraded_sa <- sa(sample_degraded_land_values)
         degraded_patch_size <- lsm_c_area_mn(sample_degraded_land_values)
         
         calculate_metrics <- function(combination, degraded_raster) {
@@ -4046,7 +4114,7 @@ server <- function(input, output, session) {
           
           # Combine the results
           c(
-            list(sa = sa(modified_raster), combination = paste(combination, collapse = "-")),
+            list(combination = paste(combination, collapse = "-")),
             patch_size_diffs
           )
         }
@@ -4057,13 +4125,12 @@ server <- function(input, output, session) {
         calculate_metrics_parallel <- function(combination) {
           
           metrics <- calculate_metrics(combination, sample_degraded_land_values)
-          sa_difference <- as.numeric(metrics$sa) - as.numeric(degraded_sa)
           
           # Extract patch size and cohesion differences
           patch_size_diffs <- metrics[names(metrics) %in% paste0("patch_size_diff_class", degraded_patch_size$class)]
           
           # Combine results into a data frame
-          data.frame(combination = metrics$combination, sa_difference, patch_size_diffs)
+          data.frame(combination = metrics$combination, patch_size_diffs)
         }
         
         # Use future_map_dfr to parallelize the computation for all combinations
@@ -4170,9 +4237,6 @@ server <- function(input, output, session) {
           
           # combine this patch size metric with the other results table
           hab_result_combined <- merge(result_habitat_data(), protected_result, by = "combination")
-          
-          hab_result_combined <- hab_result_combined %>%
-            rename(habitat_heterogeneity_difference = sa_difference)
           
           
           result_habitat_data(hab_result_combined)
@@ -4392,6 +4456,7 @@ server <- function(input, output, session) {
                   # Scale the columns except 'combination'
                   columns_to_scale <- setdiff(names(merged_data), "combination")
                   scaled_data <- as.data.frame(lapply(merged_data[columns_to_scale], scale))
+		              colnames(scaled_data) <- colnames(merged_data[columns_to_scale])
                   # Replace NAs with 0s after scaling
                   scaled_data[is.na(scaled_data)] <- 0
                   # Combine scaled columns with 'combination'
@@ -4402,8 +4467,57 @@ server <- function(input, output, session) {
                     merged_data <- merged_data_reactive() # bring it out of the reactive value
                     
                     # Add a new column 'landscape' with the provided landscape name to the merged data
-                    merged_data$landscape <- landscape_name
-                    merged_data <- merged_data[c("landscape", names(merged_data)[names(merged_data) != "landscape"])]
+                    merged_data$Landscape <- landscape_name
+                    merged_data <- merged_data[c("Landscape", names(merged_data)[names(merged_data) != "Landscape"])]
+                    # rename 'protected_patch_size_difference' to 'Protected area patch size'
+                    if("protected_patch_size_difference" %in% names(rounded_data)) {
+                      names(rounded_data)[names(rounded_data) == 'protected_patch_size_difference'] <- 'Change in protected area patch size'
+                    }
+                    # rename 'sum_habitat_patch_size_diff' to 'Sum patch size' if present
+                    if("sum_habitat_patch_size_diff" %in% names(rounded_data)) {
+                      names(rounded_data)[names(rounded_data) == 'sum_habitat_patch_size_diff'] <- 'Sum change in habitat patch size'
+                    }
+                    # rename 'reduced_resistance' to 'Reduced mean path resistance'
+                    if("reduced_resistance" %in% names(merged_data)) {
+                      names(merged_data)[names(merged_data) == 'reduced_resistance'] <- 'Reduced mean path resistance'
+                    }
+                    # Use a pattern matching approach to rename the 'patch_size_diff' and 'ENV_PC' columns if they are present
+                    new_names <- names(merged_data)
+                    new_names <- gsub("^patch_size_diff_(.+?) \\(Class \\d+\\)$", "Change in \\1 patch size", new_names)
+                    new_names <- gsub("Env_PC(\\d+)_sa_diff", "PC\\1 environmental heterogeneity", new_names)
+                    names(merged_data) <- new_names
+                    
+                    extract_first_number <- function(x) {
+                      as.numeric(sub("-.*", "", x))
+                    }
+                    # Apply the function to the 'combination' column
+                    first_numbers <- sapply(merged_data$combination, extract_first_number)
+                    # Sort the dataframe based on the first pixel index
+                    merged_data <- merged_data[order(first_numbers), ]
+                    
+                    # Add pixels column
+                    merged_data$Pixels<-merged_data$combination
+                    
+                    
+                    # Rename 'combination' column to 'Candidate area'
+                    names(merged_data)[names(merged_data) == 'combination'] <- 'Candidate area'
+                    # Get the total number of rows
+                    total_rows <- nrow(merged_data)
+                    # Determine the number of zeros needed based on the total number of rows
+                    num_zeros <- nchar(as.character(total_rows))
+                    # Generate the new values for the 'Candidate area' column
+                    merged_data$`Candidate area` <- sapply(1:total_rows, function(i) {
+                      # Count the number of '-' in the original entry
+                      original_value <- merged_data$`Candidate area`[i]
+                      num_pixels <- str_count(original_value, "-") + 1
+                      # Generate the CA number with leading zeros
+                      ca_number <- sprintf(paste0("CA_%0", num_zeros, "d"), i)
+                      # Combine CA number with pixel information
+                      paste0(ca_number, " (", num_pixels, " pixels)")
+                    })
+                    
+                    
+                    
                     merged_data_reactive(merged_data)
                     
                     
@@ -4411,8 +4525,6 @@ server <- function(input, output, session) {
                     #Generate a filename based on landscape_name and current date/time
                     filename <- paste(landscape_name, "_", Sys.Date(), ".csv", sep = "")
                     csv_filename <- file.path(temp_dir, filename)
-                    
-
 
                     # Get the extent object from the reactive value
                     extent <- output_extent()
@@ -4483,43 +4595,99 @@ ui <- shinyUI(semanticPage(
   title = "Restoration Prioritization",
   useShinyjs(),
 
+# Custom CSS for styling the splash page
+  tags$head(
+    tags$style(HTML("
+      .splash-container {
+        position: relative;
+        width: 100%;
+        height: 100vh;
+        background-size: cover;
+        background-position: center;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        text-align: center;
+        color: white;
+      }
+      .splash-title {
+        font-family: 'Arial', sans-serif;
+        font-size: 3em;
+        font-weight: bold;
+        text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+        margin-bottom: 20px;
+      }
+      .splash-text-container {
+        background-color: rgba(255, 255, 255, 0.8);
+        padding: 20px;
+        border-radius: 10px;
+        max-width: 600px;
+        margin-bottom: 30px;
+      }
+      .splash-text {
+        font-family: 'Arial', sans-serif;
+        font-size: 1.2em;
+        color: black;
+      }
+      .go-button {
+        background-color: #4CAF50; /* Green */
+        border: none;
+        color: white;
+        padding: 15px 32px;
+        text-align: center;
+        text-decoration: none;
+        display: inline-block;
+        font-size: 1.2em;
+        font-weight: bold;
+        border-radius: 8px;
+        cursor: pointer;
+        transition: background-color 0.3s;
+      }
+      .go-button:hover {
+        background-color: #45a049;
+      }
+    "))
+  ),
+
+  # Splash page content
+  uiOutput("splash"),
+
   ## Segment 1: Initial Choice for app use ----
   conditionalPanel(
-    condition = "!output.showSingleLandscape && !output.showMultipleLandscapes && !output.showLandscapeVisualizer && !output.showBatchProcessing",
+        condition = "input.go_button > 0 && !output.showSingleLandscape && !output.showMultipleLandscapes && !output.showLandscapeVisualizer && !output.showBatchProcessing",
     segment(
       div(style = "font-size: 18px; font-weight: bold; margin-bottom: 15px;", HTML("<br><br>Choosing an analysis type")),
-      p(HTML("This application aims to identify degraded land areas within a chosen geographic region and determine which areas, when restored to nearby natural habitat types, will provide the greatest benefit based on user-selected criteria. <br><br>
-      The entire province is divided into 300 by 300-metre units, called 'pixels'. Each pixel contains information on habitat type, environment, potential degradation sources (e.g., light pollution, mining activity), and the ease with which animals can move through the area ('movement cost'). While data is available for every pixel in the province, analyzing the entire province at once is impractical due to high computational costs and limited usefulness for restoration planners. Instead, you may select a specific segment of the province to analyze. <br><br>
+      p(HTML("The province of Ontario is divided into 300 by 300 metre units, called 'pixels'. Each pixel contains information on habitat type, environment, potential degradation sources (e.g., light pollution, mining activity), and how easily it can be used by organisms crossing the landscape ('movement cost'). Analyzing the entire province at once is impractical due to high computational costs. Instead, select one or more specific landscapes to analyze or compare across previously analyzed landscapes. <br><br>
 <b>Choose an option to continue:</b><br>")),
       actionButton("single_landscape", "Calculate metrics for a single landscape"),
       br(),
       p(HTML("<i><p style='margin-left: 25px;'>Choose this if it’s your first time using the app or if you want to analyze a single landscape. This option will output app results in a single .csv file for review.</p></i>")),
+      actionButton("batch_processing", "Calculate metrics for all landscapes of a given category"),
+      br(),
+      p(HTML("<i><p style='margin-left: 25px;'>Choose this to calculate metrics for multiple landscapes belonging to a particular category (e.g., muncipalities, provincial parks).</p></i>")),
       actionButton("multiple_landscapes", "Compare metrics across multiple landscapes"),
       br(),
-      p(HTML("<i><p style='margin-left: 25px;'>Select this option if you want to compare restoration priorities across multiple landscapes. You must first create at least two results .csv files using the option above to compare multiple landscapes.</p></i>")),
+      p(HTML("<i><p style='margin-left: 25px;'>Choose this if you want to compare restoration priorities across multiple landscapes. You must first create at least two results .csv files using the single landscape or category options.</p></i>")),
       actionButton("landscape_visualizer", "Visualize landscape(s)"),
       br(),
-      p(HTML("<i><p style='margin-left: 25px;'>Use this to visualize the habitat classes of one or more landscapes based on results .csv files.</p></i>")),
-      actionButton("batch_processing", "Calculate landscape metrics for all features of a given category across Ontario"),
-      br(),
-      p(HTML("<i><p style='margin-left: 25px;'>Select this option to calculate metrics for all Ontario landscapes of a given category (e.g. all mincipalities, all provincial parks etc.).</p></i>"))
-    )
+      p(HTML("<i><p style='margin-left: 25px;'>Choose this to visualize the habitat types of one or more landscapes based on results .csv files.</p></i>"))
+       )
   ),
 
   ## Segment 2:  Calculation type (any habitat or conservation areas) choice ----
   conditionalPanel(
     condition = "(output.showSingleLandscape > 0 || output.showBatchProcessing > 0) && !output.showhabitat_based_calculations && !output.showprotected_based_calculations",
     segment(
-      div(style = "font-size: 18px; font-weight: bold; margin-bottom: 15px;", "Select what areas to consider when measuring connectivity and area of restored habitat"),
-      p(HTML("In the application, you will simulate restoring different degraded target areas. Multiple criteria are used to determine which target areas have the greatest overall benefit when restored. One such criterion is connectivity, which refers to how connected different habitat patches are. Patches that have greater connectivity typically exhibit landscape characteristics such as good vegetation cover or less anthropogenic disturbance that allow wildlife or plants to move among patches. A second criterion is the size of a particular habitat type once a degraded target area is restored; for example, restoration might increase the overall area of a wetland.<br><br>
-Depending on your goals, you may wish to calculate connectivity and habitat patch size in one of two ways.<br><br> 
+      div(style = "font-size: 18px; font-weight: bold; margin-bottom: 15px;", "Select what areas to consider when measuring the benefit of restoration"),
+      p(HTML("Here you have the option of highlighting the benefits that restoration may have on areas of conservation concern.<br><br> 
 <b>Choose an option below to continue:</b><br>
 ")),
       actionButton("habitat_based_calculations", "Focus on entire landscape"),
       br(),
-      p(HTML("<i><p style='margin-left: 25px;'>This option will measure the effect of restoring degraded land on the entire selected landscape.</p></i>")),
+      p(HTML("<i><p style='margin-left: 25px;'>Choose this to measure the effect of restoring degraded land on the entire landscape.</p></i>")),
       actionButton("protected_based_calculations", "Focus on areas of conservation concern"),
-      p(HTML("<i><p style='margin-left: 25px;'>This option will measure the effect of restoring degraded land in areas of conservation concern only. In the next step, you can choose to include one or more categories of conservation concern, such as provincial parks, conservation reserves, or municipal heritage areas. Calculations will measure the impact of restoring degraded target areas on the size and connectedness of habitat within these focal categories.</p></i>"))
+      p(HTML("<i><p style='margin-left: 25px;'>Choose this to measure the effect of restoring degraded land on the size and connectivity of patches belonging to one or more categories of conservation concern,  such as provincial parks, conservation reserves, or municipal heritage areas.</p></i>"))
     )
   ),
 
@@ -4562,27 +4730,27 @@ Depending on your goals, you may wish to calculate connectivity and habitat patc
     condition = "(input.habitat_based_calculations > 0 || input.protected_based_calculations > 0) && output.showSingleLandscape > 0",
     segment(
       div(style = "font-size: 18px; font-weight: bold; margin-bottom: 15px;", "Choosing a landscape"),
-      p(HTML("You are ready to select a target landscape for analysis. You can choose to either draw or select the landscape:<br><br>
+      p(HTML("You are ready to select a target landscape to analyze. You can choose to draw a landscape or select a landscape from pre-defined categories:<br><br>
   <b>Option 1: Choose landscape extent by drawing a shape</b><br>
-  Ensure the “Drawn extent” selection is checked in the map checkbox panel on the righthand side of the map. Set a custom extent using the
-  draw tools located at the top left of the map below the zoom buttons. Create a custom shape by first selecting the pentagon icon, then 
-  clicking the map to drop points that define a target landscape. Or, create a rectangle by clicking the square icon, then dropping a single
+  Ensure the “Your drawn landscape” box is checked in the panel on the righthand side of the map. Set a custom extent using the
+  draw tools located at the top left of the map. Create a custom shape by first selecting the pentagon icon, then 
+  clicking the map to drop points that define a target landscape. Alternatively, create a rectangle by clicking the square icon, then dropping a single
   point and dragging to define a target landscape.<br><br>
-  <b>Option 2: Choose landscape extent by selecting individual map features</b><br>
-  Turn on the visibility of map feature groups such as provincial parks or national wildlife areas using the checkboxes panel on the righthand
-             side of the map. Hover over the map to view the names of individual features within the group. Then, select a single feature by clicking
+  <b>Option 2: Choose landscape extent by selecting a map feature</b><br>
+  Make different features visible by clicking the checkboxes on the panel on the righthand
+             side of the map. Hover over the map to view the names of individual features. Then, select a single feature by clicking
              on it (e.g., a single provincial park).<br>"
 )),
       leafletOutput("map", height = 600),
       br(),
       br(),
       p(HTML("<b>Add a buffer around the target landscape</b><br>
-      We recommend adding a buffer to the selected landscape. A buffer is an area that extends outward from your target landscape by a specified number of metres. Buffers are useful in reducing the influence of distortions or artefacts that may arise because features outside your selected landscape are not included in application calculations. If you are considering restoration projects that may benefit more mobile species, your buffer size should be larger. Since the pixel units are 300 by 300 metres, any number entered here will be rounded down to the nearest multiple of 300.<br>")),
+      We recommend adding a buffer to the selected landscape. A buffer is an area that extends outward from your target landscape by a specified number of metres. Buffers are useful in reducing the influence of distortions or artefacts that may arise because features outside but near your selected landscape are not included when calculating restoration benefit. If you are considering restoration projects that may benefit more mobile species, your buffer size should be larger. Since the pixel units are 300 by 300 metres, any number entered here will be rounded down to the nearest multiple of 300.<br>")),
       numericInput("buffer_unit_value", "Enter an extent buffer value in metres (optional but recommended):", value = 1200),
       br(),
       br(),
       p(HTML("<b>Set the final extent</b><br>
-               Finally, press “Set extent” to confirm the final target landscape for analysis. An image of the selected landscape, including the buffer area, is displayed for you to review, with a breakdown of the respective proportion of habitat types it contains. If you chose to focus on areas of conservation concern, a map displaying any areas of conservation concern and which areas are included in the analysis is also displayed.<br><br>
+               Finally, press “Set extent” to confirm the final target landscape to analyze. An image of the selected landscape, including the buffer area, is displayed for you to review, along with the proportion of total area covered by different habitat types.<br><br>
              When the landscape extent is set, a test is run on that landscape to see if it is large enough to calculate connectivity metrics. This will be explained in more detail as you progress through the application.<br>
                ")),
       actionButton("set_extent", "Set extent"),
@@ -4605,21 +4773,24 @@ fluidRow(
     condition = "input.set_extent > 0",
     segment(
       div(style = "font-size: 18px; font-weight: bold; margin-bottom: 15px;", "Defining degraded pixels"),
-      p(HTML("The next step is defining which pixels qualify as “degraded land” based on user-defined threshold conditions. Using the sliders below, you can customize the criteria under
-      which pixels are considered degraded; these pixels are eligible for restoration. Conditions that could influence whether an area is considered degraded land include presence of active
-      mines, presence of abandoned mines, night light pollution, oil and gas extraction, aggregate extraction, topsoil extraction, and marginal farmland.<br><br>
-      The slider values indicate the severity of each degradation condition, and the slider position indicates the minimum threshold. For example, setting “Night Lights = 1” would mean that 
+      p(HTML("The next step is defining which pixels qualify as “degraded land” based on user-defined thresholds. Using the sliders below, you can customize the criteria under
+      which pixels are considered degraded; these pixels are eligible for restoration. Conditions that could influence whether a pixel is considered degraded land include presence of active
+      mines, abandoned mines, night light pollution, oil and gas extraction, aggregate extraction, topsoil extraction, and marginal farmland.<br><br>
+      The slider values indicate the severity of each degradation condition, and the slider position indicates the minimum threshold. For example, setting “Night lights = 1” would mean that 
       land with the lowest levels of night light pollution would be considered degraded, and all areas with values above 1 would be considered degraded as well. Conversely, if the slider is
-      set to 10, only land with the highest levels of light pollution would be considered degraded. To exclude or ignore a condition entirely, set the slider to the maximum value. For night 
+      set to 10, only land with the highest levels of light pollution would be considered degraded. To exclude or ignore a condition entirely, set the slider to “Not included”. For night 
       lights, “Night lights = 11” means that light pollution is not considered a factor defining degraded land.<br><br> 
       For a given pixel, only one condition needs to be met to be considered degraded. For example, if a pixel meets the threshold you set for night lights, but not for aggregate extraction,
       it will still be considered degraded.<br><br>
-      After setting the thresholds, you can preview which land is defined as “degraded” in a map.")),
+      After setting the thresholds, you can preview the pixels defined as “degraded” in a map.")),
       uiOutput("sliderPanel"),
       br(),
-      p(HTML("Click the “preview” button to see which pixels in your target landscape are defined as “degraded” with the condition set you chose. In the preview map, certain land values (e.g., water, urban areas, valuable cropland) that are considered unfit for restoration are excluded and are not mapped (shown in white below). Feel free to re-adjust the sliders and try again until you're happy with which areas are defined as “degraded”.")),
+      p(HTML("Click the “preview” button to see which pixels in your target landscape are defined as degraded based on the conditions you chose. In the preview map, habitat types considered unrestorable (open water, urban areas, urban parks, transportation, good farmland, and hay/ pasture land) are excluded and not mapped (shown in white below). Feel free to re-adjust the sliders and try again until you're happy with which areas are defined as degraded.")),
       br(),
       actionButton("preview", "Preview"),
+      br(),
+      br(),
+      div(style = "font-size: 20px;", textOutput("numDegradedPixels")),
       fluidRow(
         column(width = 6, plotlyOutput("degradedPlot", height = "800px")),
         column(width = 6, plotOutput("rasterPlot3legend", height = "800px"))),
@@ -4627,8 +4798,7 @@ fluidRow(
         condition = "input.protected_based_calculations > 0",
         fluidRow(
           column(width = 6, plotlyOutput("degradedprotectedPlot", height = "800px")),
-          column(width = 6, plotOutput("rasterPlot4legend", height = "800px")))),
-      div(style = "font-size: 20px;", textOutput("numDegradedPixels"))
+          column(width = 6, plotOutput("rasterPlot4legend", height = "800px"))))
     )
   ),
 
@@ -4637,9 +4807,9 @@ fluidRow(
     condition = "input.preview > 0",
     segment(
       div(style = "font-size: 18px; font-weight: bold; margin-bottom: 15px;", "Simulating restoration"),
-      p(HTML("The next step is to simulate the restoration of pixels that are defined as degraded. When 'simulate restoration' is clicked, each individual degraded pixel in the target landscape is replaced with the most prevalent natural habitat in the 8 pixels that surround it. The 3x3 pixel area surrounding each degraded pixel is called a 'neighborhood'. <br><br>
+      p(HTML("The next step is to simulate the restoration of pixels that are defined as degraded. When 'simulate restoration' is clicked, each individual degraded pixel in the target landscape is replaced with the most prevalent natural habitat in the 3x3 pixel neighbourhood (8 pixels total) that surround it. <br><br>
      If a degraded pixel is not surrounded by any natural habitat in the 3x3 neighborhood, which may occur when the degraded land is completely surrounded by water, urban areas, or farmland, the application will attempt to replace the degraded pixel using successively larger neighborhoods, which increase by 2 pixels each time (e.g., 5x5, 7x7, 9x9, etc.).<br><br> 
-             This process continues until all degraded pixels are 'restored' to natural habitat in the target landscape. Click 'simulate restoration' to view the restored landscape, with degraded pixels replaced by natural habitat.")),
+             The process continues until all degraded pixels are 'restored' to natural habitat. Click 'simulate restoration' to view the restored landscape, with degraded pixels replaced by natural habitat.")),
       actionButton("simulate_restoration", "Simulate restoration"),
       fluidRow(
         column(width = 6, plotlyOutput("restorationPlot", height = "800px")),
@@ -4654,12 +4824,12 @@ fluidRow(
     condition = "input.simulate_restoration > 0 && !output.showAutoCombo && !output.showManualCombo",
     segment(
       div(style = "font-size: 18px; font-weight: bold; margin-bottom: 15px;", "Choosing how to define candidate areas for restoration"),
-      p(HTML("Your target landscape likely has multiple areas that are considered degraded land that could be restored. Eventually, the application will rank these 'candidate areas' to determine which degraded area, once restored, has the greatest positive impact. However, first you must choose how to <i>define</i> candidate areas for restoration. <br><br>
+      p(HTML("Your target landscape likely has multiple areas with one or more degraded pixels that can be restored. Eventually, the application will rank these 'candidate areas' to determine which, once restored, has the greatest potential biodiversity benefit. However, first you must choose how to <i>define</i> candidate areas for restoration. <br><br>
 <b>There are two options:</b>"
 	    )),
       br(),
       actionButton("automatic_combination", "Define candidate areas based on contiguous habitat type"),
-      p(HTML("<i><p style='margin-left: 25px;'>This option creates candidate areas by automatically dividing sections of degraded land into one or more groups. Each group shares the same habitat type and all pixels in the group are connected. In general, this option will produce fewer candidate areas.</p></i>")),
+      p(HTML("<i><p style='margin-left: 25px;'>This option creates candidate areas by automatically dividing sections of degraded land into one or more groups. The pixels in each group share the same habitat type and are connected to each other. 'Connected' means that at least one corner of a pixel touches the corner of another pixel. In general, this option will produce fewer candidate areas.</p></i>")),
       br(),
       actionButton("manual_combination", "Define candidate areas based on a set number of pixels"),
       p(HTML("<i><p style='margin-left: 25px;'>If your restoration efforts must be focused on a small area within a target landscape – e.g., only one or two 300 x 300 m pixels (9 – 18 hectares), you may wish to define candidate areas based on a set number of pixels, e.g., 1, 2, or 3. This option <b>does not constrain candidate areas to be contiguous</b>; instead, it groups all possible combinations of degraded pixels for restoration based on a set number of pixels.</p></i>"))
@@ -4687,16 +4857,15 @@ fluidRow(
   conditionalPanel(
     condition = "input.calculate_combinations > 0 || input.automatic_combination > 0",
     segment(
-      div(style = "font-size: 18px; font-weight: bold; margin-bottom: 15px;", "Calculating patch-size and heterogeneity metrics"),
-      p(HTML("Now, we can calculate the impact of restoring candidate areas on habitat patch size and landscape heterogeneity.<br><br>
-Patch size can be calculated as the mean size of contiguous areas of a particular habitat type. For each habitat type, the impact of restoration is measured by comparing patch size of the original landscape against the set of landscapes with each candidate area restored. 
-Landscape heterogeneity is a measure of how diverse a landscape is in terms of habitat types. Heterogeneity is measured as average roughness: the absolute deviation of surface values from the mean value. For the heterogeneity metric, the application measures the difference between the original landscape and each of the restored landscapes.<br><br>
-The application computes the difference between patch size and heterogeneity compared between the original and each restored landscape. Additionally, if you selected the option to focus on ‘areas of conservation concern’, only degraded areas that are restored within areas of conservation concern are counted towards increasing patch size or landscape heterogeneity. 
+      div(style = "font-size: 18px; font-weight: bold; margin-bottom: 15px;", "Calculating patch size"),
+      p(HTML("Now, we can calculate the effect of restoring candidate areas on habitat patch size.<br><br>
+Patch size is calculated as the average size of contiguous areas of a particular habitat type. For each habitat type, the effect of restoration is measured by comparing average patch size of the original landscape against the set of landscapes with each candidate area restored.  
+The application computes the difference in patch size between the original and each restored landscape. Additionally, if you selected the option to focus on ‘areas of conservation concern’, the change in the size of the conservation area is shown, regardless of habitat type. 
 ")),
       br(),
       uiOutput("dynamic_checkboxes"),
       br(),
-      p(HTML("Click 'Calculate habitat metrics' to view results of patch size and heterogeneity calculations.")),
+      p(HTML("Click 'Calculate habitat metrics' to view results of patch size calculations.")),
       br(),
       actionButton("calculate_metrics", "Calculate habitat metrics"),
       br(),
@@ -4710,8 +4879,8 @@ The application computes the difference between patch size and heterogeneity com
   conditionalPanel(
     condition = "input.calculate_metrics > 0",
     segment(
-      div(style = "font-size: 18px; font-weight: bold; margin-bottom: 15px;", "Merge patch-size results?"),
-      p("You may choose to merge patch size calculations across all habitat types, or keep results separate for each habitat type. If patch size results are merged, the sum of patch size results are combined across habitat types. If patch size for one habitat type is considered more valuable for the purposes of restoration than another, patch size metrics should be left separate so they can be weighted accordingly at a later step. You can try both options ('Merge' vs 'Do not merge') before making a final choice."),
+      div(style = "font-size: 18px; font-weight: bold; margin-bottom: 15px;", "Merge patch size results?"),
+      p("You may choose to merge patch size calculations across all habitat types, or keep results separate for each habitat type. If patch size results are merged, the change in average patch size for each habitat type are summed across all habitat types. If patch size for one habitat type is considered more valuable for the purposes of restoration than another, patch size metrics should be left separate so they can be weighted accordingly at a later step. You can try both options ('Merge' vs 'Do not merge') before making a final choice."),
       multiple_radio("merge_metrics",
         label = NULL,
         choices = c("Merge", "Do not merge"),
@@ -4743,7 +4912,8 @@ The application computes the difference between patch size and heterogeneity com
       textOutput("conTime"),
       br(),
       br(),
-      dataTableOutput("connectivityTable")
+      dataTableOutput("connectivityTable"),
+      uiOutput("subtitleText2")
     )
   ),
 
@@ -4753,10 +4923,10 @@ The application computes the difference between patch size and heterogeneity com
     condition = "input.calculate_connectivity > 0",
     segment(
       div(style = "font-size: 18px; font-weight: bold; margin-bottom: 15px;", "Calculating environmental heterogeneity: creating principal component data layers"),
-      p(HTML("In this application, we assume that species cannot easily live in or travel through degraded land. Therefore, it is useful to measure environmental heterogeneity in the original landscape, excluding degraded areas, and compare that value against each restored landscape, including the restored candidate areas, to determine which candidate area provides the greatest benefits once restored.
+      p(HTML("If different species thrive in different combinations of environmental conditions, then a more environmentally heterogeneous landscape shoud be able to support more species. Here, we measure environmental heterogeneity in the original landscape, excluding degraded areas, and compare that value against each restored landscape, where the restored candidate areas contribute their environmental conditions to overall heterogeneity.
       <br><br>
-	    There is a large set of variables to consider when measuring environmental heterogeneity, such as temperature, precipitation, and soil types. Principal Component Analysis (PCA) is a statistical method designed to simplify and reveal patterns in complex datasets. PCA takes all this information and creates multiple new variables, called principal components, which capture the most significant variations in the data. By focusing on these components, PCA helps reduce the complexity of the dataset, making it easier to visualize trends, understand relationships between variables, and compress the data while retaining essential information.<br><br>
-	    Here, we perform a PCA on several environmental layers (temperature, precipitation, elevation, and soil data) to create multiple principal component data layers (i.e. a map of pixels which cover the entire province, each pixel with a value set by the associated principal component). This information provides insights into the importance of each principal component in explaining variability in the environmental data. Using these principal component layers, we will measure environmental heterogeneity for each potential restored landscape, comparing them against the original, degraded landscape. The results of the PCA, including standard deviations and proportions of variance explained by each principal component, are displayed in a summary table.")),
+	    There is a large set of variables to consider when measuring environmental heterogeneity, such as temperature, precipitation, and soil types. Principal Component Analysis (PCA) is a statistical method that uses one variable, called a principal component, to summarize variation in multiple variables. Sites - pixels in our case - that share similar environmental conditions will receive a similar principal component score. Because there can be multiple axes of environmental variation - e.g., hot vs cold sites, wet vs dry sites - there are multiple principal components.<br><br>
+	    Here, we use PCA to summarize several environmental layers (temperature, precipitation, elevation, soil type, soil depth) and assign scores from each principal component to each pixel. Each principal component explains a proportion of the total environmental variation. For example, if almost all pixel-to-pixel variation is due to temperature variation, then one component might capture most of the total environmental variation. If there are strong temperature and precipitaton gradients, and temperature and precipitation are uncorrelated, then there might be two gradients each explaining half of the pixel-to-pixel environmental variation. The contribution of each principal component to overall environmental variation is shown as standard deviation and proportion of variance in a summary table.")),
       actionButton("calculate_pca", "Calculate PCA and print summary"),
       br(),
       br(),
@@ -4770,21 +4940,11 @@ The application computes the difference between patch size and heterogeneity com
     condition = "input.calculate_pca > 0",
     segment(
       div(style = "font-size: 18px; font-weight: bold; margin-bottom: 15px;", "Calculating environmental heterogeneity: comparing degraded and restored landscapes"),
-      p(HTML("Here we measure the difference in environmental heterogeneity between each the restored landscapes 
-      and the degraded landscape – using the principal component data layers created previously. Degraded pixels are
-      treated as if they have no environmental value (NA) in the principal component layers, while restored pixels are
-      given the values assigned by the principal component layer for that pixel area.
+      p(HTML("Here, we measure the difference in environmental heterogeneity between the original landscape against the set of landscapes with each candidate area restored, based on the scores from the principal component analysis. In the original landscape, degraded pixels are treated as if they have no value, whereas after restoration pixels are given their principal component scores.
       <br><br>
-      Heterogeneity, or variation in the landscape, is calculated by measuring the “average surface roughness” of the landscape
-      – essentially a measure of how the environmental values for each pixel differ from the mean environmental value of all pixels
-      in the landscape. This gives us an idea of how environmentally variable or diverse the landscape is, based on the values in the raster.
-      Environmental heterogeneity for each restored combination landscape is compared against the degraded landscape to get 
-      a measure of difference between the restored landscapes and the unrestored one. 
+      Heterogeneity, or variation in the landscape, is calculated by measuring the “average surface roughness” of the landscape – essentially a measure of how the environmental values for each pixel differ from the mean environmental value of all pixels in the landscape. Therefore, surface roughness indicates whether pixels are mostly similar to or different from each other. If restoration adds pixels to the landscape that have relatively novel environmental conditions, surface roughness increases from pre- to post-restoration. 
       <br><br> 
-      The user has the option to select how
-      many of the principal component layers to run through this process with – the default being the first two principal components
-      as they typically contain > 99% of the environmental variation during testing. Results are output in a table for each combination with results
-      for the number of principal component layers selected.")),
+      You have the option to select how many of the principal component layers to include in the analysis. The default is to use the first two principal components, as they typically contain > 99% of the environmental variation. Results are output in a table for each candidate area.")),
       numericInput("num_pcs", "Number of principal components:",
         value = 2, min = 1, max = 22
       ),
@@ -4792,8 +4952,11 @@ The application computes the difference between patch size and heterogeneity com
       actionButton("calculate_env_metrics", "Calculate environmental metrics"),
       br(),
       br(),
+      textOutput("elapsedTimeEnv"),
+      br(),
+      br(),
       dataTableOutput("environmentTable"),
-      textOutput("elapsedTimeEnv")
+      uiOutput("subtitleText3")
     )
   ),
 
@@ -4802,15 +4965,12 @@ The application computes the difference between patch size and heterogeneity com
     condition = "input.calculate_env_metrics > 0",
     segment(
       div(style = "font-size: 18px; font-weight: bold; margin-bottom: 15px;", "Merging and scaling results"),
-      p("Results from all previous calculations are merged together in single table in preparation for finding the best combination.
-      The values for each metric are also scaled so that they are on a standardized scale (i.e. an equivalent, comparable scale) for
-      weighting purposes in the next step. The exact method of scaling is 'Z-Score Scaling' which transforms values by subtracting
-      the mean and dividing by the standard deviation. After this transformation, values express the number of standard deviations 
-      a data point is from the mean for that metric."),
+      p("To identify the best candidate area(s) to restore, results from all previous calculations are merged into a single table. The values for each metric (patch size, connectivity, heterogeneity) for each candidate area are scaled to be comparable. For each metric, the value for each candidate area is subtracted from the mean value for all candidate areas and the result is divided by the standard deviation. After scaling, values in the table below express the number of standard deviations a candidate area's value is from the mean for that metric."),
       actionButton("merge_and_display", "Merge and scale results"),
       br(),
       br(),
-      dataTableOutput("mergedResultsTable")
+      dataTableOutput("mergedResultsTable"),
+      uiOutput("subtitleText4")
     )
   ),
 
@@ -4819,21 +4979,13 @@ The application computes the difference between patch size and heterogeneity com
     condition = "input.merge_and_display > 0",
     segment(
       div(style = "font-size: 18px; font-weight: bold; margin-bottom: 15px;", "Weighting and finding the best candidate areas"),
-      p(HTML("We are now at the final stage of the app for a single landscape, which is weighting metrics and plotting the best combination
-      of pixels based on those weighted metrics. Here weights (corresponding to a multiplier - with '1' as the default) can be assigned to the
-      various environmental, habitat, and connectivity metrics calculated previously. Weights can be assigned to different metrics to influence
-      their impact on the final combination, or prioritize some metrics in the selection process over others. How many top combinations displayed
-      may also be specified here. For example, if a user sets the number of top combinations to 5, the best 5 pixel combinations will be displayed
-      in descending order of importance (i.e., 1 being the best performing pixel combination, and 5 being the 5th best). 
-      <br><br>
-      When the 'Find best candidate areas' button is clicked, values for each metric are adjusted based on the user-provided weights, the sum of weighted values
-      is calculated for each combination, and the combination with the maximum sum is identified (i.e. the “best combination”). Two figures are created:
-      an interactive map highlighting the pixels corresponding to the best combinations, and another showing where those pixels occur in respect to natural habitat.
-      The latter includes an option for displaying the best pixel combination in conjunction with areas of conservation concern if the option to focus on areas of 
-      conservation concern was previously selected.")),
+      p(HTML("The final step is to determine and visualize the best candidate area(s) for restoration. Here, you have the option to adjust the weight given to each metric calculated in the app. Each metric starts out with a default weight of 1. Different weights can be assigned with the goal of prioritizing some metrics in the selection process over others.")),
       uiOutput("weights_ui"),
       br(),
+      p(HTML("<br><br>Now, set the number of candidate areas you wish to return. For example, if you set the number of top candidate areas to display to 5, the best 5 candidate areas will be displayed in descending order of importance, with the best candidate area displayed first.")),
       numericInput("num_top_combinations", "Number of top candidate areas to display:", value = 1, min = 1, step = 1),
+      br(),
+      p(HTML("When the 'Find best candidate areas' button is clicked, values for each metric are adjusted based on the weights you provide. The sum of weighted values is calculated for each candidate area, and the area with the maximum sum is identified as the best candidate area for restoration. Two figures are created: an interactive map displaying the best candidate areas, and another showing habitat types and candidate areas in the target landscape. The latter figure includes an option for displaying the best candidate area in conjunction with areas of conservation concern, if this option was selected.")),
       actionButton("find_best_comb", "Find best candidate areas"),
       uiOutput("bestCombinationName", class = "ui message"),
       leafletOutput("map_best_comb", height = 600),
@@ -4845,14 +4997,12 @@ The application computes the difference between patch size and heterogeneity com
   conditionalPanel(
     condition = "input.find_best_comb > 0",
     segment(
-      div(style = "font-size: 18px; font-weight: bold; margin-bottom: 15px;", "Saving restored combination metrics"),
-      p("Lastly, the landscape can be named by entering and saving a name, and a .CSV file containing the metrics for
-      each combination (before weighting) can be downloaded by clicking the download button. This allows the comparison
-      of this landscapes combinations against others in the 'Multiple Landscapes' section of the app. This step concludes the single landscape analysis."),
+      div(style = "font-size: 18px; font-weight: bold; margin-bottom: 15px;", "Saving candidate areas and associated metrics"),
+      p(HTML("Finally, to conclude the single landscape analysis, you can save the table containing the final, summed values for all environmental metrics for each candidate area. Enter a unique name for your landscape below. A .csv file containing the metrics for each combination (before weighting) is created. This results .csv file can be used to compare candidate areas in this landscape to other landscapes in the 'Multiple Landscapes' section of the app.<br><br>Click 'Save landscape metrics and candidate area performance .CSV' below to save the results file.<br>")),
       br(),
-      textInput("landscape_name", "Enter a unique landscape identifier:"),
+      textInput("landscape_name", "Enter a unique name for your landscape:"),
       br(),
-      actionButton("add_column", "Set landscape ldentifier")
+      actionButton("add_column", "Set unique landscape name")
     )
   ),
 
@@ -4860,10 +5010,14 @@ The application computes the difference between patch size and heterogeneity com
   conditionalPanel(
     condition = "output.landscape_added",
     segment(
-      downloadButton("download_data", "Save landscape metics and combinaton performance", style = "height:60px; width:300px; font-size:25px;")),
+      downloadButton("download_data", "Save landscape metrics and candidate area performance .CSV", style = "height:60px; width:300px; font-size:25px;")),
       segment(
-        downloadButton("downloadKML", "Save best combination .KML", style = "height:60px; width:300px; font-size:25px;")
-    )
+        p(HTML("If you would like to export a KML file to view the top candidate areas chosen in the analysis outside this app (e.g., in Google Earth or ArcGIS), click 'Export top candidate area(s) to .KML'.<br>")),
+        downloadButton("downloadKML", "Export top candidate area(s) to .KML", style = "height:60px; width:300px; font-size:25px;")),
+      segment(
+        p(HTML("If you would like to view this landscape later, you can save an .RDS file to import back into the app to visualize.<br>")),
+      downloadButton("downloadplotRDS", "Save landscape visualization", 
+                     style = "height:60px; width:300px; font-size:25px;"))
   ),
 
   ## Segment 18: Loading and merging multiple landscapes (if that initial choice is selected in segment 1) ----
@@ -4876,7 +5030,8 @@ The application computes the difference between patch size and heterogeneity com
 	    for multi-landscape analysis. The spatial extents of each landscape are visualized on a map, providing an overview of the coverage of the uploaded landscapes."),
       fileInput("fileInput", "Choose .CSV files", multiple = TRUE, accept = c("text/csv", "text/comma-separated-values,text/plain", ".csv")),
       leafletOutput("map_lands", height = 600),
-      dataTableOutput("landscapeMergedTable")
+      dataTableOutput("landscapeMergedTable"),
+      uiOutput("subtitleText5")
     )
   ),
 
@@ -4887,10 +5042,9 @@ The application computes the difference between patch size and heterogeneity com
     condition = "output.fileSelected > 0",
     segment(
       div(style = "font-size: 18px; font-weight: bold; margin-bottom: 15px;", "Weighting and ranking"),
-      p("Similar to single landscape analysis, weights can be assigned to different metrics for multi-landscape analysis.
-        The best restored pixel combinations across all landscapes, are ranked using the weighted metrics, and displayed showing the
-        corresponding landscape name and combination indices (for that particular landscape). Individual plots for each of the top 
-        combinations are also generated, highlighting priority pixels in the landscapes alongside habitat."),
+      p("Similar to single landscape analysis, weights can be assigned to different metrics for the multi-landscape analysis.
+        The best restored candidate areas across all landscapes are ranked using the weighted metrics, and displayed showing the candidate area name and landscape name. Individual plots for each of the top 
+        combinations are also generated, highlighting candidate areas in the landscapes alongside habitat classes."),
       uiOutput("landscape_weights_ui"),
       br(),
       br(),
@@ -4912,28 +5066,51 @@ The application computes the difference between patch size and heterogeneity com
   conditionalPanel(
     condition = "input.lands_best_comb > 0",
     segment(
-      downloadButton("download_multiple_data", "Save restored pixel metrics", style = "height:60px; width:300px; font-size:25px;")),
+      downloadButton("download_multiple_data", "Save landscape metrics and candidate area performance csv", style = "height:60px; width:300px; font-size:25px;")),
       segment(
-        downloadButton("download_multiple_KML", "Save KML files of top combinations", style = "height:60px; width:300px; font-size:25px;"))
+        downloadButton("download_multiple_KML", "Export top candidate area(s) to KML", style = "height:60px; width:300px; font-size:25px;"))
   ),
 
-  ## Segment 21: visualizing landscapes based on CSVs ----
-  conditionalPanel(
-    condition = "output.showLandscapeVisualizer > 0",
-    segment(
-      div(style = "font-size: 18px; font-weight: bold; margin-bottom: 15px;", "Select landscapes to visualize"),
-      p("This is a simple visualizer. Here users can select a single or multiple results .CSV files from  previously analyzed landscapes to visualize.
-       Individual plots containing habitat types in those landscapes are then displayed, and a breakdown of habitat type as a proportion (in percent) of pixels is 
+## Segment 21: visualizing landscapes based on RDS files ----
+# JavaScript to set an upload limit client-side
+tags$script(HTML("
+    document.addEventListener('DOMContentLoaded', function() {
+      // Attach event listener to the file input
+      document.getElementById('vis_fileInput').addEventListener('change', function(event) {
+        let maxCollectiveSize = 3 * 1024 * 1024 * 1024; // 3 GB in bytes
+        let totalSize = 0;
+        
+        // Calculate the total size of all selected files
+        for (let i = 0; i < event.target.files.length; i++) {
+          totalSize += event.target.files[i].size;
+        }
+        
+        // If the total size exceeds the limit, show an alert and reset the file input
+        if (totalSize > maxCollectiveSize) {
+          alert('The total size of selected files exceeds 3 GB. Please select smaller files.');
+          event.target.value = '';  // Reset the file input element
+        }
+      });
+    });
+  ")),
+
+# UI for landscape visualizer
+conditionalPanel(
+  condition = "output.showLandscapeVisualizer > 0",
+  segment(
+    div(style = "font-size: 18px; font-weight: bold; margin-bottom: 15px;", "Select landscapes to visualize"),
+    p("This is a simple visualizer. Here users can select one or multiple results .RDS files from previously analyzed landscapes to visualize.
+        Individual plots containing habitat types in those landscapes are then displayed, and a breakdown of habitat type as a proportion (in percent) of pixels is 
         output for each landscape."),
-      fileInput("vis_fileInput", "Choose .csv files", multiple = TRUE, accept = c("text/csv", "text/comma-separated-values,text/plain", ".csv")),
-      br(),
-      br(),
-      actionButton("view_landscapes", "View landscapes"),
-      br(),
-      br(),
-      uiOutput("vis_dynamicPlots")
-    )
-  ),
+    fileInput("vis_fileInput", "Choose .RDS files", multiple = TRUE, accept = c(".rds")),
+    br(),
+    br(),
+    actionButton("view_landscapes", "View landscapes"),
+    br(),
+    br(),
+    uiOutput("vis_dynamicPlots")
+  )
+),
   
   
   ## Segment 22: Batch Processing Category Selection ----
