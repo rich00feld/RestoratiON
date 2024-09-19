@@ -2971,7 +2971,7 @@ server <- function(input, output, session) {
         addPolygons(
           data = plot_pixels_sf,
           fillColor = "deeppink",
-          fillOpacity = 0.7,
+          fillOpacity = 0.5,
           color = "black",
           weight = 0.5,
           group = "Top Candidate Areas"  # Specify the group name for the polygons
@@ -3374,8 +3374,8 @@ server <- function(input, output, session) {
         setView(lng = -84.3870, lat = 50.2538, zoom = 5) %>%
         addPolygons(
           data = plot_pixels_sf,
-          fillColor = "turquoise",
-          fillOpacity = 0.7,
+          fillColor = "deeppink",
+          fillOpacity = 0.5,
           color = "black",
           weight = 0.5
         ) %>%
