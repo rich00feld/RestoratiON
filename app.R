@@ -319,7 +319,7 @@ server <- function(input, output, session) {
                 "In this application, you locate areas of degraded land in a selected 
                 geographic area in Ontario, identify candidate areas to restore, 
                 and measure the potential benefit that restoring each canadidate area has on landscape-scale biodiversity 
-                based on changes to patch size, connectivity, and environmental diversity. 
+                based on changes to patch size, connectivity, and environmental heterogeneity. 
                 You can rank candidate areas within and between landscapes by their restoration benefit ."
             )
         ),
@@ -2316,7 +2316,7 @@ server <- function(input, output, session) {
                 options = list(scrollX = TRUE),         
                 caption = htmltools::tags$caption(
                   style = 'caption-side: top; text-align: left; white-space: pre-wrap; width: auto;',
-                  HTML("<br><strong style='font-size: 16px;'>Difference in mean patch size (hectares) between original and restored landscape for each candidate area. Positive values indicate that patch size is greater in the restored landscape.</strong>")))
+                  HTML("<br><strong style='font-size: 16px;'>Difference in average patch size (hectares) between original and restored landscape for each candidate area. Positive values indicate that patch size is greater in the restored landscape.</strong>")))
     })
     
     output$subtitleText1 <- renderUI({
@@ -2451,9 +2451,9 @@ server <- function(input, output, session) {
       rounded_data <- result_connectivity()
       rounded_data[] <- lapply(rounded_data, function(x) if (is.numeric(x)) round(x, 3) else x)
       
-      # rename 'reduced_resistance' to 'Reduced mean path resistance'
+      # rename 'reduced_resistance' to 'Change in path resistance'
       if("reduced_resistance" %in% names(rounded_data)) {
-        names(rounded_data)[names(rounded_data) == 'reduced_resistance'] <- 'Reduced mean path resistance'
+        names(rounded_data)[names(rounded_data) == 'reduced_resistance'] <- 'Change in path resistance'
       }
         
         # Rename 'combination' column to 'Candidate area'
@@ -2666,7 +2666,7 @@ server <- function(input, output, session) {
       # Extract the current column names
       new_names <- names(rounded_data)
       # Use gsub to replace the pattern
-      new_names <- gsub("Env_PC(\\d+)_sa_diff", "PC\\1 environmental heterogeneity", new_names)
+      new_names <- gsub("Env_PC(\\d+)_sa_diff", "Change in environmental heterogeneity: PC\\1", new_names)
       # Assign the new names back to the data frame
       names(rounded_data) <- new_names
       
@@ -2769,14 +2769,14 @@ server <- function(input, output, session) {
       if("sum_habitat_patch_size_diff" %in% names(rounded_data)) {
         names(rounded_data)[names(rounded_data) == 'sum_habitat_patch_size_diff'] <- 'Sum change in habitat patch size'
       }
-      # rename 'reduced_resistance' to 'Reduced mean path resistance'
+      # rename 'reduced_resistance' to 'Change in path resistance'
       if("reduced_resistance" %in% names(rounded_data)) {
-        names(rounded_data)[names(rounded_data) == 'reduced_resistance'] <- 'Reduced mean path resistance'
+        names(rounded_data)[names(rounded_data) == 'reduced_resistance'] <- 'Change in path resistance'
       }
       # Use a pattern matching approach to rename the 'patch_size_diff' and 'ENV_PC' columns if they are present
       new_names <- names(rounded_data)
       new_names <- gsub("^patch_size_diff_(.+?) \\(Class \\d+\\)$", "Change in \\1 patch size", new_names)
-      new_names <- gsub("Env_PC(\\d+)_sa_diff", "PC\\1 environmental heterogeneity", new_names)
+      new_names <- gsub("Env_PC(\\d+)_sa_diff", "Change in environmental heterogeneity: PC\\1", new_names)
       names(rounded_data) <- new_names
       
       extract_first_number <- function(x) {
@@ -2971,7 +2971,7 @@ server <- function(input, output, session) {
         addPolygons(
           data = plot_pixels_sf,
           fillColor = "deeppink",
-          fillOpacity = 0.7,
+          fillOpacity = 0.5,
           color = "black",
           weight = 0.5,
           group = "Top Candidate Areas"  # Specify the group name for the polygons
@@ -3374,8 +3374,8 @@ server <- function(input, output, session) {
         setView(lng = -84.3870, lat = 50.2538, zoom = 5) %>%
         addPolygons(
           data = plot_pixels_sf,
-          fillColor = "turquoise",
-          fillOpacity = 0.7,
+          fillColor = "deeppink",
+          fillOpacity = 0.5,
           color = "black",
           weight = 0.5
         ) %>%
@@ -4323,42 +4323,42 @@ server <- function(input, output, session) {
           
               # Linked to UI Segment 12, generating the environmental PCA raster 
                 
-                # Get all the environmental rasters from the reactive values
-                CLASS_00_env <- raster(croppedCLASS_00())
-                CLASS_05_env <- raster(croppedCLASS_05())
-                CLASS_06_env <- raster(croppedCLASS_06())
-                CLASS_12_env <- raster(croppedCLASS_12())
-                CLASS_13_env <- raster(croppedCLASS_13())
-                CLASS_14_env <- raster(croppedCLASS_14())
-                CLASS_15_env <- raster(croppedCLASS_15())
-                CLASS_16_env <- raster(croppedCLASS_16())
-                CLASS_18_env <- raster(croppedCLASS_18())
-                CLASS_21_env <- raster(croppedCLASS_21())
-                CLASS_23_env <- raster(croppedCLASS_23())
-                CLASS_24_env <- raster(croppedCLASS_24())
-                CLASS_25_env <- raster(croppedCLASS_25())
-                CLASS_26_env <- raster(croppedCLASS_26())
-                mean_temp_env <- raster(croppedmean_temp())
-                precipitation_env <- raster(croppedprecipitation())
-                Elevation_env <- raster(croppedElevation())
-                Soil_not_env <- raster(croppedSoil_not())
-                Soil_20_env <- raster(croppedSoil_20())
-                Soil_75_env <- raster(croppedSoil_75())
-                Soil_150_env <- raster(croppedSoil_150())
-                Soil_G150_env <- raster(croppedSoil_G150())
-                
-                # Create a rasterstack
-                raster_stack <- stack(
-                  mean_temp_env, precipitation_env, Elevation_env, Soil_not_env, Soil_20_env, Soil_75_env,
-                  Soil_150_env, Soil_G150_env, CLASS_00_env, CLASS_05_env, CLASS_06_env, CLASS_12_env,
-                  CLASS_13_env, CLASS_14_env, CLASS_15_env, CLASS_16_env, CLASS_18_env, CLASS_21_env,
-                  CLASS_23_env, CLASS_24_env, CLASS_25_env, CLASS_26_env
-                )
-                
-                # create a rasterPCA with the raster stack (RStoolbox function)
-                pca_result_temp <- rasterPCA(raster_stack)
-                # Store the PCA result in the reactive value
-                pca_result(pca_result_temp)
+              # Get all the environmental rasters from the reactive values
+              CLASS_00_env <- croppedCLASS_00()
+              CLASS_05_env <- croppedCLASS_05()
+              CLASS_06_env <- croppedCLASS_06()
+              CLASS_12_env <- croppedCLASS_12()
+              CLASS_13_env <- croppedCLASS_13()
+              CLASS_14_env <- croppedCLASS_14()
+              CLASS_15_env <- croppedCLASS_15()
+              CLASS_16_env <- croppedCLASS_16()
+              CLASS_18_env <- croppedCLASS_18()
+              CLASS_21_env <- croppedCLASS_21()
+              CLASS_23_env <- croppedCLASS_23()
+              CLASS_24_env <- croppedCLASS_24()
+              CLASS_25_env <- croppedCLASS_25()
+              CLASS_26_env <- croppedCLASS_26()
+              mean_temp_env <- croppedmean_temp()
+              precipitation_env <- croppedprecipitation()
+              Elevation_env <- croppedElevation()
+              Soil_not_env <- croppedSoil_not()
+              Soil_20_env <- croppedSoil_20()
+              Soil_75_env <- croppedSoil_75()
+              Soil_150_env <- croppedSoil_150()
+              Soil_G150_env <- croppedSoil_G150()
+              
+              # Create a rasterstack
+              raster_stack <- c(
+                mean_temp_env, precipitation_env, Elevation_env, Soil_not_env, Soil_20_env, Soil_75_env,
+                Soil_150_env, Soil_G150_env, CLASS_00_env, CLASS_05_env, CLASS_06_env, CLASS_12_env,
+                CLASS_13_env, CLASS_14_env, CLASS_15_env, CLASS_16_env, CLASS_18_env, CLASS_21_env,
+                CLASS_23_env, CLASS_24_env, CLASS_25_env, CLASS_26_env
+              )
+              
+              # create a rasterPCA with the raster stack (RStoolbox function)
+              pca_result_temp <- rasterPCA(raster_stack, maskCheck=FALSE)
+              # Store the PCA result in the reactive value
+              pca_result(pca_result_temp)
               
               
               # environmental heterogeneity metrics calculation 
@@ -4369,7 +4369,7 @@ server <- function(input, output, session) {
                 
                 # Extracting the PCA rasters based on user input
                 pca_rasters <- lapply(1:num_pcs, function(i) {
-                  rast(pca_result()$map[[paste0("PC", i)]])
+                  pca_result()$map[[i]]
                 })
                 
                 calculated_env_data_list <- vector("list", length = num_pcs)
@@ -4470,21 +4470,21 @@ server <- function(input, output, session) {
                     merged_data$Landscape <- landscape_name
                     merged_data <- merged_data[c("Landscape", names(merged_data)[names(merged_data) != "Landscape"])]
                     # rename 'protected_patch_size_difference' to 'Protected area patch size'
-                    if("protected_patch_size_difference" %in% names(rounded_data)) {
-                      names(rounded_data)[names(rounded_data) == 'protected_patch_size_difference'] <- 'Change in protected area patch size'
+                    if("protected_patch_size_difference" %in% names(merged_data)) {
+                      names(merged_data)[names(merged_data) == 'protected_patch_size_difference'] <- 'Change in protected area patch size'
                     }
                     # rename 'sum_habitat_patch_size_diff' to 'Sum patch size' if present
-                    if("sum_habitat_patch_size_diff" %in% names(rounded_data)) {
-                      names(rounded_data)[names(rounded_data) == 'sum_habitat_patch_size_diff'] <- 'Sum change in habitat patch size'
+                    if("sum_habitat_patch_size_diff" %in% names(merged_data)) {
+                      names(merged_data)[names(merged_data) == 'sum_habitat_patch_size_diff'] <- 'Sum change in habitat patch size'
                     }
-                    # rename 'reduced_resistance' to 'Reduced mean path resistance'
+                    # rename 'reduced_resistance' to 'Change in path resistance'
                     if("reduced_resistance" %in% names(merged_data)) {
-                      names(merged_data)[names(merged_data) == 'reduced_resistance'] <- 'Reduced mean path resistance'
+                      names(merged_data)[names(merged_data) == 'reduced_resistance'] <- 'Change in path resistance'
                     }
                     # Use a pattern matching approach to rename the 'patch_size_diff' and 'ENV_PC' columns if they are present
                     new_names <- names(merged_data)
                     new_names <- gsub("^patch_size_diff_(.+?) \\(Class \\d+\\)$", "Change in \\1 patch size", new_names)
-                    new_names <- gsub("Env_PC(\\d+)_sa_diff", "PC\\1 environmental heterogeneity", new_names)
+                    new_names <- gsub("Env_PC(\\d+)_sa_diff", "Change in environmental heterogeneity: PC\\1", new_names)
                     names(merged_data) <- new_names
                     
                     extract_first_number <- function(x) {
@@ -4668,7 +4668,7 @@ ui <- shinyUI(semanticPage(
       p(HTML("<i><p style='margin-left: 25px;'>Choose this to calculate metrics for multiple landscapes belonging to a particular category (e.g., muncipalities, provincial parks).</p></i>")),
       actionButton("multiple_landscapes", "Compare metrics across multiple landscapes"),
       br(),
-      p(HTML("<i><p style='margin-left: 25px;'>Choose this if you want to compare restoration priorities across multiple landscapes. You must first create at least two results .csv files using the single or multiple landscape options.</p></i>")),
+      p(HTML("<i><p style='margin-left: 25px;'>Choose this if you want to compare restoration priorities across multiple landscapes. You must first create at least two results .csv files using the single landscape or category options.</p></i>")),
       actionButton("landscape_visualizer", "Visualize landscape(s)"),
       br(),
       p(HTML("<i><p style='margin-left: 25px;'>Choose this to visualize the habitat types of one or more landscapes based on results .csv files.</p></i>"))
@@ -4859,7 +4859,7 @@ fluidRow(
     segment(
       div(style = "font-size: 18px; font-weight: bold; margin-bottom: 15px;", "Calculating patch size"),
       p(HTML("Now, we can calculate the effect of restoring candidate areas on habitat patch size.<br><br>
-Patch size is calculated as the mean size of contiguous areas of a particular habitat type. For each habitat type, the effect of restoration is measured by comparing average patch size of the original landscape against the set of landscapes with each candidate area restored.  
+Patch size is calculated as the average size of contiguous areas of a particular habitat type. For each habitat type, the effect of restoration is measured by comparing average patch size of the original landscape against the set of landscapes with each candidate area restored.  
 The application computes the difference in patch size between the original and each restored landscape. Additionally, if you selected the option to focus on ‘areas of conservation concern’, the change in the size of the conservation area is shown, regardless of habitat type. 
 ")),
       br(),
@@ -4880,7 +4880,7 @@ The application computes the difference in patch size between the original and e
     condition = "input.calculate_metrics > 0",
     segment(
       div(style = "font-size: 18px; font-weight: bold; margin-bottom: 15px;", "Merge patch size results?"),
-      p("You may choose to merge patch size calculations across all habitat types, or keep results separate for each habitat type. If patch size results are merged, the change in patch size for each habitat type are summed across all habitat types. If patch size for one habitat type is considered more valuable for the purposes of restoration than another, patch size metrics should be left separate so they can be weighted accordingly at a later step. You can try both options ('Merge' vs 'Do not merge') before making a final choice."),
+      p("You may choose to merge patch size calculations across all habitat types, or keep results separate for each habitat type. If patch size results are merged, the change in average patch size for each habitat type are summed across all habitat types. If patch size for one habitat type is considered more valuable for the purposes of restoration than another, patch size metrics should be left separate so they can be weighted accordingly at a later step. You can try both options ('Merge' vs 'Do not merge') before making a final choice."),
       multiple_radio("merge_metrics",
         label = NULL,
         choices = c("Merge", "Do not merge"),
@@ -4940,7 +4940,7 @@ The application computes the difference in patch size between the original and e
     condition = "input.calculate_pca > 0",
     segment(
       div(style = "font-size: 18px; font-weight: bold; margin-bottom: 15px;", "Calculating environmental heterogeneity: comparing degraded and restored landscapes"),
-      p(HTML("Here, we measure the difference in environmental heterogeneity between the original landscape against the set of landscapes with each candidate area restored, based on the scores from the principal component analysis. In the original landscape, degraded pixels are treated as if they have no value, whereas restored pixels are given their principal component scores.
+      p(HTML("Here, we measure the difference in environmental heterogeneity between the original landscape against the set of landscapes with each candidate area restored, based on the scores from the principal component analysis. In the original landscape, degraded pixels are treated as if they have no value, whereas after restoration pixels are given their principal component scores.
       <br><br>
       Heterogeneity, or variation in the landscape, is calculated by measuring the “average surface roughness” of the landscape – essentially a measure of how the environmental values for each pixel differ from the mean environmental value of all pixels in the landscape. Therefore, surface roughness indicates whether pixels are mostly similar to or different from each other. If restoration adds pixels to the landscape that have relatively novel environmental conditions, surface roughness increases from pre- to post-restoration. 
       <br><br> 
@@ -4965,7 +4965,7 @@ The application computes the difference in patch size between the original and e
     condition = "input.calculate_env_metrics > 0",
     segment(
       div(style = "font-size: 18px; font-weight: bold; margin-bottom: 15px;", "Merging and scaling results"),
-      p("To prepare to identify the best candidate area(s) to restore, results from all previous calculations are merged into a single table. The values for each metric (patch size, connectivity, heterogeneity) for each candidate area are scaled to be comparable. For each metric, the value for each candidate area is subtracted from the mean value for all candidate areas and the result is dividing by the standard deviation. After scaling, values in the table below express the number of standard deviations a candidate area's value is from the mean for that metric."),
+      p("To identify the best candidate area(s) to restore, results from all previous calculations are merged into a single table. The values for each metric (patch size, connectivity, heterogeneity) for each candidate area are scaled to be comparable. For each metric, the value for each candidate area is subtracted from the mean value for all candidate areas and the result is divided by the standard deviation. After scaling, values in the table below express the number of standard deviations a candidate area's value is from the mean for that metric."),
       actionButton("merge_and_display", "Merge and scale results"),
       br(),
       br(),
