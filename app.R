@@ -3667,10 +3667,98 @@ server <- function(input, output, session) {
     Other_effective_area_based_conservation_measures = st_read("vectors/Other_Effective_area-based_Conservation_Measures.shp")
   )
   
-  observe({
+  # Key for ID column by polygon type
+  polygon_name <- list(
+    Upper_municipality = "MUN_NAME",
+    Lower_municipality = "MUN_NAME",
+    Provincial_parks = "PROTECTE_1",
+    Natural_heritage_system_areas = "ENABLING_P",
+    Natural_heritage_value_areas = "AREA_NAME",
+    Conservation_reserves = "PROTECTE_1",
+    National_parks = "NAME_E",
+    Conservation_areas = "NAME_E",
+    Far_North_protected_areas = "NAME_E",
+    Municipal_Heritage_areas = "NAME_E",
+    Migratory_Bird_sanctuaries = "NAME_E",
+    National_Wildlife_areas = "NAME_E",
+    NGO_reserves = "NAME_E",
+    Wilderness_areas = "NAME_E",
+    National_capital_valued_ecosystem_or_habitat = "NAME_E",
+    Provincial_planned_protected_area = "NAME_E",
+    Crown_plan_protected_area = "NAME_E",
+    Other_effective_area_based_conservation_measures = "NAME_E"
+  )
+  
+  
+  # Dynamically generate the list of features based on the selected polygon type
+  observeEvent(input$sf_object_selection, {
+    
     selected_sf <- sf_objects[[input$sf_object_selection]]
-    print(selected_sf)
-    selected_sf_react(selected_sf)
+    
+    # Get the correct column name for the selected polygon type
+    selected_column <- polygon_name[[input$sf_object_selection]]
+    
+    # Check if the column exists in the selected sf object
+    if (!is.null(selected_column) && selected_column %in% colnames(selected_sf)) {
+      
+      # Create a list of features by their names (or any identifier, like "Name" or "ID")
+      feature_choices <- as.character(selected_sf[[selected_column]])
+      
+      # Generate dynamic UI for feature selection using multiple_checkbox
+      output$feature_selection_ui <- renderUI({
+        
+        tagList(
+          tags$style(HTML("h4.custom-header { font-size: 13px; }")),
+          h4(class = "custom-header", "Select individual features:"),
+          # Add action buttons for select and unselect all
+          actionButton("select_all", "Select All"),
+          actionButton("unselect_all", "Unselect All"),
+          br(),
+          br(),
+          
+          
+        multiple_checkbox(
+          input_id = "selected_features",
+          label = NULL,
+          choices = feature_choices,
+          selected = feature_choices
+        )
+        )
+      })
+    } else {
+
+      output$feature_selection_ui <- renderUI({
+        p("No valid features found for the selected type.")
+      })
+    }
+    
+    # Observe the "Select All" button
+    observeEvent(input$select_all, {
+      updateSelectInput(session, "selected_features", selected = feature_choices)
+    })
+    
+    # Observe the "Unselect All" button
+    observeEvent(input$unselect_all, {
+      updateSelectInput(session, "selected_features", selected = character(0))
+    })
+  })
+  
+  # Filter the selected sf objects based on the user's feature selection
+  observe({
+    #req(input$selected_features)
+    if (!is.null(input$selected_features)) {
+      selected_sf <- sf_objects[[input$sf_object_selection]]
+      
+      # Get the correct column name for the selected polygon type
+      selected_column <- polygon_name[[input$sf_object_selection]]
+      
+      if (!is.null(selected_column) && selected_column %in% colnames(selected_sf)) {
+        # Subset the sf object based on the selected features
+        filtered_sf <- selected_sf[selected_sf[[selected_column]] %in% input$selected_features, ]
+        
+        selected_sf_react(filtered_sf)  # Update the reactive object with the filtered sf
+      }
+    }
   })
   
   
@@ -5017,7 +5105,8 @@ The application computes the difference in patch size between the original and e
       segment(
         p(HTML("If you would like to view this landscape later, you can save an .RDS file to import back into the app to visualize.<br>")),
       downloadButton("downloadplotRDS", "Save landscape visualization", 
-                     style = "height:60px; width:300px; font-size:25px;"))
+                     style = "height:60px; width:300px; font-size:25px;")),
+    br(),
   ),
 
   ## Segment 18: Loading and merging multiple landscapes (if that initial choice is selected in segment 1) ----
@@ -5068,7 +5157,8 @@ The application computes the difference in patch size between the original and e
     segment(
       downloadButton("download_multiple_data", "Save landscape metrics and candidate area performance csv", style = "height:60px; width:300px; font-size:25px;")),
       segment(
-        downloadButton("download_multiple_KML", "Export top candidate area(s) to KML", style = "height:60px; width:300px; font-size:25px;"))
+        downloadButton("download_multiple_KML", "Export top candidate area(s) to KML", style = "height:60px; width:300px; font-size:25px;")),
+    br(),
   ),
 
 ## Segment 21: visualizing landscapes based on RDS files ----
@@ -5143,6 +5233,7 @@ conditionalPanel(
           "Other effective area-based conservation measures" = "Other_effective_area_based_conservation_measures"
         )
       ),
+      uiOutput("feature_selection_ui"),  # Dynamic input for individual features
       br(),
       br(),
       p(HTML("Below, a landscape buffer can be set by entering a number in the text box. Since the pixel 
@@ -5182,6 +5273,7 @@ conditionalPanel(
   condition = "input.run_batch > 0",
     segment(
       downloadButton("download_data_batch", "Save landscape metics and combinaton performance", style = "height:60px; width:300px; font-size:25px;")),
+  br(),
     )
 ))
 
