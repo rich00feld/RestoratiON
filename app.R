@@ -69,6 +69,7 @@ library(tidyterra)
 library(cowplot)
 library(grid)
 library(gridExtra)
+library(shinya11y)
 
 
 
@@ -4740,6 +4741,17 @@ ui <- shinyUI(semanticPage(
 
   # Splash page content
   uiOutput("splash"),
+
+# Add a Fomantic-UI menu at the top for the feedback button
+div(class = "ui top fixed menu",
+    div(class = "item", ""),  # Placeholder for title
+    div(class = "right menu",
+        a(class = "item", 
+          href = "https://forms.office.com/Pages/ResponsePage.aspx?id=KRLczSqsl0u3ig5crLWGXNRxs3qV961EgSoYMvAfZJ5UODdBUFlaNVpLU0wyRVRBQURPMFNGR0U3Sy4u",
+          target = "_blank",
+          icon("edit"), "Leave Feedback")
+    )
+),
 
   ## Segment 1: Initial Choice for app use ----
   conditionalPanel(
