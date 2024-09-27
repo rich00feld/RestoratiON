@@ -1306,40 +1306,46 @@ server <- function(input, output, session) {
     if (!is.null(croppedOntario())) {
       tagList(
         div(
-          sliderInput("mine_slider", HTML("<br><b>Active mines</b><br><i>1 = Any active mine (open pit or underground), and areas within 10 km of any active mine are 
-                      degraded.<br>8 = Only land within 500 m of an open pit mine is degraded. For more detail on how active mine thresholds are defined, 
-                      see table 3, <a href='https://www.sciencedirect.com/science/article/abs/pii/S0169204608000637' target='_blank'>Woolmer et al. 2008</a>,
-                                          also accessible as table 5 in <a href='https://www.facetsjournal.com/doi/full/10.1139/facets-2021-0063#tab5' target='_blank'>Hirsh-Pearson et al. 2022</a>.
-                                          </i><br><br>"), min = 1, max = 9, value = 2, step = 1),
+          tags$label(`for` = "mine_slider", HTML("<b>Active mines</b><br><i>1 = Any active mine (open pit or underground), and areas within 10 km of any active mine are 
+              degraded.<br>8 = Only land within 500 m of an open pit mine is degraded. For more detail on how active mine thresholds are defined, 
+              see table 3, <a href='https://www.sciencedirect.com/science/article/abs/pii/S0169204608000637' target='_blank'>Woolmer et al. 2008</a>,
+              also accessible as table 5 in <a href='https://www.facetsjournal.com/doi/full/10.1139/facets-2021-0063#tab5' target='_blank'>Hirsh-Pearson et al. 2022</a>.</i><br><br>")),
+          sliderInput("mine_slider", NULL, min = 1, max = 9, value = 2, step = 1),
           tags$p(id = "mine_max_label", "Not included", style = "text-align: right; margin-top: -20px;")
         ),
         div(
-          sliderInput("amis_slider", HTML("<br><b>Abandoned mines</b><br><i>1 = Pixels with 1 or more abandoned mines are degraded.<br>3 = Only pixels with 3 or more abandoned 
-                      mines are degraded.</i><br><br>"), min = 1, max = 4, value = 1, step = 1),
+          tags$label(`for` = "amis_slider", HTML("<b>Abandoned mines</b><br><i>1 = Pixels with 1 or more abandoned mines are degraded.<br>3 = Only pixels with 3 or more abandoned 
+              mines are degraded.</i><br><br>")),
+          sliderInput("amis_slider", NULL, min = 1, max = 4, value = 1, step = 1),
           tags$p(id = "amis_max_label", "Not included", style = "text-align: right; margin-top: -20px;")
         ),
         div(
-          sliderInput("night_lights_slider", HTML("<br><b>Night lights</b><br><i>1 = Pixels with any amount of night light pollution are degraded.<br>10 = Only pixels with the most severe night light pollution
-                      are degraded.</i><br><br>"), min = 1, max = 11, value = 1, step = 1),
+          tags$label(`for` = "night_lights_slider", HTML("<b>Night lights</b><br><i>1 = Pixels with any amount of night light pollution are degraded.<br>10 = Only pixels with the most severe night light pollution
+              are degraded.</i><br><br>")),
+          sliderInput("night_lights_slider", NULL, min = 1, max = 11, value = 1, step = 1),
           tags$p(id = "night_lights_max_label", "Not included", style = "text-align: right; margin-top: -20px;")
         ),
         div(
-          sliderInput("oil_gas_slider", HTML("<br><b>Oil and gas</b><br><i>1 = Any area within 5 km of an active oil and gas field is degraded.<br>10 = Only areas within 300 m of active oil and gas activity
-                      are degraded.</i><br><br>"), min = 1, max = 11, value = 6, step = 1),
+          tags$label(`for` = "oil_gas_slider", HTML("<b>Oil and gas</b><br><i>1 = Any area within 5 km of an active oil and gas field is degraded.<br>10 = Only areas within 300 m of active oil and gas activity
+              are degraded.</i><br><br>")),
+          sliderInput("oil_gas_slider", NULL, min = 1, max = 11, value = 6, step = 1),
           tags$p(id = "oil_gas_max_label", "Not included", style = "text-align: right; margin-top: -20px;")
         ),
         div(
-          sliderInput("aggregate_extraction_slider", HTML("<br><b>Aggregate extraction</b><br><i>1 = Any area affected by aggregate extraction is degraded.</i><br><br>"), min = 1, max = 2, value = 1, step = 1),
+          tags$label(`for` = "aggregate_extraction_slider", HTML("<b>Aggregate extraction</b><br><i>1 = Any area affected by aggregate extraction is degraded.</i><br><br>")),
+          sliderInput("aggregate_extraction_slider", NULL, min = 1, max = 2, value = 1, step = 1),
           tags$p(id = "aggregate_extraction_max_label", "Not included", style = "text-align: right; margin-top: -20px;")
         ),
         div(
-          sliderInput("topsoil_extraction_slider", HTML("<br><b>Topsoil extraction</b><br><i>1 = Any area affected by topsoil extraction is degraded.</i><br><br>"), min = 1, max = 2, value = 1, step = 1),
+          tags$label(`for` = "topsoil_extraction_slider", HTML("<b>Topsoil extraction</b><br><i>1 = Any area affected by topsoil extraction is degraded.</i><br><br>")),
+          sliderInput("topsoil_extraction_slider", NULL, min = 1, max = 2, value = 1, step = 1),
           tags$p(id = "topsoil_extraction_max_label", "Not included", style = "text-align: right; margin-top: -20px;")
         ),
         div(
-          sliderInput("undifferentiated_slider", HTML("<br><b>Undifferentiated land</b><br><i>1 = Brownfields and marginal farmland are considered degraded land. Note that any pixels classified as 'undifferentiated' 
-                      by the Southern Ontario Land Resource Information System, SOLRIS, that are also classified as 'good farmland' in the Canada Land Inventory will not be classed 
-                      as degraded here.</i><br><br>"), min = 1, max = 2, value = 1, step = 1),
+          tags$label(`for` = "undifferentiated_slider", HTML("<b>Undifferentiated land</b><br><i>1 = Brownfields and marginal farmland are considered degraded land. Note that any pixels classified as 'undifferentiated' 
+              by the Southern Ontario Land Resource Information System, SOLRIS, that are also classified as 'good farmland' in the Canada Land Inventory will not be classed 
+              as degraded here.</i><br><br>")),
+          sliderInput("undifferentiated_slider", NULL, min = 1, max = 2, value = 1, step = 1),
           tags$p(id = "undifferentiated_max_label", "Not included", style = "text-align: right; margin-top: -20px;")
         )
       )
@@ -4683,6 +4689,7 @@ server <- function(input, output, session) {
 ui <- shinyUI(semanticPage(
   title = "Restoration Prioritization",
   useShinyjs(),
+  tags$html(lang = "en"),
 
 # Custom CSS for styling the splash page
   tags$head(
@@ -4779,6 +4786,9 @@ div(class = "ui top fixed menu",
   conditionalPanel(
     condition = "(output.showSingleLandscape > 0 || output.showBatchProcessing > 0) && !output.showhabitat_based_calculations && !output.showprotected_based_calculations",
     segment(
+      br(),
+      br(),
+      br(),
       div(style = "font-size: 18px; font-weight: bold; margin-bottom: 15px;", "Select what areas to consider when measuring the benefit of restoration"),
       p(HTML("Here you have the option of highlighting the benefits that restoration may have on areas of conservation concern.<br><br> 
 <b>Choose an option below to continue:</b><br>
@@ -4818,6 +4828,9 @@ div(class = "ui top fixed menu",
   conditionalPanel(
     condition = "input.protected_based_calculations > 0",
     segment(
+      br(),
+      br(),
+      br(),
       div(style = "font-size: 18px; font-weight: bold; margin-bottom: 15px;", "Defining areas of conservation concern"),
       p("Select what features should be included in areas of conservation concern. A minimum of 1 feature must be selected."),
       br(),
@@ -4829,6 +4842,9 @@ div(class = "ui top fixed menu",
   conditionalPanel(
     condition = "(input.habitat_based_calculations > 0 || input.protected_based_calculations > 0) && output.showSingleLandscape > 0",
     segment(
+      br(),
+      br(),
+      br(),
       div(style = "font-size: 18px; font-weight: bold; margin-bottom: 15px;", "Choosing a landscape"),
       p(HTML("You are ready to select a target landscape to analyze. You can choose to draw a landscape or select a landscape from pre-defined categories:<br><br>
   <b>Option 1: Choose landscape extent by drawing a shape</b><br>
@@ -4872,6 +4888,9 @@ fluidRow(
   conditionalPanel(
     condition = "input.set_extent > 0",
     segment(
+      br(),
+      br(),
+      br(),
       div(style = "font-size: 18px; font-weight: bold; margin-bottom: 15px;", "Defining degraded pixels"),
       p(HTML("The next step is defining which pixels qualify as “degraded land” based on user-defined thresholds. Using the sliders below, you can customize the criteria under
       which pixels are considered degraded; these pixels are eligible for restoration. Conditions that could influence whether a pixel is considered degraded land include presence of active
@@ -4906,6 +4925,9 @@ fluidRow(
   conditionalPanel(
     condition = "input.preview > 0",
     segment(
+      br(),
+      br(),
+      br(),
       div(style = "font-size: 18px; font-weight: bold; margin-bottom: 15px;", "Simulating restoration"),
       p(HTML("The next step is to simulate the restoration of pixels that are defined as degraded. When 'simulate restoration' is clicked, each individual degraded pixel in the target landscape is replaced with the most prevalent natural habitat in the 3x3 pixel neighbourhood (8 pixels total) that surround it. <br><br>
      If a degraded pixel is not surrounded by any natural habitat in the 3x3 neighborhood, which may occur when the degraded land is completely surrounded by water, urban areas, or farmland, the application will attempt to replace the degraded pixel using successively larger neighborhoods, which increase by 2 pixels each time (e.g., 5x5, 7x7, 9x9, etc.).<br><br> 
@@ -4923,6 +4945,9 @@ fluidRow(
   conditionalPanel(
     condition = "input.simulate_restoration > 0 && !output.showAutoCombo && !output.showManualCombo",
     segment(
+      br(),
+      br(),
+      br(),
       div(style = "font-size: 18px; font-weight: bold; margin-bottom: 15px;", "Choosing how to define candidate areas for restoration"),
       p(HTML("Your target landscape likely has multiple areas with one or more degraded pixels that can be restored. Eventually, the application will rank these 'candidate areas' to determine which, once restored, has the greatest potential biodiversity benefit. However, first you must choose how to <i>define</i> candidate areas for restoration. <br><br>
 <b>There are two options:</b>"
@@ -4940,6 +4965,9 @@ fluidRow(
   conditionalPanel(
     condition = "input.manual_combination > 0",
     segment(
+      br(),
+      br(),
+      br(),
       div(style = "font-size: 18px; font-weight: bold; margin-bottom: 15px;", "Set number of pixels"),
       p(HTML("Choose the number of pixels that will define candidate areas for restoration. The higher the number of candidate areas, the longer the computation time will be. For example, if a landscape has 100 degraded pixels, setting the number to 1, where each pixel is assessed on its own, will result in 100 candidate areas. Setting the number to 2 will result in 4950 candidate areas, and setting the number to 3 will result in 161700 candidate areas. On the other hand, if a target landscape has only 10 degraded pixels, then setting the number to 3 results in only 120 candidate areas. The number of candidate areas to analyze can quickly become very large (and take a very long time to assess) so you must consider the total number of degraded pixels in your target landscape when determining a reasonable number of pixels to include in a single candidate area.<br><br>You can test different scenarios by setting the number of pixels, then clicking 'Calculate number of candidate areas'. We recommend limiting the number of candidate areas to less than 15000.")),
       textOutput("numDegradedPixels_Seg8"),
@@ -4957,6 +4985,9 @@ fluidRow(
   conditionalPanel(
     condition = "input.calculate_combinations > 0 || input.automatic_combination > 0",
     segment(
+      br(),
+      br(),
+      br(),
       div(style = "font-size: 18px; font-weight: bold; margin-bottom: 15px;", "Calculating patch size"),
       p(HTML("Now, we can calculate the effect of restoring candidate areas on habitat patch size.<br><br>
 Patch size is calculated as the average size of contiguous areas of a particular habitat type. For each habitat type, the effect of restoration is measured by comparing average patch size of the original landscape against the set of landscapes with each candidate area restored.  
@@ -4979,6 +5010,9 @@ The application computes the difference in patch size between the original and e
   conditionalPanel(
     condition = "input.calculate_metrics > 0",
     segment(
+      br(),
+      br(),
+      br(),
       div(style = "font-size: 18px; font-weight: bold; margin-bottom: 15px;", "Merge patch size results?"),
       p("You may choose to merge patch size calculations across all habitat types, or keep results separate for each habitat type. If patch size results are merged, the change in average patch size for each habitat type are summed across all habitat types. If patch size for one habitat type is considered more valuable for the purposes of restoration than another, patch size metrics should be left separate so they can be weighted accordingly at a later step. You can try both options ('Merge' vs 'Do not merge') before making a final choice."),
       multiple_radio("merge_metrics",
@@ -4999,6 +5033,9 @@ The application computes the difference in patch size between the original and e
   conditionalPanel(
     condition = "input.perform_merge > 0",
     segment(
+      br(),
+      br(),
+      br(),
       div(style = "font-size: 18px; font-weight: bold; margin-bottom: 15px;", "Calculating connectivity metrics"),
       p(HTML("Next, we will measure connectivity metrics for each candidate area. Connectivity can be defined as the ease of movement across a landscape due to connectedness of habitat types. Another way to view this is the amount of resistance a landscape has to movement. We assigned a movement cost value to each 300 x 300 metre pixel in the province, following Pither et al. 2023 (a full breakdown of the cost values for each pixel type are given
       <a href='https://figshare.com/articles/journal_contribution/Land_cover_layers_and_their_sources_used_to_construct_a_movement_cost_layer_for_Canada_/22143033' target='_blank'>here</a>). We modify cost values for some pixels: any degraded pixels are given a high cost value (1000), whereas restored pixels and natural habitat are given the lowest cost value (1). 
@@ -5022,6 +5059,9 @@ The application computes the difference in patch size between the original and e
   conditionalPanel(
     condition = "input.calculate_connectivity > 0",
     segment(
+      br(),
+      br(),
+      br(),
       div(style = "font-size: 18px; font-weight: bold; margin-bottom: 15px;", "Calculating environmental heterogeneity: creating principal component data layers"),
       p(HTML("If different species thrive in different combinations of environmental conditions, then a more environmentally heterogeneous landscape shoud be able to support more species. Here, we measure environmental heterogeneity in the original landscape, excluding degraded areas, and compare that value against each restored landscape, where the restored candidate areas contribute their environmental conditions to overall heterogeneity.
       <br><br>
@@ -5039,6 +5079,9 @@ The application computes the difference in patch size between the original and e
   conditionalPanel(
     condition = "input.calculate_pca > 0",
     segment(
+      br(),
+      br(),
+      br(),
       div(style = "font-size: 18px; font-weight: bold; margin-bottom: 15px;", "Calculating environmental heterogeneity: comparing degraded and restored landscapes"),
       p(HTML("Here, we measure the difference in environmental heterogeneity between the original landscape against the set of landscapes with each candidate area restored, based on the scores from the principal component analysis. In the original landscape, degraded pixels are treated as if they have no value, whereas after restoration pixels are given their principal component scores.
       <br><br>
@@ -5064,6 +5107,9 @@ The application computes the difference in patch size between the original and e
   conditionalPanel(
     condition = "input.calculate_env_metrics > 0",
     segment(
+      br(),
+      br(),
+      br(),
       div(style = "font-size: 18px; font-weight: bold; margin-bottom: 15px;", "Merging and scaling results"),
       p("To identify the best candidate area(s) to restore, results from all previous calculations are merged into a single table. The values for each metric (patch size, connectivity, heterogeneity) for each candidate area are scaled to be comparable. For each metric, the value for each candidate area is subtracted from the mean value for all candidate areas and the result is divided by the standard deviation. After scaling, values in the table below express the number of standard deviations a candidate area's value is from the mean for that metric."),
       actionButton("merge_and_display", "Merge and scale results"),
@@ -5078,6 +5124,9 @@ The application computes the difference in patch size between the original and e
   conditionalPanel(
     condition = "input.merge_and_display > 0",
     segment(
+      br(),
+      br(),
+      br(),
       div(style = "font-size: 18px; font-weight: bold; margin-bottom: 15px;", "Weighting and finding the best candidate areas"),
       p(HTML("The final step is to determine and visualize the best candidate area(s) for restoration. Here, you have the option to adjust the weight given to each metric calculated in the app. Each metric starts out with a default weight of 1. Different weights can be assigned with the goal of prioritizing some metrics in the selection process over others.")),
       uiOutput("weights_ui"),
@@ -5097,6 +5146,9 @@ The application computes the difference in patch size between the original and e
   conditionalPanel(
     condition = "input.find_best_comb > 0",
     segment(
+      br(),
+      br(),
+      br(),
       div(style = "font-size: 18px; font-weight: bold; margin-bottom: 15px;", "Saving candidate areas and associated metrics"),
       p(HTML("Finally, to conclude the single landscape analysis, you can save the table containing the final, summed values for all environmental metrics for each candidate area. Enter a unique name for your landscape below. A .csv file containing the metrics for each combination (before weighting) is created. This results .csv file can be used to compare candidate areas in this landscape to other landscapes in the 'Multiple Landscapes' section of the app.<br><br>Click 'Save landscape metrics and candidate area performance .CSV' below to save the results file.<br>")),
       br(),
@@ -5125,6 +5177,9 @@ The application computes the difference in patch size between the original and e
   conditionalPanel(
     condition = "output.showMultipleLandscapes > 0",
     segment(
+      br(),
+      br(),
+      br(),
       div(style = "font-size: 18px; font-weight: bold; margin-bottom: 15px;", "Load and merge combination metrics from multiple landscapes"),
       p("Here multiple .CSV files containing landscape data (created at the conclusion of the single landscape analysis) can be uploaded, with each file representing a distinct landscape.
 	    The code reads these .CSV files, extracts information such as the extent (i.e. spatial boundaries) and landscape name, and joins data from these files together to form a unified dataset
@@ -5142,6 +5197,9 @@ The application computes the difference in patch size between the original and e
   conditionalPanel(
     condition = "output.fileSelected > 0",
     segment(
+      br(),
+      br(),
+      br(),
       div(style = "font-size: 18px; font-weight: bold; margin-bottom: 15px;", "Weighting and ranking"),
       p("Similar to single landscape analysis, weights can be assigned to different metrics for the multi-landscape analysis.
         The best restored candidate areas across all landscapes are ranked using the weighted metrics, and displayed showing the candidate area name and landscape name. Individual plots for each of the top 
@@ -5200,6 +5258,9 @@ tags$script(HTML("
 conditionalPanel(
   condition = "output.showLandscapeVisualizer > 0",
   segment(
+    br(),
+    br(),
+    br(),
     div(style = "font-size: 18px; font-weight: bold; margin-bottom: 15px;", "Select landscapes to visualize"),
     p("This is a simple visualizer. Here users can select one or multiple results .RDS files from previously analyzed landscapes to visualize.
         Individual plots containing habitat types in those landscapes are then displayed, and a breakdown of habitat type as a proportion (in percent) of pixels is 
@@ -5219,6 +5280,9 @@ conditionalPanel(
   conditionalPanel(
     condition = "(input.habitat_based_calculations > 0 || input.protected_based_calculations > 0) && output.showBatchProcessing > 0",
     segment(
+      br(),
+      br(),
+      br(),
       div(style = "font-size: 18px; font-weight: bold; margin-bottom: 15px;", "Batch processing for all landscapes of a given type"),
       br(),
       selectInput(
