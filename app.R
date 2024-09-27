@@ -308,26 +308,32 @@ server <- function(input, output, session) {
   output$splash <- renderUI({
     # Path to the image
     image_path <- file.path(getwd(), "Splash_RestoratiON.jpg")
-
+    
     # Encode the image as a base64 string
     encoded_image <- base64enc::dataURI(file = image_path, mime = "image/jpeg")
-
+    
     # Use the base64 string in the CSS
     div(class = "splash-container", style = paste0("background-image: url('", encoded_image, "');"),
-        div(class = "splash-title", "Welcome to the RestoratiON App"),
-        div(class = "splash-text-container",
-            div(class = "splash-text", 
+        
+        # Styling for the splash title with white background and black text
+        div(class = "splash-title", style = "color: black; background-color: white; padding: 20px; font-size: 36px; text-align: center; border: none; box-shadow: none; border-radius: 10px;",
+            "Welcome to the RestoratiON App"
+        ),
+        
+        div(class = "splash-text-container", style = "border: none; padding: 0; box-shadow: none;",
+            # Styling for the descriptive text with rounded corners
+            div(class = "splash-text", style = "color: black; background-color: white; padding: 15px; font-size: 18px; border: none; box-shadow: none; border-radius: 10px;",
                 "In this application, you locate areas of degraded land in a selected 
-                geographic area in Ontario, identify candidate areas to restore, 
-                and measure the potential benefit that restoring each canadidate area has on landscape-scale biodiversity 
-                based on changes to patch size, connectivity, and environmental heterogeneity. 
-                You can rank candidate areas within and between landscapes by their restoration benefit ."
+              geographic area in Ontario, identify candidate areas to restore, 
+              and measure the potential benefit that restoring each candidate area has on landscape-scale biodiversity 
+              based on changes to patch size, connectivity, and environmental heterogeneity. 
+              You can rank candidate areas within and between landscapes by their restoration benefit."
             )
         ),
+        
         actionButton("go_button", "Let's go!", class = "go-button")
     )
   })
-
   # Server logic to handle the button click and proceed to the next section
   observeEvent(input$go_button, {
     # Hide the splash page
@@ -5006,27 +5012,31 @@ The application computes the difference in patch size between the original and e
   ),
 
 
-  ## Segment 10: Merging habitat metrics in a table ----
-  conditionalPanel(
-    condition = "input.calculate_metrics > 0",
-    segment(
-      br(),
-      br(),
-      br(),
-      div(style = "font-size: 18px; font-weight: bold; margin-bottom: 15px;", "Merge patch size results?"),
-      p("You may choose to merge patch size calculations across all habitat types, or keep results separate for each habitat type. If patch size results are merged, the change in average patch size for each habitat type are summed across all habitat types. If patch size for one habitat type is considered more valuable for the purposes of restoration than another, patch size metrics should be left separate so they can be weighted accordingly at a later step. You can try both options ('Merge' vs 'Do not merge') before making a final choice."),
-      multiple_radio("merge_metrics",
-        label = NULL,
-        choices = c("Merge", "Do not merge"),
-        selected = "Merge", inline = TRUE
-      ),
-      actionButton("perform_merge", "Proceed", style = "margin-top: 15px;"),
-      br(),
-      br(),
-      dataTableOutput("habitatTable"),
-      uiOutput("subtitleText1")
-    )
-  ),
+## Segment 10: Merging habitat metrics in a table ----
+conditionalPanel(
+  condition = "input.calculate_metrics > 0",
+  segment(
+    br(),
+    br(),
+    br(),
+    div(style = "font-size: 18px; font-weight: bold; margin-bottom: 15px;", "Merge patch size results?"),
+    p("You may choose to merge patch size calculations across all habitat types, or keep results separate for each habitat type. If patch size results are merged, the change in average patch size for each habitat type are summed across all habitat types. If patch size for one habitat type is considered more valuable for the purposes of restoration than another, patch size metrics should be left separate so they can be weighted accordingly at a later step. You can try both options ('Merge' vs 'Do not merge') before making a final choice."),
+
+    # Provide a label for the radio buttons
+    multiple_radio("merge_metrics",
+                   label = "Merge patch size calculations across habitat types:",
+                   choices = c("Merge", "Do not merge"),
+                   selected = "Merge", inline = TRUE
+    ),
+
+    actionButton("perform_merge", "Proceed", style = "margin-top: 15px;"),
+    br(),
+    br(),
+    dataTableOutput("habitatTable"),
+    uiOutput("subtitleText1")
+  )
+),
+
 
 
   ## Segment 11: Calculate Connectivity Metrics ----
