@@ -3725,29 +3725,50 @@ server <- function(input, output, session) {
       # Create a list of features by their names (or any identifier, like "Name" or "ID")
       feature_choices <- as.character(selected_sf[[selected_column]])
       
-      # Generate dynamic UI for feature selection using multiple_checkbox
+      # Generate dynamic UI for feature selection
       output$feature_selection_ui <- renderUI({
-        
         tagList(
           tags$style(HTML("h4.custom-header { font-size: 13px; }")),
           h4(class = "custom-header", "Select individual features:"),
+          
           # Add action buttons for select and unselect all
           actionButton("select_all", "Select All"),
           actionButton("unselect_all", "Unselect All"),
           br(),
           br(),
           
+          # Explicitly creating a label for each checkbox in the dynamic checklist
+          div(
+            id = "checkboxes",
+            lapply(feature_choices, function(feature) {
+              div(
+                class = "field",
+                div(class = "ui checkbox",
+                    tags$input(
+                      type = "checkbox",
+                      id = paste0("feature_", gsub(" ", "_", feature)),  # Create a unique ID for each checkbox
+                      name = "feature_checkboxes",  # Name should match across checkboxes for collection
+                      value = feature
+                    ),
+                    tags$label(`for` = paste0("feature_", gsub(" ", "_", feature)), feature)  # Associate the label with the checkbox
+                )
+              )
+            })
+          ),
           
-        multiple_checkbox(
-          input_id = "selected_features",
-          label = NULL,
-          choices = feature_choices,
-          selected = feature_choices
-        )
+          # Include JavaScript to collect checkbox values and bind to `input$selected_features`
+          tags$script(HTML("
+          $('input[name=\"feature_checkboxes\"]').change(function() {
+            var selected_features = [];
+            $('input[name=\"feature_checkboxes\"]:checked').each(function() {
+              selected_features.push($(this).val());
+            });
+            Shiny.setInputValue('selected_features', selected_features);
+          });
+        "))
         )
       })
     } else {
-
       output$feature_selection_ui <- renderUI({
         p("No valid features found for the selected type.")
       })
@@ -3755,12 +3776,14 @@ server <- function(input, output, session) {
     
     # Observe the "Select All" button
     observeEvent(input$select_all, {
-      updateSelectInput(session, "selected_features", selected = feature_choices)
+      updateCheckboxGroupInput(session, "selected_features", selected = feature_choices)
+      shinyjs::runjs("$('input[name=\"feature_checkboxes\"]').prop('checked', true).trigger('change');")
     })
     
     # Observe the "Unselect All" button
     observeEvent(input$unselect_all, {
-      updateSelectInput(session, "selected_features", selected = character(0))
+      updateCheckboxGroupInput(session, "selected_features", selected = character(0))
+      shinyjs::runjs("$('input[name=\"feature_checkboxes\"]').prop('checked', false).trigger('change');")
     })
   })
   
@@ -5020,7 +5043,7 @@ The application computes the difference in patch size between the original and e
   ),
 
 
-## Segment 10: Merging habitat metrics in a table ----
+# Segment 10: Merging habitat metrics in a table ----
 conditionalPanel(
   condition = "input.calculate_metrics > 0",
   segment(
