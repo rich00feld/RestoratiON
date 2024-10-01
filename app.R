@@ -317,7 +317,7 @@ server <- function(input, output, session) {
         
         # Styling for the splash title with white background and black text
         div(class = "splash-title", style = "color: black; background-color: white; padding: 20px; font-size: 36px; text-align: center; border: none; box-shadow: none; border-radius: 10px;",
-            "Welcome to the RestoratiON App"
+            "Welcome to the RestoratiON Tool"
         ),
         
         div(class = "splash-text-container", style = "border: none; padding: 0; box-shadow: none;",
@@ -2275,16 +2275,21 @@ server <- function(input, output, session) {
   # habitat class or output them separately)
   observeEvent(input$perform_merge, {
     result_habitat_data_updated(result_habitat_data())
-    # Check the selected option
-    if (input$merge_metrics == "Merge") {
-      # Perform the merging and updating of the data
-      updated_data <- result_habitat_data() %>%
-        mutate(
-          sum_habitat_patch_size_diff = rowSums(select(., starts_with("patch_size_diff")), na.rm = TRUE)
-        ) %>%
-        select(-starts_with("patch_size_diff"))
-      # Update the reactive value
-      result_habitat_data_updated(updated_data)
+    
+    # Safely checking the value of input$merge_metrics
+    if (!is.null(input$merge_metrics)) {
+      if (input$merge_metrics == "Merge") {
+        updated_data <- result_habitat_data() %>%
+          mutate(
+            sum_habitat_patch_size_diff = rowSums(select(., starts_with("patch_size_diff")), na.rm = TRUE)
+          ) %>%
+          select(-starts_with("patch_size_diff"))
+        
+        result_habitat_data_updated(updated_data)
+      }
+    } else {
+      # Handle cases where merge_metrics is NULL
+      showNotification("No option selected for merge metrics", type = "error")
     }
     
     
@@ -4775,7 +4780,7 @@ div(class = "ui top fixed menu",
 <b>Choose an option to continue:</b><br>")),
       actionButton("single_landscape", "Calculate metrics for a single landscape"),
       br(),
-      p(HTML("<i><p style='margin-left: 25px;'>Choose this if it’s your first time using the app or if you want to analyze a single landscape. This option will output app results in a single .csv file for review.</p></i>")),
+      p(HTML("<i><p style='margin-left: 25px;'>Choose this if it’s your first time using the tool or if you want to analyze a single landscape. This option will output results in a single .csv file for review.</p></i>")),
       actionButton("batch_processing", "Calculate metrics for all landscapes of a given category"),
       br(),
       p(HTML("<i><p style='margin-left: 25px;'>Choose this to calculate metrics for multiple landscapes belonging to a particular category (e.g., muncipalities, provincial parks).</p></i>")),
@@ -5021,14 +5026,16 @@ conditionalPanel(
     br(),
     div(style = "font-size: 18px; font-weight: bold; margin-bottom: 15px;", "Merge patch size results?"),
     p("You may choose to merge patch size calculations across all habitat types, or keep results separate for each habitat type. If patch size results are merged, the change in average patch size for each habitat type are summed across all habitat types. If patch size for one habitat type is considered more valuable for the purposes of restoration than another, patch size metrics should be left separate so they can be weighted accordingly at a later step. You can try both options ('Merge' vs 'Do not merge') before making a final choice."),
-
-    # Provide a label for the radio buttons
-    multiple_radio("merge_metrics",
-                   label = "Merge patch size calculations across habitat types:",
-                   choices = c("Merge", "Do not merge"),
-                   selected = "Merge", inline = TRUE
+    
+    # Using multiple_radio from shiny.semantic for proper integration
+    multiple_radio(
+      input_id = "merge_metrics",
+      label = "Merge patch size calculations:",
+      choices = list("Merge" = "Merge", "Do not merge" = "Do not merge"),
+      selected = "Merge",
+      type = "inline"
     ),
-
+    
     actionButton("perform_merge", "Proceed", style = "margin-top: 15px;"),
     br(),
     br(),
@@ -5138,13 +5145,14 @@ conditionalPanel(
       br(),
       br(),
       div(style = "font-size: 18px; font-weight: bold; margin-bottom: 15px;", "Weighting and finding the best candidate areas"),
-      p(HTML("The final step is to determine and visualize the best candidate area(s) for restoration. Here, you have the option to adjust the weight given to each metric calculated in the app. Each metric starts out with a default weight of 1. Different weights can be assigned with the goal of prioritizing some metrics in the selection process over others.")),
+      p(HTML("The final step is to determine and visualize the best candidate area(s) for restoration. Here, you have the option to adjust the weight given to each metric calculated in the tool. Each metric starts out with a default weight of 1. Different weights can be assigned with the goal of prioritizing some metrics in the selection process over others.")),
       uiOutput("weights_ui"),
       br(),
       p(HTML("<br><br>Now, set the number of candidate areas you wish to return. For example, if you set the number of top candidate areas to display to 5, the best 5 candidate areas will be displayed in descending order of importance, with the best candidate area displayed first.")),
       numericInput("num_top_combinations", "Number of top candidate areas to display:", value = 1, min = 1, step = 1),
       br(),
-      p(HTML("When the 'Find best candidate areas' button is clicked, values for each metric are adjusted based on the weights you provide. The sum of weighted values is calculated for each candidate area, and the area with the maximum sum is identified as the best candidate area for restoration. Two figures are created: an interactive map displaying the best candidate areas, and another showing habitat types and candidate areas in the target landscape. The latter figure includes an option for displaying the best candidate area in conjunction with areas of conservation concern, if this option was selected.")),
+      p(HTML("When the 'Find best candidate areas' button is clicked, values for each metric are adjusted based on the weights you provide. The sum of weighted values is calculated for each candidate area, and the area with the maximum sum is identified as the best candidate area for restoration. Two figures are created: an interactive map displaying the best candidate areas, and another showing habitat types and candidate areas in the target landscape. The latter figure includes an option for displaying the best candidate area in conjunction with areas of conservation concern, if this option was selected.<br><br>
+             <strong style='font-size: 14px;'>In the resulting map below, there is the option to visualize candidate areas alongside satellite imagery by toggling 'satellite view' in the map legend. Visualizing where candidate areas are located in real landscapes is a critical step to determine restoration feasibility, as original data layers may have misclassified habitat and other features and may not reflect recent landscape changes. Later on, you will also have the option of exporting the results in .kml format to visualize candidate areas in Google Earth or another mapping application of your choice.")),
       actionButton("find_best_comb", "Find best candidate areas"),
       uiOutput("bestCombinationName", class = "ui message"),
       leafletOutput("map_best_comb", height = 600),
@@ -5160,7 +5168,7 @@ conditionalPanel(
       br(),
       br(),
       div(style = "font-size: 18px; font-weight: bold; margin-bottom: 15px;", "Saving candidate areas and associated metrics"),
-      p(HTML("Finally, to conclude the single landscape analysis, you can save the table containing the final, summed values for all environmental metrics for each candidate area. Enter a unique name for your landscape below. A .csv file containing the metrics for each combination (before weighting) is created. This results .csv file can be used to compare candidate areas in this landscape to other landscapes in the 'Multiple Landscapes' section of the app.<br><br>Click 'Save landscape metrics and candidate area performance .CSV' below to save the results file.<br>")),
+      p(HTML("Finally, to conclude the single landscape analysis, you can save the table containing the final, summed values for all environmental metrics for each candidate area. Enter a unique name for your landscape below. A .csv file containing the metrics for each combination (before weighting) is created. This results .csv file can be used to compare candidate areas in this landscape to other landscapes in the 'Multiple Landscapes' section of the tool.<br><br>Click 'Save landscape metrics and candidate area performance .CSV' below to save the results file.<br>")),
       br(),
       textInput("landscape_name", "Enter a unique name for your landscape:"),
       br(),
@@ -5174,10 +5182,10 @@ conditionalPanel(
     segment(
       downloadButton("download_data", "Save landscape metrics and candidate area performance .CSV", style = "height:60px; width:300px; font-size:25px;")),
       segment(
-        p(HTML("If you would like to export a KML file to view the top candidate areas chosen in the analysis outside this app (e.g., in Google Earth or ArcGIS), click 'Export top candidate area(s) to .KML'.<br>")),
+        p(HTML("If you would like to export a KML file to view the top candidate areas chosen in the analysis outside this tool (e.g., in Google Earth or ArcGIS), click 'Export top candidate area(s) to .KML'.<br>")),
         downloadButton("downloadKML", "Export top candidate area(s) to .KML", style = "height:60px; width:300px; font-size:25px;")),
       segment(
-        p(HTML("If you would like to view this landscape later, you can save an .RDS file to import back into the app to visualize.<br>")),
+        p(HTML("If you would like to view this landscape later, you can save an .RDS file to import back into the tool to visualize.<br>")),
       downloadButton("downloadplotRDS", "Save landscape visualization", 
                      style = "height:60px; width:300px; font-size:25px;")),
     br(),
