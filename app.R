@@ -2286,6 +2286,9 @@ server <- function(input, output, session) {
           select(-starts_with("patch_size_diff"))
         
         result_habitat_data_updated(updated_data)
+      } else if (input$merge_metrics == "Do not merge") {
+        # Handle 'Do not merge' logic here (if different)
+        result_habitat_data_updated(result_habitat_data())
       }
     } else {
       # Handle cases where merge_metrics is NULL
@@ -5027,13 +5030,21 @@ conditionalPanel(
     div(style = "font-size: 18px; font-weight: bold; margin-bottom: 15px;", "Merge patch size results?"),
     p("You may choose to merge patch size calculations across all habitat types, or keep results separate for each habitat type. If patch size results are merged, the change in average patch size for each habitat type are summed across all habitat types. If patch size for one habitat type is considered more valuable for the purposes of restoration than another, patch size metrics should be left separate so they can be weighted accordingly at a later step. You can try both options ('Merge' vs 'Do not merge') before making a final choice."),
     
-    # Using multiple_radio from shiny.semantic for proper integration
-    multiple_radio(
-      input_id = "merge_metrics",
-      label = "Merge patch size calculations:",
-      choices = list("Merge" = "Merge", "Do not merge" = "Do not merge"),
-      selected = "Merge",
-      type = "inline"
+    # Manually create radio buttons with correct labels
+    div(
+      tags$label("Merge patch size calculations:"),
+      div(class = "radio",
+          tags$label(
+            tags$input(type = "radio", id = "merge_metrics_merge", name = "merge_metrics", value = "Merge", 
+                       onclick = "Shiny.setInputValue('merge_metrics', this.value)"),
+            "Merge"
+          )),
+      div(class = "radio",
+          tags$label(
+            tags$input(type = "radio", id = "merge_metrics_do_not_merge", name = "merge_metrics", value = "Do not merge", 
+                       onclick = "Shiny.setInputValue('merge_metrics', this.value)"),
+            "Do not merge"
+          )),
     ),
     
     actionButton("perform_merge", "Proceed", style = "margin-top: 15px;"),
