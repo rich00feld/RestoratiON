@@ -323,7 +323,7 @@ server <- function(input, output, session) {
         div(class = "splash-text-container", style = "border: none; padding: 0; box-shadow: none;",
             # Styling for the descriptive text with rounded corners
             div(class = "splash-text", style = "color: black; background-color: white; padding: 15px; font-size: 18px; border: none; box-shadow: none; border-radius: 10px;",
-                "In this application, you locate areas of degraded land in a selected 
+                "In this tool, you locate areas of degraded land in a selected 
               geographic area in Ontario, identify candidate areas to restore, 
               and measure the potential benefit that restoring each candidate area has on landscape-scale biodiversity 
               based on changes to patch size, connectivity, and environmental heterogeneity. 
@@ -4904,7 +4904,7 @@ div(class = "ui top fixed menu",
       br(),
       p(HTML("<b>Set the final extent</b><br>
                Finally, press “Set extent” to confirm the final target landscape to analyze. An image of the selected landscape, including the buffer area, is displayed for you to review, along with the proportion of total area covered by different habitat types.<br><br>
-             When the landscape extent is set, a test is run on that landscape to see if it is large enough to calculate connectivity metrics. This will be explained in more detail as you progress through the application.<br>
+             When the landscape extent is set, a test is run on that landscape to see if it is large enough to calculate connectivity metrics. This will be explained in more detail as you progress through the tool.<br>
                ")),
       actionButton("set_extent", "Set extent"),
       br(),
@@ -4967,7 +4967,7 @@ fluidRow(
       br(),
       div(style = "font-size: 18px; font-weight: bold; margin-bottom: 15px;", "Simulating restoration"),
       p(HTML("The next step is to simulate the restoration of pixels that are defined as degraded. When 'simulate restoration' is clicked, each individual degraded pixel in the target landscape is replaced with the most prevalent natural habitat in the 3x3 pixel neighbourhood (8 pixels total) that surround it. <br><br>
-     If a degraded pixel is not surrounded by any natural habitat in the 3x3 neighborhood, which may occur when the degraded land is completely surrounded by water, urban areas, or farmland, the application will attempt to replace the degraded pixel using successively larger neighborhoods, which increase by 2 pixels each time (e.g., 5x5, 7x7, 9x9, etc.).<br><br> 
+     If a degraded pixel is not surrounded by any natural habitat in the 3x3 neighborhood, which may occur when the degraded land is completely surrounded by water, urban areas, or farmland, the tool will attempt to replace the degraded pixel using successively larger neighborhoods, which increase by 2 pixels each time (e.g., 5x5, 7x7, 9x9, etc.).<br><br> 
              The process continues until all degraded pixels are 'restored' to natural habitat. Click 'simulate restoration' to view the restored landscape, with degraded pixels replaced by natural habitat.")),
       actionButton("simulate_restoration", "Simulate restoration"),
       fluidRow(
@@ -4986,7 +4986,7 @@ fluidRow(
       br(),
       br(),
       div(style = "font-size: 18px; font-weight: bold; margin-bottom: 15px;", "Choosing how to define candidate areas for restoration"),
-      p(HTML("Your target landscape likely has multiple areas with one or more degraded pixels that can be restored. Eventually, the application will rank these 'candidate areas' to determine which, once restored, has the greatest potential biodiversity benefit. However, first you must choose how to <i>define</i> candidate areas for restoration. <br><br>
+      p(HTML("Your target landscape likely has multiple areas with one or more degraded pixels that can be restored. Eventually, the tool will rank these 'candidate areas' to determine which, once restored, has the greatest potential biodiversity benefit. However, first you must choose how to <i>define</i> candidate areas for restoration. <br><br>
 <b>There are two options:</b>"
 	    )),
       br(),
@@ -5028,7 +5028,7 @@ fluidRow(
       div(style = "font-size: 18px; font-weight: bold; margin-bottom: 15px;", "Calculating patch size"),
       p(HTML("Now, we can calculate the effect of restoring candidate areas on habitat patch size.<br><br>
 Patch size is calculated as the average size of contiguous areas of a particular habitat type. For each habitat type, the effect of restoration is measured by comparing average patch size of the original landscape against the set of landscapes with each candidate area restored.  
-The application computes the difference in patch size between the original and each restored landscape. Additionally, if you selected the option to focus on ‘areas of conservation concern’, the change in the size of the conservation area is shown, regardless of habitat type. 
+The tool computes the difference in patch size between the original and each restored landscape. Additionally, if you selected the option to focus on ‘areas of conservation concern’, the change in the size of the conservation area is shown, regardless of habitat type. 
 ")),
       br(),
       uiOutput("dynamic_checkboxes"),
@@ -5186,7 +5186,7 @@ conditionalPanel(
       numericInput("num_top_combinations", "Number of top candidate areas to display:", value = 1, min = 1, step = 1),
       br(),
       p(HTML("When the 'Find best candidate areas' button is clicked, values for each metric are adjusted based on the weights you provide. The sum of weighted values is calculated for each candidate area, and the area with the maximum sum is identified as the best candidate area for restoration. Two figures are created: an interactive map displaying the best candidate areas, and another showing habitat types and candidate areas in the target landscape. The latter figure includes an option for displaying the best candidate area in conjunction with areas of conservation concern, if this option was selected.<br><br>
-             <strong style='font-size: 14px;'>In the resulting map below, there is the option to visualize candidate areas alongside satellite imagery by toggling 'satellite view' in the map legend. Visualizing where candidate areas are located in real landscapes is a critical step to determine restoration feasibility, as original data layers may have misclassified habitat and other features and may not reflect recent landscape changes. Later on, you will also have the option of exporting the results in .kml format to visualize candidate areas in Google Earth or another mapping application of your choice.")),
+             <strong style='font-size: 14px;'>In the resulting map below, there is the option to visualize candidate areas alongside satellite imagery by toggling 'satellite view' in the map legend. Visualizing where candidate areas are located in real landscapes is a critical step to determine restoration feasibility, as original data layers may have misclassified habitat and other features and may not reflect recent landscape changes. Later on, you will also have the option of exporting the results in .kml format to visualize candidate areas in Google Earth or another mapping tool of your choice.")),
       actionButton("find_best_comb", "Find best candidate areas"),
       uiOutput("bestCombinationName", class = "ui message"),
       leafletOutput("map_best_comb", height = 600),
