@@ -3710,7 +3710,6 @@ server <- function(input, output, session) {
     Other_effective_area_based_conservation_measures = "NAME_E"
   )
   
-  
   # Dynamically generate the list of features based on the selected polygon type
   observeEvent(input$sf_object_selection, {
     
@@ -3741,16 +3740,19 @@ server <- function(input, output, session) {
           div(
             id = "checkboxes",
             lapply(feature_choices, function(feature) {
+              # Replace or remove apostrophes in the feature name for the ID
+              safe_feature_id <- gsub("[^A-Za-z0-9]", "_", feature)  # Replace non-alphanumeric characters with underscores
+              
               div(
                 class = "field",
                 div(class = "ui checkbox",
                     tags$input(
                       type = "checkbox",
-                      id = paste0("feature_", gsub(" ", "_", feature)),  # Create a unique ID for each checkbox
-                      name = "feature_checkboxes",  # Name should match across checkboxes for collection
+                      id = paste0("feature_", safe_feature_id),  # Create a unique ID with cleaned feature name
+                      name = "feature_checkboxes",
                       value = feature
                     ),
-                    tags$label(`for` = paste0("feature_", gsub(" ", "_", feature)), feature)  # Associate the label with the checkbox
+                    tags$label(`for` = paste0("feature_", safe_feature_id), feature)  # Associate the label with the checkbox
                 )
               )
             })
@@ -3758,14 +3760,14 @@ server <- function(input, output, session) {
           
           # Include JavaScript to collect checkbox values and bind to `input$selected_features`
           tags$script(HTML("
-          $('input[name=\"feature_checkboxes\"]').change(function() {
-            var selected_features = [];
-            $('input[name=\"feature_checkboxes\"]:checked').each(function() {
-              selected_features.push($(this).val());
-            });
-            Shiny.setInputValue('selected_features', selected_features);
+        $('input[name=\"feature_checkboxes\"]').change(function() {
+          var selected_features = [];
+          $('input[name=\"feature_checkboxes\"]:checked').each(function() {
+            selected_features.push($(this).val());
           });
-        "))
+          Shiny.setInputValue('selected_features', selected_features);
+        });
+      "))
         )
       })
     } else {
@@ -4376,7 +4378,7 @@ server <- function(input, output, session) {
         
         result_habitat_data_updated(result_habitat_data())
         # # Check the selected option
-        if (input$merge_metrics_batch == "Yes") {
+        if (input$merge_metrics == "Merge") {
           # Perform the merging and updating of the data
           updated_data <- result_habitat_data() %>%
             mutate(
@@ -5226,22 +5228,30 @@ conditionalPanel(
   ),
 
   ## Segment 18: Loading and merging multiple landscapes (if that initial choice is selected in segment 1) ----
-  conditionalPanel(
-    condition = "output.showMultipleLandscapes > 0",
-    segment(
-      br(),
-      br(),
-      br(),
-      div(style = "font-size: 18px; font-weight: bold; margin-bottom: 15px;", "Load and merge combination metrics from multiple landscapes"),
-      p("Here multiple .CSV files containing landscape data (created at the conclusion of the single landscape analysis) can be uploaded, with each file representing a distinct landscape.
-	    The code reads these .CSV files, extracts information such as the extent (i.e. spatial boundaries) and landscape name, and joins data from these files together to form a unified dataset
-	    for multi-landscape analysis. The spatial extents of each landscape are visualized on a map, providing an overview of the coverage of the uploaded landscapes."),
-      fileInput("fileInput", "Choose .CSV files", multiple = TRUE, accept = c("text/csv", "text/comma-separated-values,text/plain", ".csv")),
-      leafletOutput("map_lands", height = 600),
-      dataTableOutput("landscapeMergedTable"),
-      uiOutput("subtitleText5")
-    )
-  ),
+conditionalPanel(
+  condition = "output.showMultipleLandscapes > 0",
+  segment(
+    br(),
+    br(),
+    br(),
+    div(style = "font-size: 18px; font-weight: bold; margin-bottom: 15px;", 
+        "Load and merge combination metrics from multiple landscapes"),
+    p("Here multiple .CSV files containing landscape data (created at the conclusion of the single landscape analysis) can be uploaded, 
+       with each file representing a distinct landscape. The code reads these .CSV files, extracts information such as the extent 
+       (i.e. spatial boundaries) and landscape name, and joins data from these files together to form a unified dataset for multi-landscape analysis. 
+       The spatial extents of each landscape are visualized on a map, providing an overview of the coverage of the uploaded landscapes."),
+    
+    # Create a file input with a direct label that gets associated with the input
+    tags$label("Choose .CSV files:", `for` = "fileInput"),
+    fileInput("fileInput", label = NULL, multiple = TRUE, 
+              accept = c("text/csv", "text/comma-separated-values,text/plain", ".csv")),
+    
+    # Leaflet map and table outputs
+    leafletOutput("map_lands", height = 600),
+    dataTableOutput("landscapeMergedTable"),
+    uiOutput("subtitleText5")
+  )
+),
 
 
   ## Segment 19: Comparing multiple landscapes to find top combinations ----
@@ -5386,10 +5396,22 @@ conditionalPanel(
         If patch size results are merged, the sum of patch size results are combined. If they are not merged, they are kept as calculated.
         If patch size for one habitat type is considered more valuable for the purposes of restoration than another, 
         patch size metrics should be left seperate so they can be weighted accordingly at a later step."),
-      multiple_radio("merge_metrics_batch",
-                     label = NULL,
-                     choices = c("Yes", "No"),
-                     selected = "Yes", inline = TRUE),
+      # Manually create radio buttons with correct labels
+      div(
+        tags$label("Merge patch size calculations:"),
+        div(class = "radio",
+            tags$label(
+              tags$input(type = "radio", id = "merge_metrics_merge", name = "merge_metrics", value = "Merge", 
+                         onclick = "Shiny.setInputValue('merge_metrics', this.value)"),
+              "Merge"
+            )),
+        div(class = "radio",
+            tags$label(
+              tags$input(type = "radio", id = "merge_metrics_do_not_merge", name = "merge_metrics", value = "Do not merge", 
+                         onclick = "Shiny.setInputValue('merge_metrics', this.value)"),
+              "Do not merge"
+            )),
+      ),
       br(),
       actionButton("run_batch", "Calculate metrics for all landscapes of selected type"),
     )
