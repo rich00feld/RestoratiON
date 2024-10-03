@@ -1905,23 +1905,45 @@ server <- function(input, output, session) {
       "Hay/pasture", "Transportation", "Unclassified", "Degraded", "Aggregate extraction", "Topsoil/Peat extraction", "Undifferentiated"
     )
   )
-
+  
   choices_reactive <- reactive({
     if (is.null(restored_land())) {
       return(NULL)
     }
     na.omit(unique(values(restored_land())))
   })
-
+  
   output$dynamic_checkboxes <- renderUI({
     if (is.null(choices_reactive())) {
       return(NULL)
     }
-
+    
     # Get the names of the selected habitat classes to exclude
     selected_labels <- names(land_class_mapping)[land_class_mapping %in% choices_reactive()]
-
-    multiple_checkbox("selected_habitats", HTML("You may be interested in calculating the benefit of restoring certain habitat types only. If you would like to exclude habitat classes from the patch size calculations, please select them below:<br><br>"),  choices = selected_labels)
+    
+    # Generate dynamic checkboxes with labels for accessibility
+    tagList(
+      HTML("You may be interested in calculating the benefit of restoring certain habitat types only. 
+    If you would like to exclude habitat classes from the patch size calculations, please select them below:<br><br>"),
+      
+      div(
+        id = "dynamic_checkboxes",
+        lapply(selected_labels, function(label) {
+          div(
+            class = "field",
+            div(class = "ui checkbox",
+                tags$input(
+                  type = "checkbox",
+                  id = paste0("habitat_", gsub(" ", "_", label)),  # Create a unique ID for each checkbox
+                  name = "selected_habitats",
+                  value = label
+                ),
+                tags$label(`for` = paste0("habitat_", gsub(" ", "_", label)), label)  # Associate label with the checkbox
+            )
+          )
+        })
+      )
+    )
   })
 
 
