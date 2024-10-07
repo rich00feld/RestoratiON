@@ -379,17 +379,35 @@ server <- function(input, output, session) {
 
 
   # Linked to UI Segment 3, Defining the 'areas of conservation concern' ----
-  # using a check-box of features in the UI
+  # Creating a check-box of features in the UI
 
   output$protected_checkboxes <- renderUI({
     checkbox_data <- c(
-      "Provincial parks", "National parks", "Conservation reserves", "Conservation areas", "Non-governmental organization reserves",
-      "Municipal heritage areas", "Natural heritage system areas", "Natural heritage value areas",
-      "Far North protected areas", "Wilderness areas", "Migratory bird sanctuaries", "National wildlife areas",
-      "National capital valued ecosystems", "Provincial planned protected areas", "Crown plan protected areas", "Other effective area-based conservation measures"
+      "Provincial parks", "National parks", "Conservation reserves", "Conservation areas", 
+      "Non-governmental organization reserves", "Municipal heritage areas", 
+      "Natural heritage system areas", "Natural heritage value areas",
+      "Far North protected areas", "Wilderness areas", "Migratory bird sanctuaries", 
+      "National wildlife areas", "National capital valued ecosystems", 
+      "Provincial planned protected areas", "Crown plan protected areas", 
+      "Other effective area-based conservation measures"
     )
-    # Generate a check-box of features using multiple_checkbox
-    multiple_checkbox("protected_checkboxes", " ", choices = checkbox_data, selected = "Provincial parks") # Provincial parks is the default selection
+    
+    # Create checkboxes with labels
+    checkbox_list <- lapply(checkbox_data, function(feature) {
+      tags$div(
+        tags$label(
+          tags$input(type = "checkbox", 
+                     name = "protected_checkboxes", 
+                     value = feature, 
+                     class = "protected-checkbox",
+                     onclick = "updateCheckboxState(); Shiny.setInputValue('protected_checkboxes', getCheckedCheckboxes());" # Update Shiny input
+          ),
+          feature
+        )
+      )
+    })
+    
+    do.call(tags$div, checkbox_list)
   })
 
 
@@ -4864,40 +4882,53 @@ div(class = "ui top fixed menu",
 
   ## Segment 3: Check-box for defining what features are used to define 'areas of conservation concern'.----
 
-  # Script to prevent user from un-checking the last 'areas of conservation concern' check-box
-  # (this would result in errors - and this is one way to handle it)
-  tags$head(
-    tags$script(HTML("
-      function updateCheckboxState() {
-        var checkboxes = $('#protected_checkboxes input[type=\"checkbox\"]');
-        var checked = checkboxes.filter(':checked');
-        checkboxes.prop('disabled', false);
-        if (checked.length === 1) {
-          checked.prop('disabled', true);
-        }
+# Script to prevent user from un-checking the last 'areas of conservation concern' check-box
+# (this would result in errors - and this is one way to handle it)
+tags$head(
+  tags$script(HTML("
+    function updateCheckboxState() {
+      var checkboxes = $('.protected-checkbox');
+      var checked = checkboxes.filter(':checked');
+      checkboxes.prop('disabled', false);
+      if (checked.length === 1) {
+        checked.prop('disabled', true);
       }
-      $(document).on('shiny:inputchanged', function(event) {
-        if (event.name === 'protected_checkboxes') {
-          updateCheckboxState();
+    }
+    
+    function getCheckedCheckboxes() {
+      var checkboxes = $('.protected-checkbox');
+      var checkedValues = [];
+      checkboxes.each(function() {
+        if ($(this).is(':checked')) {
+          checkedValues.push($(this).val());
         }
       });
-      $(document).ready(function() {
+      return checkedValues;
+    }
+    
+    $(document).on('shiny:inputchanged', function(event) {
+      if (event.name === 'protected_checkboxes') {
         updateCheckboxState();
-      });
-    "))
-  ),
-  conditionalPanel(
-    condition = "input.protected_based_calculations > 0",
-    segment(
-      br(),
-      br(),
-      br(),
-      div(style = "font-size: 18px; font-weight: bold; margin-bottom: 15px;", "Defining areas of conservation concern"),
-      p("Select what features should be included in areas of conservation concern. A minimum of 1 feature must be selected."),
-      br(),
-      uiOutput("protected_checkboxes"),
-    )
-  ),
+      }
+    });
+    
+    $(document).ready(function() {
+      updateCheckboxState();
+    });
+  "))
+),
+conditionalPanel(
+  condition = "input.protected_based_calculations > 0",
+  segment(
+    br(),
+    br(),
+    br(),
+    div(style = "font-size: 18px; font-weight: bold; margin-bottom: 15px;", "Defining areas of conservation concern"),
+    p("Select what features should be included in areas of conservation concern. A minimum of 1 feature must be selected."),
+    br(),
+    uiOutput("protected_checkboxes"),
+  )
+),
 
   ## Segment 4: The leaflet map, setting landscape extent, and outputting plots ----
   conditionalPanel(
