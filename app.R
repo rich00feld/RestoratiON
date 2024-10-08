@@ -5281,6 +5281,7 @@ conditionalPanel(
   ),
 
   ## Segment 18: Loading and merging multiple landscapes (if that initial choice is selected in segment 1) ----
+
 conditionalPanel(
   condition = "output.showMultipleLandscapes > 0",
   segment(
@@ -5294,17 +5295,44 @@ conditionalPanel(
        (i.e. spatial boundaries) and landscape name, and joins data from these files together to form a unified dataset for multi-landscape analysis. 
        The spatial extents of each landscape are visualized on a map, providing an overview of the coverage of the uploaded landscapes."),
     
-    # Create a file input with a direct label that gets associated with the input
-    tags$label("Choose .CSV files:", `for` = "fileInput"),
-    fileInput("fileInput", label = NULL, multiple = TRUE, 
-              accept = c("text/csv", "text/comma-separated-values,text/plain", ".csv")),
+    # Add CSS for screen-reader-only elements
+    tags$style(HTML("
+    .sr-only {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      margin: -1px;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      border: 0;
+    }
+  ")),
+    
+    # Create the file input with an associated label
+    div(
+      tags$label("Choose .CSV files:", `for` = "fileInput"),
+      fileInput("fileInput", label = NULL, multiple = TRUE, 
+                accept = c("text/csv", "text/comma-separated-values,text/plain", ".csv")),
+      # Add a hidden label for the hidden status input
+      tags$label("File selection status", `for` = "fileInput-status", class = "sr-only")
+    ),
+    
+    # JavaScript to manage the display of selected file status
+    tags$script(HTML("
+    $(document).ready(function() {
+      var fileInputStatus = $('input[readonly][placeholder=\"No file selected\"]');
+      if (fileInputStatus.length > 0) {
+        fileInputStatus.attr('id', 'fileInput-status'); // Ensure the status input has an ID
+      }
+    });
+  ")),
     
     # Leaflet map and table outputs
     leafletOutput("map_lands", height = 600),
     dataTableOutput("landscapeMergedTable"),
     uiOutput("subtitleText5")
-  )
-),
+  )),
 
 
   ## Segment 19: Comparing multiple landscapes to find top combinations ----
