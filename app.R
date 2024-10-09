@@ -4807,6 +4807,21 @@ ui <- shinyUI(semanticPage(
     "))
   ),
 
+#Script to allow the enter key to interact with checkboxes and other UI elements 
+tags$head(
+  tags$script(HTML("
+      document.addEventListener('keydown', function(event) {
+        if (event.key === 'Enter') {
+          var activeElement = document.activeElement;
+          // If the focused element can be clicked (e.g., checkbox, button)
+          if (activeElement && (activeElement.tagName === 'BUTTON' || activeElement.tagName === 'A' || activeElement.type === 'checkbox' || activeElement.type === 'radio')) {
+            activeElement.click();
+          }
+        }
+      });
+    "))
+),
+
   # Splash page content
   uiOutput("splash"),
 
