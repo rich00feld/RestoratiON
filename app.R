@@ -383,31 +383,13 @@ server <- function(input, output, session) {
 
   output$protected_checkboxes <- renderUI({
     checkbox_data <- c(
-      "Provincial parks", "National parks", "Conservation reserves", "Conservation areas", 
-      "Non-governmental organization reserves", "Municipal heritage areas", 
-      "Natural heritage system areas", "Natural heritage value areas",
-      "Far North protected areas", "Wilderness areas", "Migratory bird sanctuaries", 
-      "National wildlife areas", "National capital valued ecosystems", 
-      "Provincial planned protected areas", "Crown plan protected areas", 
-      "Other effective area-based conservation measures"
+      "Provincial parks", "National parks", "Conservation reserves", "Conservation areas", "Non-governmental organization reserves",
+      "Municipal heritage areas", "Natural heritage system areas", "Natural heritage value areas",
+      "Far North protected areas", "Wilderness areas", "Migratory bird sanctuaries", "National wildlife areas",
+      "National capital valued ecosystems", "Provincial planned protected areas", "Crown plan protected areas", "Other effective area-based conservation measures"
     )
-    
-    # Create checkboxes with labels
-    checkbox_list <- lapply(checkbox_data, function(feature) {
-      tags$div(
-        tags$label(
-          tags$input(type = "checkbox", 
-                     name = "protected_checkboxes", 
-                     value = feature, 
-                     class = "protected-checkbox",
-                     onclick = "updateCheckboxState(); Shiny.setInputValue('protected_checkboxes', getCheckedCheckboxes());" # Update Shiny input
-          ),
-          feature
-        )
-      )
-    })
-    
-    do.call(tags$div, checkbox_list)
+    # Generate a check-box of features using multiple_checkbox
+    multiple_checkbox("protected_checkboxes", " ", choices = checkbox_data, selected = "Provincial parks") # Provincial parks is the default selection
   })
 
 
@@ -4886,36 +4868,23 @@ div(class = "ui top fixed menu",
 # (this would result in errors - and this is one way to handle it)
 tags$head(
   tags$script(HTML("
-    function updateCheckboxState() {
-      var checkboxes = $('.protected-checkbox');
-      var checked = checkboxes.filter(':checked');
-      checkboxes.prop('disabled', false);
-      if (checked.length === 1) {
-        checked.prop('disabled', true);
+      function updateCheckboxState() {
+        var checkboxes = $('#protected_checkboxes input[type=\"checkbox\"]');
+        var checked = checkboxes.filter(':checked');
+        checkboxes.prop('disabled', false);
+        if (checked.length === 1) {
+          checked.prop('disabled', true);
+        }
       }
-    }
-    
-    function getCheckedCheckboxes() {
-      var checkboxes = $('.protected-checkbox');
-      var checkedValues = [];
-      checkboxes.each(function() {
-        if ($(this).is(':checked')) {
-          checkedValues.push($(this).val());
+      $(document).on('shiny:inputchanged', function(event) {
+        if (event.name === 'protected_checkboxes') {
+          updateCheckboxState();
         }
       });
-      return checkedValues;
-    }
-    
-    $(document).on('shiny:inputchanged', function(event) {
-      if (event.name === 'protected_checkboxes') {
+      $(document).ready(function() {
         updateCheckboxState();
-      }
-    });
-    
-    $(document).ready(function() {
-      updateCheckboxState();
-    });
-  "))
+      });
+    "))
 ),
 conditionalPanel(
   condition = "input.protected_based_calculations > 0",
