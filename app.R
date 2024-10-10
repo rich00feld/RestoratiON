@@ -380,16 +380,34 @@ server <- function(input, output, session) {
 
   # Linked to UI Segment 3, Defining the 'areas of conservation concern' ----
   # Creating a check-box of features in the UI
-
+  
   output$protected_checkboxes <- renderUI({
     checkbox_data <- c(
-      "Provincial parks", "National parks", "Conservation reserves", "Conservation areas", "Non-governmental organization reserves",
-      "Municipal heritage areas", "Natural heritage system areas", "Natural heritage value areas",
-      "Far North protected areas", "Wilderness areas", "Migratory bird sanctuaries", "National wildlife areas",
-      "National capital valued ecosystems", "Provincial planned protected areas", "Crown plan protected areas", "Other effective area-based conservation measures"
+      "Provincial parks", "National parks", "Conservation reserves", "Conservation areas", 
+      "Non-governmental organization reserves", "Municipal heritage areas", 
+      "Natural heritage system areas", "Natural heritage value areas",
+      "Far North protected areas", "Wilderness areas", "Migratory bird sanctuaries", 
+      "National wildlife areas", "National capital valued ecosystems", 
+      "Provincial planned protected areas", "Crown plan protected areas", 
+      "Other effective area-based conservation measures"
     )
-    # Generate a check-box of features using multiple_checkbox
-    multiple_checkbox("protected_checkboxes", " ", choices = checkbox_data, selected = "Provincial parks") # Provincial parks is the default selection
+    
+    # Create checkboxes with labels
+    checkbox_list <- lapply(checkbox_data, function(feature) {
+      tags$div(
+        tags$label(
+          tags$input(type = "checkbox", 
+                     name = "protected_checkboxes", 
+                     value = feature, 
+                     class = "protected-checkbox",
+                     onclick = "updateCheckboxState(); Shiny.setInputValue('protected_checkboxes', getCheckedCheckboxes());" # Update Shiny input
+          ),
+          feature
+        )
+      )
+    })
+    
+    do.call(tags$div, checkbox_list)
   })
 
 
@@ -398,6 +416,37 @@ server <- function(input, output, session) {
   # The code below creates a movement cost and plot raster for the specific 'areas of conservation concern' definition the
   # user selects in the previous check-box segment. This is an observe-event that runs whenever the check-boxes are adjusted.
   
+  # Trigger the observeEvent once on initialization to prevent errors
+  observe({
+    if (length(input$protected_checkboxes) == 0) {
+      # Manually call the observeEvent logic
+      gc()
+      # a notification while the code is run
+      notification_id_pro_int <- showNotification("Updating land definitions, please wait...", type = "message", duration = NULL)
+      
+      # Use local variables to calculate values
+      defined_protected_areas <- OLC
+      defined_protected_areas[!is.na(defined_protected_areas)] <- 0
+      
+      # Your existing conditions based on input$protected_checkboxes
+      if ("Provincial parks" %in% input$protected_checkboxes) {
+        defined_protected_areas[Parks_raster == 1] <- 1
+      }
+      
+      defined_protected_areas[OLC == 41] <- 41 # This adds water for mapping purposes
+      defined_movement_cost_protected <- (movement_cost * 10) # The basic habitat movement cost raster is multiplied by 10, to create the
+      # 'areas of conservation concern' cost raster
+      defined_movement_cost_protected[defined_protected_areas == 1] <- 1 # 'areas of conservation concern' pixels are given a value of 1 in this new raster.
+      
+      # Store values in reactive values
+      Protected_areas(defined_protected_areas)
+      movement_cost_protected(defined_movement_cost_protected)
+      
+      removeNotification(notification_id_pro_int)
+      gc()
+    }})
+  
+  # Trigger when the user interacts with the checkboxes
   observeEvent(input$protected_checkboxes, {
     gc()
     # a notification while the code is run
@@ -483,7 +532,6 @@ server <- function(input, output, session) {
     removeNotification(notification_id_pro)
     gc()
   })
-
 
 # Map to choose target landscape ----
   
@@ -4807,7 +4855,6 @@ ui <- shinyUI(semanticPage(
     "))
   ),
 
-#Script to allow the enter key to interact with checkboxes and other UI elements 
 tags$head(
   tags$script(HTML("
       document.addEventListener('keydown', function(event) {
@@ -4883,23 +4930,36 @@ div(class = "ui top fixed menu",
 # (this would result in errors - and this is one way to handle it)
 tags$head(
   tags$script(HTML("
-      function updateCheckboxState() {
-        var checkboxes = $('#protected_checkboxes input[type=\"checkbox\"]');
-        var checked = checkboxes.filter(':checked');
-        checkboxes.prop('disabled', false);
-        if (checked.length === 1) {
-          checked.prop('disabled', true);
-        }
+    function updateCheckboxState() {
+      var checkboxes = $('.protected-checkbox');
+      var checked = checkboxes.filter(':checked');
+      checkboxes.prop('disabled', false);
+      if (checked.length === 1) {
+        checked.prop('disabled', true);
       }
-      $(document).on('shiny:inputchanged', function(event) {
-        if (event.name === 'protected_checkboxes') {
-          updateCheckboxState();
+    }
+
+    function getCheckedCheckboxes() {
+      var checkboxes = $('.protected-checkbox');
+      var checkedValues = [];
+      checkboxes.each(function() {
+        if ($(this).is(':checked')) {
+          checkedValues.push($(this).val());
         }
       });
-      $(document).ready(function() {
+      return checkedValues;
+    }
+
+    $(document).on('shiny:inputchanged', function(event) {
+      if (event.name === 'protected_checkboxes') {
         updateCheckboxState();
-      });
-    "))
+      }
+    });
+
+    $(document).ready(function() {
+      updateCheckboxState();
+    });
+  "))
 ),
 conditionalPanel(
   condition = "input.protected_based_calculations > 0",
