@@ -166,7 +166,7 @@ land_cover_labels <- data.frame(
     41),
   Land_Class = c(
     "Alvar", "Anthropogenic", "Barren", 
-    "Bog", "Built up area-pervious", "Coniferous forest", 
+    "Bog", "Built-up area, pervious", "Coniferous forest", 
     "Coniferous treed swamp", "Cropland", "Deciduous forest", 
     "Deciduous treed swamp", "Dune", "Fen", 
     "Hay/pasture", "Hedge row", "Marsh", 
@@ -201,7 +201,7 @@ land_cover_labels <- data.frame(
       "royalblue", "khaki", "#FFD700", 
       "mediumspringgreen","lightgrey"),
     Land_Class = c("Degraded", "Candidate area", "Aggregate extraction", 
-                   "Topsoil/Peat extraction", "Undifferentiated", "Not included", "Included", "Buffer")
+                   "Topsoil/Peat extraction", "Undifferentiated", "Not included", "Areas of conservation concern", "Buffer")
   ))
 
 
@@ -428,7 +428,6 @@ server <- function(input, output, session) {
       defined_protected_areas <- OLC
       defined_protected_areas[!is.na(defined_protected_areas)] <- 0
       
-      # Your existing conditions based on input$protected_checkboxes
       if ("Provincial parks" %in% input$protected_checkboxes) {
         defined_protected_areas[Parks_raster == 1] <- 1
       }
@@ -1040,7 +1039,7 @@ server <- function(input, output, session) {
         # but are present in the buffer.
         mutate(percentage = if_else(is.na(percentage), 0, percentage)) %>% 
         # Create a new label for each class
-        mutate(Label = paste0(Land_Class, " (", percentage, "%)"),
+        mutate(Label = paste0("              ", Land_Class, " (", percentage, "%)"),
                # arrange the Land Class labels by percentage
                Label = fct_infreq(Label))
       
@@ -1078,17 +1077,17 @@ server <- function(input, output, session) {
               legend.key.size = unit(1.5, "cm"), # Adjust legend key size
               legend.text = element_text(size = 12, face = "bold"), # Adjust legend text size
               legend.title = element_text(size = 16, face = "bold"), # Adjust legend title size
-              legend.box.spacing = unit(0.5, "cm")) + # Adjust spacing
-      guides(fill = guide_legend(
-        ncol = 2,
-        label.position = "left",
-        label.hjust = 1,
-        order = 2),
-        color = guide_legend(
-          direction = "horizontal",
-          label.position = "right",
-          label.hjust = 0,
-          order = 1))
+              legend.box.spacing = unit(0.5, "cm")) +
+        guides(fill = guide_legend(
+          ncol = 2,
+          label.position = "left",
+          label.hjust = 1,
+          order = 2),
+          color = guide_legend(
+            direction = "horizontal",
+            label.position = "right",
+            label.hjust = 0,
+            order = 1))
       
       # strip out the legend - this makes it easier to format and put it where you might want it - whether above, below, or beside plotly interactive plot
       legend_plot1 <- cowplot::get_plot_component(my_ggplot, 'guide-box-right', return_all = TRUE)
@@ -1165,7 +1164,7 @@ server <- function(input, output, session) {
           # but are present in the buffer.
           mutate(percentage = if_else(is.na(percentage), 0, percentage)) %>% 
           # Create a new label for each class
-          mutate(Label = paste0(Land_Class, " (", percentage, "%)"),
+          mutate(Label = paste0("              ", Land_Class, " (", percentage, "%)"),
                  # arrange the Land Class labels by percentage
                  Label = fct_infreq(Label))
         
@@ -1453,6 +1452,7 @@ server <- function(input, output, session) {
     
     plot_degraded_protected <- degraded_protected
     plot_degraded_protected <- crop(plot_degraded_protected, sp_polygon_3162_buffered, mask = TRUE)
+    plot_degraded_protected[!(plot_degraded_protected[] %in% c(1, 100))] <- NA
     
     plot_degraded_pixels <- degraded_pixels_temp
     plot_degraded_pixels <- crop(plot_degraded_pixels, sp_polygon_3162_buffered, mask = TRUE)
@@ -1520,7 +1520,7 @@ server <- function(input, output, session) {
         # but are present in the buffer.
         mutate(percentage = if_else(is.na(percentage), 0, percentage)) %>% 
         # Create a new label for each class
-        mutate(Label = paste0(Land_Class, " (", percentage, "%)"),
+        mutate(Label = paste0("              ", Land_Class, " (", percentage, "%)"),
                # arrange the Land Class labels by percentage
                Label = fct_infreq(Label))
       
@@ -1632,7 +1632,7 @@ server <- function(input, output, session) {
           # but are present in the buffer.
           mutate(percentage = if_else(is.na(percentage), 0, percentage)) %>% 
           # Create a new label for each class
-          mutate(Label = paste0(Land_Class, " (", percentage, "%)"),
+          mutate(Label = paste0("              ", Land_Class, " (", percentage, "%)"),
                  # arrange the Land Class labels by percentage
                  Label = fct_infreq(Label))
         
@@ -1665,7 +1665,7 @@ server <- function(input, output, session) {
           # geom_sf(data = label_points_sf,
           #         aes(text = Label, color = Label), alpha = 0) +
           theme_minimal() + 
-          labs(title = "\nDegraded land within areas of conservation concern\n") +
+          labs(title = "\nDegraded land and areas of conservation concern\n") +
           theme(panel.grid = element_blank(), legend.margin = margin(c(0,0,0,0)),
                 legend.key.size = unit(1.5, "cm"), # Adjust legend key size
                 legend.text = element_text(size = 12, face = "bold"), # Adjust legend text size
@@ -1833,7 +1833,7 @@ server <- function(input, output, session) {
         # but are present in the buffer.
         mutate(percentage = if_else(is.na(percentage), 0, percentage)) %>% 
         # Create a new label for each class
-        mutate(Label = paste0(Land_Class, " (", percentage, "%)"),
+        mutate(Label = paste0("              ", Land_Class, " (", percentage, "%)"),
                # arrange the Land Class labels by percentage
                Label = fct_infreq(Label))
       
