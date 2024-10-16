@@ -97,6 +97,7 @@ croppedAMIS <- reactiveVal()
 croppedCHF_mines <- reactiveVal()
 croppedCHF_night_lights <- reactiveVal()
 croppedCHF_oil_gas <- reactiveVal()
+croppedCHF_forestry_harvest <- reactiveVal()
 croppedSOLRIS_AggregateExtraction_204 <- reactiveVal()
 croppedSOLRIS_TopsoilExtraction_205 <- reactiveVal()
 croppedSOLRIS_Undifferentiated_250 <- reactiveVal()
@@ -229,6 +230,7 @@ AMIS <- rast("rasters/degraded/AMIS_raster.tif")
 CHF_mines <- rast("rasters/degraded/CHF_mines_EPSG.3162.tif")
 CHF_night_lights <- rast("rasters/degraded/CHF_night_lights_EPSG.3162.tif")
 CHF_oil_gas <- rast("rasters/degraded/CHF_oil_gas_EPSG.3162.tif")
+CHF_forestry_harvest <- rast("rasters/degraded/CHF_forestry_harvest_EPSG.3162.tif")
 SOLRIS_AggregateExtraction_204 <- rast("rasters/degraded/SOLRIS_AggregateExtraction_204.tif")
 SOLRIS_TopsoilExtraction_205 <- rast("rasters/degraded/SOLRIS_TopsoilExtraction_205.tif")
 SOLRIS_Undifferentiated_250 <- rast("rasters/degraded/SOLRIS_Undiff_250_AG_4to7.tif")
@@ -966,6 +968,7 @@ server <- function(input, output, session) {
     croppedCHF_mines(crop(CHF_mines, cropped_Ontario_land_cover))
     croppedCHF_night_lights(crop(CHF_night_lights, cropped_Ontario_land_cover))
     croppedCHF_oil_gas(crop(CHF_oil_gas, cropped_Ontario_land_cover))
+    croppedCHF_forestry_harvest(crop(CHF_forestry_harvest, cropped_Ontario_land_cover))
     croppedmovement_cost(crop(movement_cost, cropped_Ontario_land_cover))
     croppedCLASS_00(crop(CLASS_00, cropped_Ontario_land_cover))
     croppedCLASS_05(crop(CLASS_05, cropped_Ontario_land_cover))
@@ -1247,6 +1250,7 @@ server <- function(input, output, session) {
     test_cropped_AMIS <- croppedAMIS()
     test_cropped_night_lights <- croppedCHF_night_lights()
     test_cropped_oil_gas <- croppedCHF_oil_gas()
+    test_cropped_forestry_harvest <- croppedCHF_forestry_harvest()
     test_cropped_aggregate_extraction <- croppedSOLRIS_AggregateExtraction_204()
     test_cropped_topsoil_extraction <- croppedSOLRIS_TopsoilExtraction_205()
     test_cropped_undifferentiated <- croppedSOLRIS_Undifferentiated_250()
@@ -1256,11 +1260,12 @@ server <- function(input, output, session) {
     test_condition_AMIS <- test_cropped_AMIS >= 1
     test_condition_night_lights <- test_cropped_night_lights >= 1
     test_condition_oil_gas <- test_cropped_oil_gas >= 6
+    test_condition_forestry_harvest <- test_cropped_forestry_harvest >= 4
     test_condition_aggregate_extraction <- test_cropped_aggregate_extraction >= 1
     test_condition_topsoil_extraction <- test_cropped_topsoil_extraction >= 1
     test_condition_undifferentiated <- test_cropped_undifferentiated >= 1
 
-    test_final_condition <- test_condition_mines | test_condition_night_lights | test_condition_oil_gas |
+    test_final_condition <- test_condition_mines | test_condition_night_lights | test_condition_oil_gas | test_condition_forestry_harvest |
       test_condition_AMIS | test_condition_aggregate_extraction | test_condition_topsoil_extraction | test_condition_undifferentiated
 
     test_degraded_pixels_temp <- croppedOntario()
@@ -1385,6 +1390,14 @@ server <- function(input, output, session) {
           tags$p(id = "oil_gas_max_label", "Not included", style = "text-align: right; margin-top: -20px;")
         ),
         div(
+          tags$label(`for` = "forestry_harvest_slider", HTML("<b>Forestry harvest</b><br><i>2 = Forest land that has been disturbed, but is past the early stages of regrowth following clearing<br>4 = Forest in early
+          regeneration, within 0-12 years of cutting. For more detail on how forestry thresholds are defined, 
+              see <a href='https://www.sciencedirect.com/science/article/abs/pii/S0169204608000637?via%3Dihub' target='_blank'>Woolmer et al. 2008</a>,
+              and <a href='https://www.facetsjournal.com/doi/full/10.1139/facets-2021-0063#tab5' target='_blank'>Hirsh-Pearson et al. 2022</a>.</i><br><br>")),
+          sliderInput("forestry_harvest_slider", NULL, min = 2, max = 5, value = 4, step = 1),
+          tags$p(id = "forestry_harvest_max_label", "Not included", style = "text-align: right; margin-top: -20px;")
+        ),
+        div(
           tags$label(`for` = "aggregate_extraction_slider", HTML("<b>Aggregate extraction</b><br><i>1 = Any area affected by aggregate extraction is degraded.</i><br><br>")),
           sliderInput("aggregate_extraction_slider", NULL, min = 1, max = 2, value = 1, step = 1),
           tags$p(id = "aggregate_extraction_max_label", "Not included", style = "text-align: right; margin-top: -20px;")
@@ -1411,6 +1424,7 @@ server <- function(input, output, session) {
     cropped_AMIS <- croppedAMIS()
     cropped_night_lights <- croppedCHF_night_lights()
     cropped_oil_gas <- croppedCHF_oil_gas()
+    cropped_forestry_harvest <- croppedCHF_forestry_harvest()
     cropped_aggregate_extraction <- croppedSOLRIS_AggregateExtraction_204()
     cropped_topsoil_extraction <- croppedSOLRIS_TopsoilExtraction_205()
     cropped_undifferentiated <- croppedSOLRIS_Undifferentiated_250()
@@ -1420,12 +1434,13 @@ server <- function(input, output, session) {
     condition_AMIS <- cropped_AMIS >= input$amis_slider
     condition_night_lights <- cropped_night_lights >= input$night_lights_slider
     condition_oil_gas <- cropped_oil_gas >= input$oil_gas_slider
+    condition_forestry_harvest <- cropped_forestry_harvest >= input$forestry_harvest_slider
     condition_aggregate_extraction <- cropped_aggregate_extraction >= input$aggregate_extraction_slider
     condition_topsoil_extraction <- cropped_topsoil_extraction >= input$topsoil_extraction_slider
     condition_undifferentiated <- cropped_undifferentiated >= input$undifferentiated_slider
 
     # A final cumulative condition (encompassing all the conditions above) is then used to define degraded pixels
-    final_condition <- condition_mines | condition_night_lights | condition_oil_gas | condition_AMIS | condition_aggregate_extraction | condition_topsoil_extraction | condition_undifferentiated
+    final_condition <- condition_mines | condition_night_lights | condition_oil_gas | condition_forestry_harvest | condition_AMIS | condition_aggregate_extraction | condition_topsoil_extraction | condition_undifferentiated
 
     degraded_pixels_temp <- croppedOntario()
     degraded_protected <- croppedProtected_areas()
@@ -3717,6 +3732,14 @@ server <- function(input, output, session) {
           tags$p(id = "oil_gas_max_label", "Not included", style = "text-align: right; margin-top: -20px;")
         ),
         div(
+          tags$label(`for` = "forestry_harvest_slider", HTML("<b>Forestry harvest</b><br><i>2 = Forest land that has been disturbed but is not in the early stages of regrowth following clearing<br>4 = early
+          regeneration, within 0-12 years of cutting. For more detail on how forestry thresholds are defined, 
+              see <a href='https://www.sciencedirect.com/science/article/abs/pii/S0169204608000637?via%3Dihub' target='_blank'>Woolmer et al. 2008</a>,
+              and <a href='https://www.facetsjournal.com/doi/full/10.1139/facets-2021-0063#tab5' target='_blank'>Hirsh-Pearson et al. 2022</a>.</i><br><br>")),
+          sliderInput("forestry_harvest_slider", NULL, min = 2, max = 5, value = 4, step = 1),
+          tags$p(id = "forestry_harvest_max_label", "Not included", style = "text-align: right; margin-top: -20px;")
+        ),
+        div(
           sliderInput("aggregate_extraction_slider", HTML("<br><b>Aggregate extraction</b><br><i>1 = Any area affected
 		 by aggregate extraction is degraded.</i><br><br>"),, min = 1, max = 2, value = 1, step = 1),
           tags$p(id = "aggregate_extraction_max_label", "Not included", style = "text-align: right; margin-top: -20px;")
@@ -3992,6 +4015,7 @@ server <- function(input, output, session) {
     croppedCHF_mines(crop(CHF_mines, cropped_Ontario_land_cover))
     croppedCHF_night_lights(crop(CHF_night_lights, cropped_Ontario_land_cover))
     croppedCHF_oil_gas(crop(CHF_oil_gas, cropped_Ontario_land_cover))
+    croppedCHF_forestry_harvest(crop(CHF_forestry_harvest, cropped_Ontario_land_cover))
     croppedmovement_cost(crop(movement_cost, cropped_Ontario_land_cover))
     croppedCLASS_00(crop(CLASS_00, cropped_Ontario_land_cover))
     croppedCLASS_05(crop(CLASS_05, cropped_Ontario_land_cover))
@@ -4025,6 +4049,7 @@ server <- function(input, output, session) {
     cropped_AMIS <- croppedAMIS()
     cropped_night_lights <- croppedCHF_night_lights()
     cropped_oil_gas <- croppedCHF_oil_gas()
+    cropped_forestry_harvest <- croppedCHF_forestry_harvest()
     cropped_aggregate_extraction <- croppedSOLRIS_AggregateExtraction_204()
     cropped_topsoil_extraction <- croppedSOLRIS_TopsoilExtraction_205()
     cropped_undifferentiated <- croppedSOLRIS_Undifferentiated_250()
@@ -4034,12 +4059,13 @@ server <- function(input, output, session) {
     condition_AMIS <- cropped_AMIS >= input$amis_slider
     condition_night_lights <- cropped_night_lights >= input$night_lights_slider
     condition_oil_gas <- cropped_oil_gas >= input$oil_gas_slider
+    condition_forestry_harvest <- cropped_forestry_harvest >= input$forestry_harvest_slider
     condition_aggregate_extraction <- cropped_aggregate_extraction >= input$aggregate_extraction_slider
     condition_topsoil_extraction <- cropped_topsoil_extraction >= input$topsoil_extraction_slider
     condition_undifferentiated <- cropped_undifferentiated >= input$undifferentiated_slider
     
     # A final cumulative condition (encompassing all the conditions above) is then used to define degraded pixels
-    final_condition <- condition_mines | condition_night_lights | condition_oil_gas | condition_AMIS | condition_aggregate_extraction | condition_topsoil_extraction | condition_undifferentiated
+    final_condition <- condition_mines | condition_night_lights | condition_oil_gas | condition_forestry_harvest | condition_AMIS | condition_aggregate_extraction | condition_topsoil_extraction | condition_undifferentiated
     
     degraded_pixels_temp <- croppedOntario()
     degraded_protected <- croppedProtected_areas()
