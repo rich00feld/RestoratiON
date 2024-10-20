@@ -771,11 +771,31 @@ server <- function(input, output, session) {
       hideGroup(group = "National parks") %>%
       hideGroup(group = "Your drawn landscape") %>%
       htmlwidgets::onRender("
-    function(el, x) {
-      var map = this;
-      L.control.zoom({ position: 'bottomright' }).addTo(map);
-    }
-  ")
+      function(el, x) {
+        var map = this;
+
+        // Add zoom control to bottom right
+        L.control.zoom({ position: 'bottomright' }).addTo(map);
+
+        // Listen for when a shape is drawn
+        map.on('draw:created', function (e) {
+          var layer = e.layer;
+
+          // Add the drawn layer to the 'Your drawn landscape' group
+          layer.addTo(map);
+          layer.addTo(map.layerManager.getLayerGroup('Your drawn landscape'));
+
+          // Make sure 'Your drawn landscape' group is shown
+          map.addLayer(map.layerManager.getLayerGroup('Your drawn landscape'));
+
+          // Programmatically check the box in the layers control
+          var checkbox = document.querySelector('input.leaflet-control-layers-selector');
+          if (checkbox && !checkbox.checked) {
+            checkbox.click();
+          }
+        });
+      }
+    ")
   })
 
   # Schedule the removal of the loading notification after the rendering is complete
