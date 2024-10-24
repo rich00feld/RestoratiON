@@ -413,7 +413,7 @@ server <- function(input, output, session) {
   })
 
 
-  # Linked to UI segment 4 - Setting landscape extent, visualizing plots, testing calculation viability ----
+  # Linked to UI segment 4, Setting landscape extent, visualizing plots, testing calculation viability ----
 
   # The code below creates a movement cost and plot raster for the specific 'areas of conservation concern' definition the
   # user selects in the previous check-box segment. This is an observe-event that runs whenever the check-boxes are adjusted.
@@ -533,7 +533,237 @@ server <- function(input, output, session) {
     removeNotification(notification_id_pro)
     gc()
   })
+  
+  # Toggle the visibility of the landscape selection and feature selection menus
+  observeEvent(input$toggle_menu, {
+    toggle("menu_section")  # Toggle visibility of the div with ID "menu_section"
+  })
+  
 
+  sf_objects <- list(
+    Conservation_reserves = st_read("vectors/Simplified_Conservation_reserve_regulated.shp"),
+    Natural_heritage_value_areas = st_read("vectors/Simplified_Natural_Heritage_Value_Area.shp"),
+    Natural_heritage_system_areas = st_read("vectors/Simplified_Natural_Heritage_System_Area.shp"),
+    NGO_reserves = st_read("vectors/NGO.shp"),
+    Provincial_parks = st_read("vectors/Simplified_Provincial_park_regulated.shp"),
+    Lower_municipality = st_read("vectors/Simplified_Mun_Lower_Nowater.shp"),
+    Upper_municipality = st_read("vectors/Simplified_Mun_Upper_Nowater.shp"),
+    National_parks = st_read("vectors/National_Park.shp"),
+    Conservation_areas = st_read("vectors/Simplified_Conservation_area.shp"),
+    Far_North_protected_areas = st_read("vectors/Far_North_protected_area.shp"),
+    Municipal_Heritage_areas = st_read("vectors/Municipal_Heritage_Areas.shp"),
+    Migratory_Bird_sanctuaries = st_read("vectors/Migratory_Bird_Sanctuary.shp"),
+    National_Wildlife_areas = st_read("vectors/National_Wildlife_Area.shp"),
+    Wilderness_areas = st_read("vectors/Wilderness_Area.shp"),
+    National_capital_valued_ecosystem_or_habitat = st_read("vectors/National_Capital_Valued_Ecosystem_or_Habitat.shp"),
+    Provincial_planned_protected_area = st_read("vectors/Provincial_plan_protected_area.shp"),
+    Crown_plan_protected_area = st_read("vectors/Crown_plan_protected_area.shp"),
+    Other_effective_area_based_conservation_measures = st_read("vectors/Other_Effective_area-based_Conservation_Measures.shp")
+  )
+  
+  # Key for ID column by polygon type
+  polygon_name <- list(
+    Upper_municipality = "MUN_NAME",
+    Lower_municipality = "MUN_NAME",
+    Provincial_parks = "PROTECTE_1",
+    Natural_heritage_system_areas = "ENABLING_P",
+    Natural_heritage_value_areas = "AREA_NAME",
+    Conservation_reserves = "PROTECTE_1",
+    National_parks = "NAME_E",
+    Conservation_areas = "NAME_E",
+    Far_North_protected_areas = "NAME_E",
+    Municipal_Heritage_areas = "NAME_E",
+    Migratory_Bird_sanctuaries = "NAME_E",
+    National_Wildlife_areas = "NAME_E",
+    NGO_reserves = "NAME_E",
+    Wilderness_areas = "NAME_E",
+    National_capital_valued_ecosystem_or_habitat = "NAME_E",
+    Provincial_planned_protected_area = "NAME_E",
+    Crown_plan_protected_area = "NAME_E",
+    Other_effective_area_based_conservation_measures = "NAME_E"
+  )
+  
+  # Dynamically generate the list of features based on the selected polygon type
+  observeEvent(input$sf_object_selection_initial, {
+    
+    selected_sf <- sf_objects[[input$sf_object_selection_initial]]
+    
+    # Get the correct column name for the selected polygon type
+    selected_column <- polygon_name[[input$sf_object_selection_initial]]
+    
+    # Check if the column exists in the selected sf object
+    if (!is.null(selected_column) && selected_column %in% colnames(selected_sf)) {
+      
+      # Create a list of features by their names (or any identifier, like "Name" or "ID")
+      feature_choices <- as.character(selected_sf[[selected_column]])
+      
+      # Sort the feature choices alphabetically
+      feature_choices <- sort(feature_choices)
+      
+      # Generate dynamic UI for feature selection using Shiny Semantic's multiple_radio
+      output$feature_selection_ui_initial <- renderUI({
+        tagList(
+          tags$style(HTML("h4.custom-header { font-size: 13px; }")),
+          h4(class = "custom-header", "Select a feature:"),
+          
+          # Replace checkboxes with Shiny Semantic multiple_radio buttons
+          multiple_radio(
+            input_id = "selected_features",
+            label = NULL,
+            choices = feature_choices,
+            choices_value = feature_choices,
+            selected = NULL,  # No selection by default
+            position = "grouped",  # Grouped layout for radio buttons
+            type = "radio"
+          )
+        )
+      })
+    } else {
+      output$feature_selection_ui_initial <- renderUI({
+        p("No valid features found for the selected type.")
+      })
+    }
+  })
+  
+  # Filter the selected sf objects based on the user's feature selection
+  observeEvent(input$selected_features, {
+    
+    # Ensure that selected_features is valid and not NA or NULL
+    if (!is.null(input$selected_features) && !is.na(input$selected_features)) {
+      
+      selected_sf <- sf_objects[[input$sf_object_selection_initial]]
+      
+      # Get the correct column name for the selected polygon type
+      selected_column <- polygon_name[[input$sf_object_selection_initial]]
+      
+      if (!is.null(selected_column) && selected_column %in% colnames(selected_sf)) {
+        
+        # Subset the sf object based on the selected feature
+        filtered_sf <- selected_sf[selected_sf[[selected_column]] %in% input$selected_features, ]
+        
+        # Ensure that the filtered sf is not empty
+        if (nrow(filtered_sf) > 0) {
+          selected_sf_react(filtered_sf)  # Update the reactive object with the filtered sf
+        } else {
+          warning("No features selected, or selected features are invalid.")
+        }
+      }
+    }
+  })
+  
+  
+  observeEvent(input$selected_features, {
+    
+    # Define the process_polygon function
+    process_polygon <- function(polygon, crs_code, OLC) {
+      if (nrow(polygon) == 0) {
+        warning("No polygons available to process.")
+        return(NULL)
+      }
+      
+      extent_val <- raster::extent(polygon)
+      ext_coords <- cbind(
+        c(extent_val@xmin, extent_val@xmax, extent_val@xmax, extent_val@xmin, extent_val@xmin),
+        c(extent_val@ymin, extent_val@ymin, extent_val@ymax, extent_val@ymax, extent_val@ymin)
+      )
+      rownames(ext_coords) <- NULL
+      colnames(ext_coords) <- c("x", "y")
+      sp_extent <- sp::Polygon(ext_coords)
+      sp_extent <- sp::Polygons(list(sp_extent), ID = "1")
+      sp_extent <- sp::SpatialPolygons(list(sp_extent))
+      sp::proj4string(sp_extent) <- CRS("+proj=longlat +datum=WGS84")
+      sp_extent_3162 <- sp::spTransform(sp_extent, CRS(crs_code))
+      extent_val_3162 <- raster::extent(sp_extent_3162)
+      values$extent <- extent_val_3162
+      
+      polygon_geometry <- polygon$geometry
+      polygon_geometry <- st_sf(geometry = polygon_geometry)
+      sp_polygon_3162 <- sf::st_transform(polygon_geometry, crs = 3162)
+      sp_plot_polygon(sf::st_transform(polygon_geometry, crs = st_crs(OLC)))
+      ras_resolution <- terra::res(OLC)
+      template <- terra::rast(terra::vect(sp_polygon_3162), res = ras_resolution, ext = OLC)
+      poly_raster <- terra::rasterize(terra::vect(sp_polygon_3162), template)
+      selected_polygon(poly_raster)
+    }
+    
+    # Ensure that input$selected_features is valid before processing
+    if (!is.null(input$selected_features) && !is.na(input$selected_features)) {
+      
+      # Define the CRS once
+      crs_code <- "+proj=lcc +lat_0=0 +lon_0=-85 +lat_1=44.5 +lat_2=53.5 +x_0=930000 +y_0=6430000 +ellps=GRS80 +towgs84=-0.991,1.9072,0.5129,-1.25033e-07,-4.6785e-08,-5.6529e-08,0 +units=m +no_defs +type=crs"
+      
+      # Get the selected polygon type
+      selected_polygon_type <- input$sf_object_selection_initial
+      selected_column <- polygon_name[[selected_polygon_type]]
+      
+      # Get the polygon object from sf_objects
+      polygon <- sf_objects[[selected_polygon_type]]
+      
+      # Filter the polygon based on selected features
+      filtered_polygon <- polygon[polygon[[selected_column]] %in% input$selected_features, ]
+      
+      # Process the filtered polygon if it's valid
+      if (nrow(filtered_polygon) > 0) {
+        process_polygon(filtered_polygon, crs_code, OLC)
+      } else {
+        warning("Filtered polygon is empty.")
+      }
+    }
+  })
+  
+  observeEvent(input$apply_bbox, {
+    # Convert text inputs to numeric values
+    top_left_lat <- as.numeric(input$top_left_lat)
+    top_left_lon <- as.numeric(input$top_left_lon)
+    bottom_right_lat <- as.numeric(input$bottom_right_lat)
+    bottom_right_lon <- as.numeric(input$bottom_right_lon)
+    
+    # Validate that all inputs are numeric and not NA
+    if (is.na(top_left_lat) || is.na(top_left_lon) || is.na(bottom_right_lat) || is.na(bottom_right_lon)) {
+      showNotification("Please provide valid numeric values for all coordinates.", type = "warning")
+      return()  # Exit if validation fails
+    }
+    
+    # Retrieve the input values after validation
+    top_left <- c(top_left_lon, top_left_lat)  # (longitude, latitude)
+    bottom_right <- c(bottom_right_lon, bottom_right_lat)
+    
+    # Create the bounding box from input coordinates
+    bbox_coords <- matrix(c(
+      top_left[1], top_left[2],  # Top-left (lon, lat)
+      bottom_right[1], top_left[2],  # Top-right
+      bottom_right[1], bottom_right[2],  # Bottom-right
+      top_left[1], bottom_right[2],  # Bottom-left
+      top_left[1], top_left[2]  # Close the polygon
+    ), ncol = 2, byrow = TRUE)
+    
+    # Create the sf polygon from the bounding box
+    bbox_polygon <- sf::st_polygon(list(bbox_coords))
+    sf_bbox <- sf::st_sfc(bbox_polygon)
+    sf_bbox <- sf::st_set_crs(sf_bbox, 4326)  # Assuming WGS84 CRS
+    
+    # Transform the polygon to the target CRS and process it
+    sf_bbox <- st_sf(geometry = sf_bbox)
+    target_crs <- sf::st_crs(3162)
+    sf_bbox_transformed <- sf::st_transform(sf_bbox, crs = target_crs)
+    extent_val_3162 <- raster::extent(sf_bbox_transformed)
+    values$extent <- extent_val_3162
+    
+    # Process the bounding box polygon similar to the drawing tool
+    sp_plot_polygon(sf_bbox_transformed)
+    
+    # Further raster processing
+    ras_resolution <- terra::res(OLC)
+    template <- terra::rast(terra::vect(sf_bbox_transformed), res = ras_resolution, ext = OLC)
+    poly_raster <- terra::rasterize(terra::vect(sf_bbox_transformed), template)
+    
+    selected_polygon(poly_raster)  # Use your reactive to store the raster
+  })
+  
+
+    
+    
+    
 # Map to choose target landscape ----
   
   # This code is to load the polygon layers to be visualized via the leaflet map. This is primarily for visualization purposes,
@@ -3837,6 +4067,9 @@ server <- function(input, output, session) {
       # Create a list of features by their names (or any identifier, like "Name" or "ID")
       feature_choices <- as.character(selected_sf[[selected_column]])
       
+      # Sort the feature choices alphabetically
+      feature_choices <- sort(feature_choices)
+      
       # Generate dynamic UI for feature selection
       output$feature_selection_ui <- renderUI({
         tagList(
@@ -5039,6 +5272,89 @@ conditionalPanel(
              side of the map. Hover over the map to view the names of individual features. Then, select a single feature by clicking
              on it (e.g., a single provincial park).<br>"
 )),
+br(),
+# Button to show/hide the landscape selection and feature selection menu
+actionButton("toggle_menu", "Show / hide options for accessible landscape selection"),
+
+br(),
+br(),
+
+# Wrap the selectInput and dynamic UI in a div for toggling
+div(
+  id = "menu_section",# Use this ID to control visibility
+  style = "display: none;",  # Hide by default
+  
+  # Radio buttons for selecting a landscape to analyze
+  multiple_radio(
+    input_id = "sf_object_selection_initial",
+    label = HTML("<b>Accessible option 1: Select a landscape type and specific feature:</b><br><br>"),
+    choices = c(
+      "Conservation areas",
+      "Conservation reserves",
+      "Crown plan protected areas",
+      "Far North protected areas",
+      "Lower municipalities",
+      "Migratory bird sanctuaries",
+      "Municipal heritage areas",
+      "National capital valued ecosystems or habitats",
+      "National parks",
+      "National wildlife areas",
+      "Natural heritage system areas",
+      "Natural heritage value areas",
+      "Non-governmental organization reserves",
+      "Other effective area-based conservation measures",
+      "Provincial parks",
+      "Provincial planned protected areas",
+      "Upper municipalities",
+      "Wilderness areas"
+    ),
+    choices_value = c(
+      "Conservation_areas",
+      "Conservation_reserves",
+      "Crown_plan_protected_area",
+      "Far_North_protected_areas",
+      "Lower_municipality",
+      "Migratory_Bird_sanctuaries",
+      "Municipal_Heritage_areas",
+      "National_capital_valued_ecosystem_or_habitat",
+      "National_parks",
+      "National_Wildlife_areas",
+      "Natural_heritage_system_areas",
+      "Natural_heritage_value_areas",
+      "NGO_reserves",
+      "Other_effective_area_based_conservation_measures",
+      "Provincial_parks",
+      "Provincial_planned_protected_area",
+      "Upper_municipality",
+      "Wilderness_areas"
+    ),
+    selected = NULL,  # nothing is selected by default
+    type = "radio", 
+    position = "grouped" 
+  ),
+  
+  # Dynamic UI for feature selection
+  uiOutput("feature_selection_ui_initial"),
+  
+  # Text input for top-left and bottom-right bounding box coordinates
+  h4("Accessible option 2: Create a bounding box by entering coordinates:"),
+  fluidRow(
+    column(
+      width = 6,
+      textInput("top_left_lat", "Top-left Latitude:", value = ""),
+      textInput("top_left_lon", "Top-left Longitude:", value = "")
+    ),
+    column(
+      width = 6,
+      textInput("bottom_right_lat", "Bottom-right Latitude:", value = ""),
+      textInput("bottom_right_lon", "Bottom-right Longitude:", value = "")
+    ),
+    actionButton("apply_bbox", "Apply Bounding Box")
+  ),
+  
+  br(),
+  br()
+),
       leafletOutput("map", height = 600),
       br(),
       br(),
