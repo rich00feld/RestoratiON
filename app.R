@@ -1297,7 +1297,7 @@ server <- function(input, output, session) {
         # but are present in the buffer.
         mutate(percentage = if_else(is.na(percentage), 0, percentage)) %>% 
         # Create a new label for each class
-        mutate(Label = paste0("              ", Land_Class, " (", percentage, "%)"),
+        mutate(Label = paste0(" ", Land_Class, " (", percentage, "%)", "              "),
                # arrange the Land Class labels by percentage
                Label = fct_infreq(Label))
       
@@ -1322,7 +1322,7 @@ server <- function(input, output, session) {
                           values = plot_colors$color,
                           na.value = "white") +
         geom_sf(data = sp_polygon_3162_buffered,
-                aes(color = "Buffer extent"), fill = NA, linewidth = 1) +
+                aes(color = "Buffer extent\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0"), fill = NA, linewidth = 1) +
         geom_sf(data = target_landscape, aes(color = "Target landscape"),
                 fill = NA, linewidth = 1) +
         scale_color_manual(name = "", values = c("lightgrey", "black")) +
@@ -1338,8 +1338,8 @@ server <- function(input, output, session) {
               legend.box.spacing = unit(0.5, "cm")) +
         guides(fill = guide_legend(
           ncol = 2,
-          label.position = "left",
-          label.hjust = 1,
+          label.position = "right",
+          label.hjust = 0,
           order = 2),
           color = guide_legend(
             direction = "horizontal",
@@ -1422,7 +1422,7 @@ server <- function(input, output, session) {
           # but are present in the buffer.
           mutate(percentage = if_else(is.na(percentage), 0, percentage)) %>% 
           # Create a new label for each class
-          mutate(Label = paste0("              ", Land_Class, " (", percentage, "%)"),
+          mutate(Label = paste0(" ", Land_Class, " (", percentage, "%)", "              "),
                  # arrange the Land Class labels by percentage
                  Label = fct_infreq(Label))
         
@@ -1447,7 +1447,7 @@ server <- function(input, output, session) {
                             values = plot_colors$color,
                             na.value = "white") +
           geom_sf(data = sp_polygon_3162_buffered,
-                  aes(color = "Buffer extent"), fill = NA, linewidth = 1) +
+                  aes(color = "Buffer extent\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0"), fill = NA, linewidth = 1) +
           geom_sf(data = target_landscape, aes(color = "Target landscape"),
                   fill = NA, linewidth = 1) +
           scale_color_manual(name = "", values = c("lightgrey", "black")) +
@@ -1463,8 +1463,8 @@ server <- function(input, output, session) {
                 legend.box.spacing = unit(0.5, "cm")) + # Adjust spacing
           guides(fill = guide_legend(
             ncol = 2,
-            label.position = "left",
-            label.hjust = 1,
+            label.position = "right",
+            label.hjust = 0,
             order = 2),
             color = guide_legend(
               direction = "horizontal",
@@ -1790,7 +1790,7 @@ server <- function(input, output, session) {
         # but are present in the buffer.
         mutate(percentage = if_else(is.na(percentage), 0, percentage)) %>% 
         # Create a new label for each class
-        mutate(Label = paste0("              ", Land_Class, " (", percentage, "%)"),
+        mutate(Label = paste0(" ", Land_Class, " (", percentage, "%)", "              "),
                # arrange the Land Class labels by percentage
                Label = fct_infreq(Label))
       
@@ -1815,7 +1815,7 @@ server <- function(input, output, session) {
                           values = plot_colors$color,
                           na.value = "white") +
         geom_sf(data = sp_polygon_3162_buffered,
-                aes(color = "Buffer extent"), fill = NA, linewidth = 1) +
+                aes(color = "Buffer extent\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0"), fill = NA, linewidth = 1) +
         geom_sf(data = target_landscape, aes(color = "Target landscape"),
                 fill = NA, linewidth = 1) +
         scale_color_manual(name = "", values = c("lightgrey", "black")) +
@@ -1831,8 +1831,8 @@ server <- function(input, output, session) {
               legend.box.spacing = unit(0.5, "cm")) + # Adjust spacing
         guides(fill = guide_legend(
           ncol = 2,
-          label.position = "left",
-          label.hjust = 1,
+          label.position = "right",
+          label.hjust = 0,
           order = 2),
           color = guide_legend(
             direction = "horizontal",
@@ -1902,7 +1902,7 @@ server <- function(input, output, session) {
           # but are present in the buffer.
           mutate(percentage = if_else(is.na(percentage), 0, percentage)) %>% 
           # Create a new label for each class
-          mutate(Label = paste0("              ", Land_Class, " (", percentage, "%)"),
+          mutate(Label = paste0(" ", Land_Class, " (", percentage, "%)", "              "),
                  # arrange the Land Class labels by percentage
                  Label = fct_infreq(Label))
         
@@ -1927,7 +1927,7 @@ server <- function(input, output, session) {
                             values = plot_colors$color,
                             na.value = "white") +
           geom_sf(data = sp_polygon_3162_buffered,
-                  aes(color = "Buffer extent"), fill = NA, linewidth = 1) +
+                  aes(color = "Buffer extent\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0"), fill = NA, linewidth = 1) +
           geom_sf(data = target_landscape, aes(color = "Target landscape"),
                   fill = NA, linewidth = 1) +
           scale_color_manual(name = "", values = c("lightgrey", "black")) +
@@ -1943,8 +1943,8 @@ server <- function(input, output, session) {
                 legend.box.spacing = unit(0.5, "cm")) + # Adjust spacing
           guides(fill = guide_legend(
             ncol = 2,
-            label.position = "left",
-            label.hjust = 1,
+            label.position = "right",
+            label.hjust = 0,
             order = 2),
             color = guide_legend(
               direction = "horizontal",
@@ -2103,7 +2103,7 @@ server <- function(input, output, session) {
         # but are present in the buffer.
         mutate(percentage = if_else(is.na(percentage), 0, percentage)) %>% 
         # Create a new label for each class
-        mutate(Label = paste0("              ", Land_Class, " (", percentage, "%)"),
+        mutate(Label = paste0(" ", Land_Class, " (", percentage, "%)", "              "),
                # arrange the Land Class labels by percentage
                Label = fct_infreq(Label))
       
@@ -2128,7 +2128,7 @@ server <- function(input, output, session) {
                           values = plot_colors$color,
                           na.value = "white") +
         geom_sf(data = sp_polygon_3162_buffered,
-                aes(color = "Buffer extent"), fill = NA, linewidth = 1) +
+                aes(color = "Buffer extent\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0"), fill = NA, linewidth = 1) +
         geom_sf(data = target_landscape, aes(color = "Target landscape"),
                 fill = NA, linewidth = 1) +
         scale_color_manual(name = "", values = c("lightgrey", "black")) +
@@ -2144,8 +2144,8 @@ server <- function(input, output, session) {
               legend.box.spacing = unit(0.5, "cm")) + # Adjust spacing
         guides(fill = guide_legend(
           ncol = 2,
-          label.position = "left",
-          label.hjust = 1,
+          label.position = "right",
+          label.hjust = 0,
           order = 2),
           color = guide_legend(
             direction = "horizontal",
