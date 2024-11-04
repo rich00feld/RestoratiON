@@ -5420,14 +5420,20 @@ div(
       br(),
 fluidRow(
   column(width = 6, plotlyOutput("rasterPlot", height = "800px")),
-  column(width = 6, plotOutput("rasterPlot1legend", height = "800px"))),
+  column(width = 6,       div(style = "overflow-x: auto; white-space: nowrap; margin: 0 auto; text-align: center;",
+                              div(style = "display: inline-block; width: 1000px;",
+                                  plotOutput("rasterPlot1legend", height = "800px"))
+  ))),
         conditionalPanel(
           condition = "input.protected_based_calculations > 0",
             fluidRow(
              column(width = 6, plotlyOutput("protectedPlot", height = "800px")),
-               column(width = 6, plotOutput("rasterPlot2legend", height = "800px"))),
+               column(width = 6, div(style = "overflow-x: auto; white-space: nowrap; margin: 0 auto; text-align: center;",
+                                     div(style = "display: inline-block; width: 1000px;",
+                                         plotOutput("rasterPlot2legend", height = "800px"))
+               )))),
     )
-  )),
+  ),
 
   ## Segment 5: Define degraded land, output plots ----
   conditionalPanel(
@@ -5457,12 +5463,16 @@ fluidRow(
       div(style = "font-size: 20px;", textOutput("numDegradedPixels")),
       fluidRow(
         column(width = 6, plotlyOutput("degradedPlot", height = "800px")),
-        column(width = 6, plotOutput("rasterPlot3legend", height = "800px"))),
+        column(width = 6, div(style = "overflow-x: auto; white-space: nowrap; margin: 0 auto; text-align: center;",
+                                                      div(style = "display: inline-block; width: 1000px;",
+                                                          plotOutput("rasterPlot3legend", height = "800px"))))),
       conditionalPanel(
         condition = "input.protected_based_calculations > 0",
         fluidRow(
           column(width = 6, plotlyOutput("degradedprotectedPlot", height = "800px")),
-          column(width = 6, plotOutput("rasterPlot4legend", height = "800px"))))
+          column(width = 6, div(style = "overflow-x: auto; white-space: nowrap; margin: 0 auto; text-align: center;",
+                                                        div(style = "display: inline-block; width: 1000px;",
+                                                            plotOutput("rasterPlot4legend", height = "800px"))))))
     )
   ),
 
@@ -5480,7 +5490,9 @@ fluidRow(
       actionButton("simulate_restoration", "Simulate restoration"),
       fluidRow(
         column(width = 6, plotlyOutput("restorationPlot", height = "800px")),
-        column(width = 6, plotOutput("rasterPlot5legend", height = "800px"))),
+        column(width = 6, div(style = "overflow-x: auto; white-space: nowrap; margin: 0 auto; text-align: center;",
+                                    div(style = "display: inline-block; width: 1000px;",
+                                        plotOutput("rasterPlot5legend", height = "800px"))))),
     )
   ),
 
