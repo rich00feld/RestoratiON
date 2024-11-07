@@ -2231,37 +2231,66 @@ server <- function(input, output, session) {
     na.omit(unique(values(restored_land())))
   })
   
+  # First, define the reactive value at the top of your server function
+  selected_habitats <- reactiveVal(c())
+  
   output$dynamic_checkboxes <- renderUI({
     if (is.null(choices_reactive())) {
       return(NULL)
     }
-    
     # Get the names of the selected habitat classes to exclude
     selected_labels <- names(land_class_mapping)[land_class_mapping %in% choices_reactive()]
     
     # Generate dynamic checkboxes with labels for accessibility
     tagList(
-      HTML("You may be interested in calculating the benefit of restoring certain habitat types only. 
-    If you would like to exclude habitat classes from the patch size calculations, please select them below:<br><br>"),
-      
-      div(
-        id = "dynamic_checkboxes",
-        lapply(selected_labels, function(label) {
-          div(
-            class = "field",
-            div(class = "ui checkbox",
-                tags$input(
-                  type = "checkbox",
-                  id = paste0("habitat_", gsub(" ", "_", label)),  # Create a unique ID for each checkbox
-                  name = "selected_habitats",
-                  value = label
-                ),
-                tags$label(`for` = paste0("habitat_", gsub(" ", "_", label)), label)  # Associate label with the checkbox
-            )
-          )
-        })
-      )
+      HTML("You may be interested in calculating the benefit of restoring certain habitat types only.
+          If you would like to exclude habitat classes from the patch size calculations, please select them below:<br><br>"),
+      div(id = "dynamic_checkboxes",
+          lapply(selected_labels, function(label) {
+            div(class = "field",
+                div(class = "ui checkbox",
+                    tags$input(type = "checkbox",
+                               id = paste0("habitat_", gsub(" ", "_", label)),
+                               name = "selected_habitats",
+                               value = label,
+                               onclick = sprintf("Shiny.setInputValue('habitat_checked_%s', this.checked)", gsub(" ", "_", label))),
+                    tags$label(`for` = paste0("habitat_", gsub(" ", "_", label)), label)
+                ))
+          }))
     )
+  })
+  
+  # Add an observer to track checkbox states
+  observe({
+    req(choices_reactive())
+    
+    selected_labels <- names(land_class_mapping)[land_class_mapping %in% choices_reactive()]
+    
+    for(label in selected_labels) {
+      local({
+        local_label <- label
+        input_id <- sprintf("habitat_checked_%s", gsub(" ", "_", local_label))
+        
+        observeEvent(input[[input_id]], {
+          current_selected <- selected_habitats()
+          
+          if (input[[input_id]]) {
+            current_selected <- unique(c(current_selected, local_label))
+          } else {
+            current_selected <- current_selected[current_selected != local_label]
+          }
+          
+          selected_habitats(current_selected)
+        })
+      })
+    }
+  })
+  
+  # Create reactive for mapped values
+  selected_mapped_habitats <- reactive({
+    selected <- selected_habitats()
+    if (length(selected) == 0) return(NULL)
+    land_class_mapping[names(land_class_mapping) %in% selected]
   })
 
 
@@ -2276,7 +2305,7 @@ server <- function(input, output, session) {
     notification_id_hab <- showNotification("Calculating habitat metrics...", type = "message", duration = NULL)
 
 
-    selected_habitats <- land_class_mapping[names(land_class_mapping) %in% input$selected_habitats]
+    selected_habitats <- selected_mapped_habitats()
 
     # Extract the pixel values from restored_land and sample_degraded_land
     restored_land_values <- restored_land()
@@ -2467,7 +2496,6 @@ server <- function(input, output, session) {
 
     # Close parallel processing
     plan(sequential)
-
     # Filter out the selected classes
     if (length(selected_habitats) > 0) {
       cols_to_exclude <- c()
