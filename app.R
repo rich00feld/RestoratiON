@@ -5191,7 +5191,8 @@ div(class = "ui top fixed menu",
         a(class = "item", 
           href = "https://forms.office.com/Pages/ResponsePage.aspx?id=KRLczSqsl0u3ig5crLWGXNRxs3qV961EgSoYMvAfZJ5UODdBUFlaNVpLU0wyRVRBQURPMFNGR0U3Sy4u",
           target = "_blank",
-          icon("edit"), "Leave Feedback")
+          icon("edit"), 
+          span(style = "color: dodgerblue; font-size: 1.2em; font-weight: bold;", "Leave Feedback"))
     )
 ),
 
