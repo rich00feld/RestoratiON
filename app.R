@@ -334,11 +334,6 @@ server <- function(input, output, session) {
         ),
         
         actionButton("go_button", "Let's go!", class = "go-button"),
-      div(style = "position: absolute; bottom: 20px; left: 20px; display: flex;",
-          actionButton("button1", "Button 1", class = "go-button", onclick = "window.open('https://www.ontario.ca/', '_blank')"),
-          actionButton("button2", "Button 2", class = "go-button", onclick = "window.open('https://www.ontario.ca/', '_blank')"),
-          actionButton("button3", "Button 3", class = "go-button", onclick = "window.open('https://www.ontario.ca/', '_blank')")
-      )
     )
   })
   # Server logic to handle the button click and proceed to the next section
@@ -5186,7 +5181,29 @@ tags$head(
 
 # Add a Fomantic-UI menu at the top for the feedback button
 div(class = "ui top fixed menu",
-    div(class = "item", ""),  # Placeholder for title
+    # Placeholder for the title
+    div(class = "item", ""),  
+    
+    # Add left-aligned buttons
+    div(class = "left menu",
+        a(class = "item",
+          href = "https://docs.google.com/document/d/1EtO1ZUtZRQBOSw34Pgsl2WgvlwknTkVT/edit?usp=drive_link&ouid=103737757316682799835&rtpof=true&sd=true",
+          target = "_blank",
+          icon("mountain"),  # icon for background document
+          span(style = "color: dodgerblue; font-size: 1.2em; font-weight: bold;", "Background")),
+        a(class = "item",
+          href = "https://docs.google.com/document/d/1V_ck4jxty2mQ0Lhr-uocg12zhm6CLkRX/edit?usp=drive_link&ouid=103737757316682799835&rtpof=true&sd=true",
+          target = "_blank",
+          icon("chart bar"),  # icon for data sources
+          span(style = "color: dodgerblue; font-size: 1.2em; font-weight: bold;", "Data Sources")),
+        a(class = "item",
+          href = "https://docs.google.com/document/d/1tU8lBbL8KpkiYb3s9FZHlUNkLNXkBhDk/edit?usp=drive_link&ouid=103737757316682799835&rtpof=true&sd=true",
+          target = "_blank",
+          icon("book"),  # icon for glossary
+          span(style = "color: dodgerblue; font-size: 1.2em; font-weight: bold;", "Glossary"))
+    ),
+    
+    # Add right-aligned "Leave Feedback" button
     div(class = "right menu",
         a(class = "item", 
           href = "https://forms.office.com/Pages/ResponsePage.aspx?id=KRLczSqsl0u3ig5crLWGXNRxs3qV961EgSoYMvAfZJ5UODdBUFlaNVpLU0wyRVRBQURPMFNGR0U3Sy4u",
