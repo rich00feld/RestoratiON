@@ -5470,8 +5470,7 @@ div(
       br(),
       p(HTML("<b>Set the final extent</b><br>
                Finally, press “Set extent” to confirm the final target landscape to analyze. An image of the selected landscape, including the buffer area, is displayed for you to review, along with the proportion of total area covered by different habitat types.<br><br>
-             When the landscape extent is set, a test is run on that landscape to see if it is large enough to calculate connectivity metrics. A warning message will be displayed if the target landscape is too small. This will be explained in more detail as you progress through the tool.<br>
-               ")),
+             When the landscape extent is set, a test is run on that landscape to see if it is large enough to calculate connectivity metrics. A warning message will be displayed if the target landscape is too small. When accessing this tool online, it is also possible that a landscape that is too large or complex will reach the server memory limit during calculations at future steps, resulting in disconnection from the server. This occurs rarely, but can be resolved by reducing the size of a landscape / dividing it into parts for which metrics can be calculated separately.<br>")),
       actionButton("set_extent", "Set extent"),
       br(),
       verbatimTextOutput("extent_values"),
@@ -5599,7 +5598,8 @@ fluidRow(
       br(),
       div(style = "font-size: 18px; font-weight: bold; margin-bottom: 15px;", "Calculating patch size"),
       p(HTML("Now, we can calculate the effect of restoring candidate areas on habitat patch size (i.e., if restoring particular candidate areas increases the average habitat patch size).<br><br>
-      Patch size is calculated as the average size of contiguous areas of a particular habitat type. For each habitat type, the effect of restoration is measured by comparing the average patch size in the original landscape compared against the average patch size with each candidate area restored. In addition, if you selected the option to focus on ‘areas of conservation concern’, the change in patch size within areas of conservation concern is shown as an additional metric.")),
+      Patch size is calculated as the average size of contiguous areas of a particular habitat type. For each habitat type, the effect of restoration is measured by comparing the average patch size in the original landscape compared against the average patch size with each candidate area restored. In addition, if you selected the option to focus on ‘areas of conservation concern’, the change in patch size within areas of conservation concern is shown as an additional metric. <br><br>
+             Note: When accessing this tool online, if a disconnection from the server occurs during this calculation, please reduce the size of a landscape or divide it into parts to avoid exceeding the server memory limit")),
       br(),
       uiOutput("dynamic_checkboxes"),
       br(),
@@ -5664,7 +5664,9 @@ conditionalPanel(
       NOTE: We assigned a movement cost value to each 300 x 300 metre pixel in the province, following Pither et al. 2023  (a full breakdown of the cost values for each pixel type are given
       <a href='https://figshare.com/articles/journal_contribution/Land_cover_layers_and_their_sources_used_to_construct_a_movement_cost_layer_for_Canada_/22143033' target='_blank'>here</a>). We modify cost values for some pixels: any degraded pixels are given a high cost value (1000), whereas restored pixels and natural habitat are given the lowest cost value (1).  
       <br><br> 
-     If the option to focus on areas of conservation concern is selected, these areas, and any pixels restored within them, are given a cost value of 1, with other natural  habitat given a cost value of 10, and costs for all other pixel types scaled up by a magnitude of 10 (e.g. degraded pixels = 10000).")),
+     If the option to focus on areas of conservation concern is selected, these areas, and any pixels restored within them, are given a cost value of 1, with other natural  habitat given a cost value of 10, and costs for all other pixel types scaled up by a magnitude of 10 (e.g. degraded pixels = 10000).
+             <br><br>
+             Note: When accessing this tool online, if a disconnection from the server occurs during this calculation, please reduce the size of a landscape or divide it into parts to avoid exceeding the server memory limit")),
       actionButton("calculate_connectivity", "Calculate connectivity", style = "margin-top: 15px;"),
       br(),
       br(),
