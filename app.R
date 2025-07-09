@@ -214,9 +214,11 @@ sp_plot_polygon <-reactiveVal()
 legend_plot1_react <-reactiveVal()
 legend_plot2_react <-reactiveVal()
 legend_plot3_react <-reactiveVal()
+legend_plot32_react<-reactiveVal()
 legend_plot4_react <-reactiveVal()
 legend_plot5_react <-reactiveVal()
 plot_degraded_react <-reactiveVal()
+plot_degraded_sources_react <-reactiveVal()
 plot_degraded_protected_react <-reactiveVal()
 restored_land_plot_react <-reactiveVal()
 final_data_table <-reactiveVal()
@@ -1703,7 +1705,81 @@ server <- function(input, output, session) {
     mask <- degraded_pixels_temp %in% unfit_values
     unfit_raster <- degraded_pixels_temp * mask
     unfit_raster[!mask] <- NA
-
+    
+    ##Create raster preserving degradation sources
+    # Assign a unique power-of-2 flag to each degradation source
+    flags <- list(
+      mines = 1,
+      night_lights = 2,
+      oil_gas = 4,
+      forestry_harvest = 8,
+      AMIS = 16,
+      aggregate_extraction = 32,
+      topsoil_extraction = 64,
+      undifferentiated = 128
+    )
+    
+    # Create a new raster for tracking degradation sources
+    degradation_sources <- degraded_pixels_temp
+    values(degradation_sources) <- 0  # Start with all zeros
+    
+    # Add flags where the condition is met
+    degradation_sources[condition_mines] <- degradation_sources[condition_mines] + flags$mines
+    degradation_sources[condition_night_lights] <- degradation_sources[condition_night_lights] + flags$night_lights
+    degradation_sources[condition_oil_gas] <- degradation_sources[condition_oil_gas] + flags$oil_gas
+    degradation_sources[condition_forestry_harvest] <- degradation_sources[condition_forestry_harvest] + flags$forestry_harvest
+    degradation_sources[condition_AMIS] <- degradation_sources[condition_AMIS] + flags$AMIS
+    degradation_sources[condition_aggregate_extraction] <- degradation_sources[condition_aggregate_extraction] + flags$aggregate_extraction
+    degradation_sources[condition_topsoil_extraction] <- degradation_sources[condition_topsoil_extraction] + flags$topsoil_extraction
+    degradation_sources[condition_undifferentiated] <- degradation_sources[condition_undifferentiated] + flags$undifferentiated
+    
+    # mask unfit areas
+    degradation_sources[!is.na(unfit_raster)] <- NA
+    
+    # Generate all 256 possible combinations of degradation sources
+    combinations <- 1:255
+    decode_sources <- function(value, flags) {
+      names(flags)[as.logical(bitwAnd(value, unlist(flags)))]
+    }
+    
+    # Replace underscores with spaces, then capitalize only first letter of each source
+    acronyms <- c("AMIS")  # Add more acronyms here if needed
+    
+    format_label <- function(sources) {
+      formatted <- gsub("_", " ", sources)
+      formatted <- sapply(formatted, function(x) {
+        if (x %in% tolower(acronyms)) {
+          acronyms[match(x, tolower(acronyms))]
+        } else if (x %in% acronyms) {
+          x
+        } else {
+          paste0(toupper(substring(x, 1, 1)), tolower(substring(x, 2)))
+        }
+      })
+      paste(formatted, collapse = " + ")
+    }
+    
+    # Build a named vector of descriptions
+    combination_labels <- sapply(combinations, function(val) {
+      format_label(decode_sources(val, flags))
+    })
+    names(combination_labels) <- combinations
+    
+    # filter to only used combinations
+    used_values <- sort(unique(values(degradation_sources)))
+    used_values <- used_values[!is.na(used_values) & used_values != 0]  # remove NA and 0
+    labelled_values <- combination_labels[as.character(used_values)]
+    
+    # # Convert raster to factor
+    # degradation_factor <- as.factor(degradation_sources)
+    # levels(degradation_factor) <- data.frame(ID = used_values,
+    #                                          category = labelled_values)
+    
+    sp_polygon_3162_buffered <- st_buffer(sp_plot_polygon(), buffer_value())
+    
+    plot_degraded_sources <- crop(degradation_sources, sp_polygon_3162_buffered, mask = TRUE)
+    
+    
 
     degraded_pixels_temp[final_condition] <- 100 # Pixels that meet the cumulative condition are set to degraded
     degraded_pixels_temp[!is.na(unfit_raster)] <- NA
@@ -1711,8 +1787,6 @@ server <- function(input, output, session) {
     degraded_protected[final_condition] <- 100 # an areas of conservation concern version of this is done as well (mainly for plotting)
     degraded_protected[is.na(degraded_pixels_temp)] <- NA
     degraded_protected_react(degraded_protected)
-    
-    sp_polygon_3162_buffered <- st_buffer(sp_plot_polygon(), buffer_value())
     
     plot_degraded_protected <- degraded_protected
     plot_degraded_protected <- crop(plot_degraded_protected, sp_polygon_3162_buffered, mask = TRUE)
@@ -1724,6 +1798,7 @@ server <- function(input, output, session) {
     # These reactive values are used to store the degraded pixels for plotting later
     plot_degraded_react(plot_degraded_pixels)
     plot_degraded_protected_react(plot_degraded_protected)
+    plot_degraded_sources_react(plot_degraded_sources)
 
     degraded_pixels_temp[degraded_pixels_temp != 100] <- NA
 
@@ -1854,6 +1929,141 @@ server <- function(input, output, session) {
       grid.newpage()
       grid.draw(legend_plot3)
     })
+    
+    
+    
+    
+# Plot target landscape with sources of degradation ----
+# Get the target landscape
+    target_landscape <- sp_plot_polygon()
+    
+output$degradedSourcesPlot <- renderPlotly({
+  plot_degraded_sources <- plot_degraded_sources_react()
+  target_landscape <- sp_plot_polygon()
+  
+  # Get unique values in raster (excluding NA)
+  unique_values <- unique(values(plot_degraded_sources))
+  unique_values <- unique_values[!is.na(unique_values)]
+  
+  # Prepare label formatting function
+  acronyms <- c("AMIS")  # Add others if needed
+  format_label <- function(sources) {
+    formatted <- gsub("_", " ", sources)
+    formatted <- sapply(formatted, function(x) {
+      if (x %in% tolower(acronyms)) {
+        acronyms[match(x, tolower(acronyms))]
+      } else if (x %in% acronyms) {
+        x
+      } else {
+        paste0(toupper(substring(x, 1, 1)), tolower(substring(x, 2)))
+      }
+    })
+    paste(formatted, collapse = " + ")
+  }
+  
+  # Decode flag combinations and assign labels
+  flags <- list(
+    mines = 1,
+    night_lights = 2,
+    oil_gas = 4,
+    forestry_harvest = 8,
+    AMIS = 16,
+    aggregate_extraction = 32,
+    topsoil_extraction = 64,
+    undifferentiated = 128
+  )
+  
+  decode_sources <- function(value, flags) {
+    names(flags)[as.logical(bitwAnd(value, unlist(flags)))]
+  }
+  
+  labelled_values <- sapply(unique_values, function(val) {
+    if (val == 0) {
+      "Not degraded"
+    } else {
+      format_label(decode_sources(val, flags))
+    }
+  })
+  names(labelled_values) <- unique_values
+  
+  # Assign random but consistent colors (replace with your palette if needed)
+  land_cover_labels_df <- data.frame(
+    value = unique_values,
+    Land_Class = labelled_values,
+    color = colorspace::rainbow_hcl(length(unique_values))
+  )
+  
+  # Get percentage coverage of each class
+  percent_landcover <- as.data.frame(plot_degraded_sources, xy = FALSE, cells = FALSE) %>%
+    rename(value = 1) %>%
+    filter(!is.na(value)) %>%
+    count(value) %>%
+    mutate(percentage = round(n / sum(n) * 100, 2)) %>%
+    select(-n)
+  
+  # Merge label and percentage
+  land_cover_labels_df <- land_cover_labels_df %>%
+    left_join(percent_landcover, by = "value") %>%
+    mutate(
+      percentage = if_else(is.na(percentage), 0, percentage),
+      Label = paste0(Land_Class, " (", percentage, "%)")
+    ) %>%
+    arrange(desc(percentage))
+  
+  # Assign factor levels to raster
+  plot_degraded_sources <- as.factor(plot_degraded_sources)
+  levels(plot_degraded_sources) <- data.frame(
+    value = land_cover_labels_df$value,
+    Label = land_cover_labels_df$Label
+  )
+  
+  # Build ggplot
+  my_ggplot <- ggplot() +
+    geom_spatraster(data = plot_degraded_sources, aes(text = ..value..)) +
+    scale_fill_manual(
+      name = "\nDegradation source and percent cover\n",
+      values = setNames(land_cover_labels_df$color, land_cover_labels_df$Label),
+      na.value = "white"
+    ) +
+    geom_sf(data = sp_polygon_3162_buffered,
+            aes(color = "Buffer extent"), fill = NA, linewidth = 1) +
+    geom_sf(data = target_landscape,
+            aes(color = "Target landscape"), fill = NA, linewidth = 1) +
+    scale_color_manual(
+      name = "",
+      values = c("Buffer extent" = "lightgrey", "Target landscape" = "black")
+    ) +
+    labs(title = "\nTarget landscape showing degraded pixels\nand contributing degradation sources\n") +
+    theme_minimal() +
+    theme(
+      panel.grid = element_blank(),
+      legend.key.size = unit(1.5, "cm"),
+      legend.text = element_text(size = 12, face = "bold"),
+      legend.title = element_text(size = 16, face = "bold"),
+      legend.box.spacing = unit(0.5, "cm")
+    ) +
+    guides(
+      fill = guide_legend(ncol = 2, label.position = "right", label.hjust = 0, order = 2),
+      color = guide_legend(direction = "horizontal", label.position = "right", label.hjust = 0, order = 1)
+    )
+  
+  # Extract and save legend for separate rendering
+  legend_plot32 <- cowplot::get_plot_component(my_ggplot, 'guide-box-right', return_all = TRUE)
+  grid.newpage()
+  grid.draw(legend_plot32)
+  legend_plot32_react(legend_plot32)
+  
+  # Return interactive plotly map (without the legend)
+  ggplotly(my_ggplot + theme(legend.position = "none",
+                             axis.text = element_blank()), 
+           tooltip = "text")
+})
+    
+  output$rasterPlot32legend <- renderPlot({
+    legend_plot32<-legend_plot32_react()
+    grid.newpage()
+    grid.draw(legend_plot32)
+  })
     
     
     # A plot for 'areas of conservation concern' if that option is selected in UI segment 2
@@ -5516,7 +5726,11 @@ fluidRow(
         column(width = 6, plotlyOutput("degradedPlot", height = "800px")),
         column(width = 6, div(style = "overflow-x: auto; white-space: nowrap; margin: 0 auto; text-align: center;",
                                                       div(style = "display: inline-block; width: 1000px;",
-                                                          plotOutput("rasterPlot3legend", height = "800px"))))),
+                                                          plotOutput("rasterPlot3legend", height = "800px")))),
+        column(width = 6, plotlyOutput("degradedSourcesPlot", height = "800px")),
+        column(width = 6, div(style = "overflow-x: auto; white-space: nowrap; margin: 0 auto; text-align: center;",
+                              div(style = "display: inline-block; width: 1000px;",
+                                  plotOutput("rasterPlot32legend", height = "800px"))))),
       conditionalPanel(
         condition = "input.protected_based_calculations > 0",
         fluidRow(
