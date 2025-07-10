@@ -149,6 +149,7 @@ combinations_react <- reactiveVal()
 values <- reactiveValues(extent = NULL)
 landscape_output <- reactiveVal()
 export_sf <- reactiveVal(NULL)
+export_sf_deg_sources <- reactiveVal(NULL)
 KML_output_react <- reactiveVal()
 selected_sf_react <- reactiveVal()
 temp_dir_react <- reactiveVal()
@@ -1770,17 +1771,33 @@ server <- function(input, output, session) {
     used_values <- used_values[!is.na(used_values) & used_values != 0]  # remove NA and 0
     labelled_values <- combination_labels[as.character(used_values)]
     
-    # # Convert raster to factor
-    # degradation_factor <- as.factor(degradation_sources)
-    # levels(degradation_factor) <- data.frame(ID = used_values,
-    #                                          category = labelled_values)
     
     sp_polygon_3162_buffered <- st_buffer(sp_plot_polygon(), buffer_value())
     
+    
+    # Create exportable .kml
+    
+    degradation_polygons <- crop(degradation_sources, sp_polygon_3162_buffered, mask = TRUE)
+    
+    # Convert to polygons — dissolve pixels by class (value)
+    degradation_polygons <- as.polygons(degradation_sources, dissolve = TRUE)
+    names(degradation_polygons) <- "value"
+    
+    # Convert to sf for labeling and export
+    degradation_sf <- st_as_sf(degradation_polygons)
+    
+    # Attach human-readable labels
+    label_df <- data.frame(
+      value = as.integer(names(labelled_values)),
+      class_label = labelled_values
+    )
+    degradation_sf <- degradation_sf %>%
+      left_join(label_df, by = "value")
+    
+    export_sf_deg_sources(degradation_sf)
+    
     plot_degraded_sources <- crop(degradation_sources, sp_polygon_3162_buffered, mask = TRUE)
     
-    
-
     degraded_pixels_temp[final_condition] <- 100 # Pixels that meet the cumulative condition are set to degraded
     degraded_pixels_temp[!is.na(unfit_raster)] <- NA
 
@@ -3715,6 +3732,21 @@ output$degradedSourcesPlot <- renderPlotly({
       if (!is.null(export_sf())) {
         # Write sf object to KML file
         sf::st_write(export_sf(), dsn = file, driver = "kml")
+      }
+    }
+  )
+  
+  
+  output$downloadDegsources <- downloadHandler(
+    filename = function() {
+      if (!is.null(export_sf())) {
+        paste0(input$landscape_name, "_degradation_sources", Sys.Date(), ".kml", sep = "")
+      }
+    },
+    content = function(file) {
+      if (!is.null(export_sf_deg_sources())) {
+        # Write sf object to KML file
+        sf::st_write(export_sf_deg_sources(), dsn = file, driver = "kml")
       }
     }
   )
@@ -6005,7 +6037,11 @@ conditionalPanel(
       segment(
         p(HTML("If you would like to export a KML file to view the top candidate areas chosen in the analysis outside this tool (e.g., in Google Earth or ArcGIS), click 'Export top candidate area(s) to .KML'.<br>")),
         downloadButton("downloadKML", "Export top candidate area(s) to .KML", style = "height:60px; width:300px; font-size:25px;")),
-      segment(
+    segment(
+      p(HTML("If you would like to view the degradation sources used to define degraded pixels in the selected landscape, they can be exported in .KML<br>")),
+      downloadButton("downloadDegsources", "Save degradation sources", 
+                     style = "height:60px; width:300px; font-size:25px;")),
+    segment(
         p(HTML("If you would like to view this landscape later, you can save an .RDS file to import back into the tool to visualize.<br>")),
       downloadButton("downloadplotRDS", "Save landscape visualization", 
                      style = "height:60px; width:300px; font-size:25px;")),
