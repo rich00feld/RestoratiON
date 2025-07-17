@@ -31,15 +31,16 @@
 # install.packages("RStoolbox")
 # install.packages("leaflet.providers")
 # install.packages("stars")
+# install.packages("renv")
 
 
 # Loading libraries ----
 library(rsconnect)
-library(rgdal) # EJN: rgdal will be retired during October 2023. What functions in the script below need to be updated so we can remove this library from the required list?
+library(rgdal)
 library(sf)
 library(terra)
 library(geodiv)
-library(raster) # EJN: probably best to convert any raster functions to terra if possible (maybe it's not - just checking.)
+library(raster)
 library(landscapemetrics)
 library(grainscape)
 library(RStoolbox)
@@ -70,6 +71,7 @@ library(cowplot)
 library(grid)
 library(gridExtra)
 library(shinya11y)
+library(tools)
 
 
 
@@ -1776,11 +1778,11 @@ server <- function(input, output, session) {
     
     
     # Create exportable .kml
-    
-    degradation_polygons <- crop(degradation_sources, sp_polygon_3162_buffered, mask = TRUE)
-    
+    degradation_polygons <- crop(degradation_sources, sp_polygon_3162_buffered)
+    degradation_polygons <- mask(degradation_polygons, sp_polygon_3162_buffered)
+    degradation_polygons[degradation_polygons == 0] <- NA
     # Convert to polygons — dissolve pixels by class (value)
-    degradation_polygons <- as.polygons(degradation_sources, dissolve = TRUE)
+    degradation_polygons <- as.polygons(degradation_polygons, dissolve = TRUE, na.rm = TRUE)
     names(degradation_polygons) <- "value"
     
     # Convert to sf for labeling and export
@@ -2007,7 +2009,7 @@ output$degradedSourcesPlot <- renderPlotly({
   land_cover_labels_df <- data.frame(
     value = unique_values,
     Land_Class = labelled_values,
-    color = colorspace::rainbow_hcl(length(unique_values))
+    color = magma(length(unique_values))
   )
   
   # Get percentage coverage of each class
