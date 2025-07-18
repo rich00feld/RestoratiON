@@ -1839,7 +1839,7 @@ server <- function(input, output, session) {
     degraded_pixels(degraded_pixels_temp) # a reactive values stores the degraded pixels raster for use later
 
     # Plot target landscape with degraded pixels ----
-    # a plot is output showing the landscape with non-tolerable pixels excluded and degraded pixels in orange
+    # a plot is output showing the landscape with non-restorable pixels excluded and degraded pixels in orange
     
     # Get the target landscape
     target_landscape <- sp_plot_polygon()
@@ -1965,7 +1965,7 @@ output$degradedSourcesPlot <- renderPlotly({
   unique_values <- unique_values[!is.na(unique_values)]
   
   # Prepare label formatting function
-  acronyms <- c("AMIS")  # Add others if needed
+  acronyms <- c("AMIS")
   format_label <- function(sources) {
     formatted <- gsub("_", " ", sources)
     formatted <- sapply(formatted, function(x) {
@@ -2005,12 +2005,15 @@ output$degradedSourcesPlot <- renderPlotly({
   })
   names(labelled_values) <- unique_values
   
-  # Assign random but consistent colors (replace with your palette if needed)
+  # Assign colors
   land_cover_labels_df <- data.frame(
     value = unique_values,
     Land_Class = labelled_values,
     color = magma(length(unique_values))
   )
+  
+  # Override the color for "Not degraded"
+  land_cover_labels_df$color[land_cover_labels_df$Land_Class == "Not degraded"] <- "#D3D3D3"
   
   # Get percentage coverage of each class
   percent_landcover <- as.data.frame(plot_degraded_sources, xy = FALSE, cells = FALSE) %>%
