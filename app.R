@@ -33,7 +33,6 @@
 # install.packages("stars")
 # install.packages("renv")
 
-
 # Loading libraries ----
 library(rsconnect)
 library(rgdal)
@@ -73,6 +72,13 @@ library(gridExtra)
 library(shinya11y)
 library(tools)
 
+# Prepare the workspace ----
+# This is here to close any multiprocesses that may not have closed properly if the app crashed and is then re-run
+plan(sequential)
+
+rm(list = ls())
+gc()
+
 
 
 # setting the working directory to the location of the script
@@ -80,11 +86,6 @@ library(tools)
 # script_path <- getActiveDocumentContext()$path
 # setwd(dirname(script_path))
 # EJN: no need to do this if you package the script as part of a project; this is "best practice" so I've commented these lines out
-
-# Prepare the workspace ----
-# This is here to close any multiprocesses that may not have closed properly if the app crashed and is then re-run
-plan(sequential)
-gc()
 
 # Set the options for non-scientific notation (this can always be removed)
 options(scipen = 999)
@@ -310,7 +311,8 @@ Other_effective_area_based_conservation_measures <- st_read("vectors/Other_Effec
 options(shiny.maxRequestSize = 500 * 1024^2)
 
 server <- function(input, output, session) {
-
+  rm()
+  gc()
   # Dynamically generate the splash page with the base64-encoded image
   output$splash <- renderUI({
     # Path to the image
@@ -426,6 +428,7 @@ server <- function(input, output, session) {
   observe({
     if (length(input$protected_checkboxes) == 0) {
       # Manually call the observeEvent logic
+      rm()
       gc()
       # a notification while the code is run
       notification_id_pro_int <- showNotification("Updating land definitions, please wait...", type = "message", duration = NULL)
@@ -448,11 +451,13 @@ server <- function(input, output, session) {
       movement_cost_protected(defined_movement_cost_protected)
       
       removeNotification(notification_id_pro_int)
+      rm()
       gc()
     }})
   
   # Trigger when the user interacts with the checkboxes
   observeEvent(input$protected_checkboxes, {
+    rm()
     gc()
     # a notification while the code is run
     notification_id_pro <- showNotification("Updating land definitions, please wait...", type = "message", duration = NULL)
@@ -535,6 +540,7 @@ server <- function(input, output, session) {
     movement_cost_protected(defined_movement_cost_protected)
     
     removeNotification(notification_id_pro)
+    rm()
     gc()
   })
   
@@ -1561,11 +1567,11 @@ server <- function(input, output, session) {
     # to calculate connectivity metrics successfully.
     movement_cost_con <- croppedmovement_cost()
     movement_cost_con[!is.na(test_degraded_pixels_temp)] <- 1000
-    movement_cost_raster <- raster(movement_cost_con)
+    movement_cost_con <- raster(movement_cost_con)
     tryCatch(
       {
-        patches <- (movement_cost_raster == 1)
-        mpg <- MPG(movement_cost_raster, patch = patches)
+        patches <- (movement_cost_con == 1)
+        mpg <- MPG(movement_cost_con, patch = patches)
         mc_neighbours <- graphdf(mpg)[[1]]$e[, c(1, 2, 4)]
         if (nrow(mc_neighbours) < 5) {
           stop("Error: Insufficient nodes for habitat connectivity metrics. A minimum of 5 nodes are required.")
@@ -1587,11 +1593,11 @@ server <- function(input, output, session) {
 
       movement_cost_con <- croppedmovement_cost_protected()
       movement_cost_con[!is.na(test_degraded_pixels_temp)] <- 10000
-      movement_cost_raster <- raster(movement_cost_con)
+      movement_cost_con <- raster(movement_cost_con)
       tryCatch(
         {
-          patches <- (movement_cost_raster == 1)
-          mpg <- MPG(movement_cost_raster, patch = patches)
+          patches <- (movement_cost_con == 1)
+          mpg <- MPG(movement_cost_con, patch = patches)
           mc_neighbours <- graphdf(mpg)[[1]]$e[, c(1, 2, 4)]
           if (nrow(mc_neighbours) < 5) {
             stop("Error: Insufficient nodes for areas of conservation concern connectivity metrics. A minimum of 5 nodes are required.")
@@ -1607,6 +1613,8 @@ server <- function(input, output, session) {
       )
       removeNotification(notification_id_extent)
       rm(movement_cost_con, patches)
+      rm()
+      gc()
     }
   })
 
@@ -2199,6 +2207,8 @@ output$degradedSourcesPlot <- renderPlotly({
         grid.newpage()
         grid.draw(legend_plot4)
       })
+      rm()
+      gc()
     })
 
 
@@ -2404,6 +2414,8 @@ output$degradedSourcesPlot <- renderPlotly({
     shinyjs::enable("simulate_restoration")
     shinyjs::enable("automatic_combination")
     shinyjs::enable("manual_combination")
+    rm()
+    gc()
   })
 
   # Linked to UI Segment 7, choosing how to set the combinations of restored pixels for metric calculations ----
@@ -2520,7 +2532,7 @@ output$degradedSourcesPlot <- renderPlotly({
 
 
   result_habitat_data <- reactiveVal(data.frame()) # a reactive value to store results
-
+  
   # Code that runs when the calculate_metrics button is clicked in the UI
   observeEvent(input$calculate_metrics, {
     # Buttons are disabled while the calculation is running
@@ -2536,8 +2548,7 @@ output$degradedSourcesPlot <- renderPlotly({
     restored_land_values <- restored_land()
     restored_land_values <- rast(restored_land_values)
 
-    sample_degraded_land_values <- restored_land_values
-    sample_degraded_land_values[!is.na(degraded_pixels())] <- NA
+    sample_degraded_land_values <- mask(restored_land_values, degraded_pixels(), inverse = TRUE)
     sample_degraded_land_values <- raster(sample_degraded_land_values)
     
     cropped_polygon<-cropped_polyrast()
@@ -2620,48 +2631,54 @@ output$degradedSourcesPlot <- renderPlotly({
       contiguous_regions <- find_contiguous(valid_locations, restored_land_values[], nrow(restored_land_values), ncol(restored_land_values))
 
       # Create a matrix to store the indices for each group (as integers)
-      max_length <- max(lengths(contiguous_regions))
-      result_matrix <- matrix(NA_integer_, nrow = max_length, ncol = length(contiguous_regions))
-
-      # Fill the matrix with indices for each group as integers
-      for (i in seq_along(contiguous_regions)) {
-        result_matrix[1:length(contiguous_regions[[i]]), i] <- as.integer(contiguous_regions[[i]])
-      }
-
-      combinations <- result_matrix
+      combinations <- lapply(contiguous_regions, as.integer)
+      combinations_react(combinations)
 
       # Function to convert columns to list elements and remove NA values (so they can be used properly in future steps)
-      convert_to_list <- function(mat) {
-        list_of_matrices <- list()
-        for (i in 1:ncol(mat)) {
-          col_values <- mat[, i]
-          col_values <- col_values[!is.na(col_values)]
-          dim(col_values) <- c(length(col_values), 1)
-          list_of_matrices[[i]] <- col_values
-        }
-        return(list_of_matrices)
-      }
-
-      combinations <- convert_to_list(combinations)
-      combinations_react(combinations)
+      # convert_to_list <- function(mat) {
+      #   list_of_matrices <- list()
+      #   for (i in 1:ncol(mat)) {
+      #     col_values <- mat[, i]
+      #     col_values <- col_values[!is.na(col_values)]
+      #     dim(col_values) <- c(length(col_values), 1)
+      #     list_of_matrices[[i]] <- col_values
+      #   }
+      #   return(list_of_matrices)
+      # }
+      # 
+      # combinations <- convert_to_list(combinations)
+      # combinations_react(combinations)
+      
+      # Clean up large objects no longer needed
+      rm(find_contiguous, contiguous_regions)
+      gc()
       # saveRDS(combinations, file = "combinations.rds") - for troubleshooting
+      
     } else {
-      convert_to_list <- function(mat) {
-        list_of_matrices <- list()
-        for (i in 1:ncol(mat)) {
-          col_values <- mat[, i]
-          col_values <- col_values[!is.na(col_values)]
-          dim(col_values) <- c(length(col_values), 1)
-          list_of_matrices[[i]] <- col_values
-        }
-        return(list_of_matrices)
-      }
+      # convert_to_list <- function(mat) {
+      #   list_of_matrices <- list()
+      #   for (i in 1:ncol(mat)) {
+      #     col_values <- mat[, i]
+      #     col_values <- col_values[!is.na(col_values)]
+      #     dim(col_values) <- c(length(col_values), 1)
+      #     list_of_matrices[[i]] <- col_values
+      #   }
+      #   return(list_of_matrices)
+      # }
 
       # Get the number of combinations from the input
       num_combined_pixels <- as.numeric(input$num_combined_pixels)
-      combinations <- combn(valid_locations, num_combined_pixels)
-      combinations <- convert_to_list(combinations)
+      combinations <- apply(
+        combn(valid_locations, num_combined_pixels),
+        2,
+        function(x) matrix(x, ncol = 1)
+      )
       combinations_react(combinations)
+      
+      
+      # Clean up large objects no longer needed
+      rm(num_combined_pixels)
+      gc()
       # saveRDS(combinations, file = "combinations.rds") - for troubleshooting
     }
 
@@ -2763,6 +2780,9 @@ output$degradedSourcesPlot <- renderPlotly({
 
     # Update the reactiveVal with the computed data
     result_habitat_data(calculated_habitat_data)
+    
+    rm(calculate_metrics, calculate_metrics_parallel, restored_values, degraded_patch_size, class_mapping)
+    gc()
 
 
     if (input$protected_based_calculations > 0) { # if the 'areas of conservation concern' option is selected in segment 2,
@@ -2783,7 +2803,7 @@ output$degradedSourcesPlot <- renderPlotly({
       restored_values <- values(protected_restored)
       degraded_patch_size <- lsm_c_area_mn(degraded_protected)$value
 
-      # Create a function to calculate metrics for a given combination of 4 pixels added to Sample_degraded_land
+      # Create a function to calculate metrics for a given combination of pixels added to Sample_degraded_land
       calculate_metrics <- function(combination, degraded_raster) {
         # Create a copy of the degraded raster
         modified_raster <- degraded_raster
@@ -2825,6 +2845,9 @@ output$degradedSourcesPlot <- renderPlotly({
 
 
       result_habitat_data(hab_result_combined)
+      
+      rm(calculate_metrics, calculate_metrics_parallel, protected_result, protected_restored, degraded_protected, degraded_patch_size)
+      gc()
     }
 
     # Calculate the elapsed time
@@ -2855,9 +2878,14 @@ output$degradedSourcesPlot <- renderPlotly({
       paste("Elapsed time:", format_elapsed_time(elapsed_time()))
     })
     
+    
+    
     removeNotification(notification_id_hab)
     shinyjs::enable("perform_merge")
     shinyjs::enable("calculate_metrics")
+    
+    rm(valid_locations, sample_degraded_land_values, restored_land_values, cropped_polygon, combinations)
+    gc()
   })
 
 
@@ -2951,7 +2979,7 @@ output$degradedSourcesPlot <- renderPlotly({
     shinyjs::disable("calculate_connectivity")
     notification_id_con <- showNotification("Calculating connectivity metrics...", type = "message", duration = NULL)
     start_time <- Sys.time()
-
+    
     # Define the initial state of movement_cost with 1000 where degraded_pixels are not NA
     if (input$habitat_based_calculations > 0) {
       movement_cost_con <- croppedmovement_cost()
@@ -2961,13 +2989,13 @@ output$degradedSourcesPlot <- renderPlotly({
       movement_cost_con <- croppedmovement_cost_protected()
       movement_cost_con[!is.na(degraded_pixels())] <- 10000
     }
-
+    
     combinations <- combinations_react()
-
-    movement_cost_raster <- raster(movement_cost_con)
+    
+    movement_cost_con <- raster(movement_cost_con)
     # Initialize a variable to store the result
     calculation_result <- NULL
-
+    
     # Wrapping in a tryCatch block to capture errors and prevent crashes
     tryCatch(
       {
@@ -2980,39 +3008,46 @@ output$degradedSourcesPlot <- renderPlotly({
           colnames(mc_neighbours_df) <- c("Node 1", "Node 2", "Path distance (Resistance)")
           mean(mc_neighbours_df$`Path distance (Resistance)`)
         }
-
+        
         # Calculate baseline mean resistance
-        baseline_mean_res <- calculate_mean_resistance(movement_cost_raster)
-
+        baseline_mean_res <- calculate_mean_resistance(movement_cost_con)
+        
         # Initialize a dataframe to store the results
         results <- data.frame()
-
+        
         # Set up parallel processing
         plan(multisession(workers = 2))
-
+        
         # Function to apply a combination and calculate the difference in resistance
         calculate_combination_resistance <- function(combination) {
-          modified_raster <- movement_cost_raster
+          modified_raster <- movement_cost_con
           modified_raster[combination] <- 1
           new_mean_res <- calculate_mean_resistance(modified_raster)
-          reduced_resistance <- baseline_mean_res - new_mean_res
-          c(list(combination = paste(combination, collapse = "-")),
-            reduced_resistance = reduced_resistance
+          tibble::tibble(
+            combination = paste(combination, collapse = "-"),
+            reduced_resistance = baseline_mean_res - new_mean_res
           )
         }
-
+        
         # Calculate the differences using parallel processing for all combinations
         results <- future_map_dfr(
           .options = furrr_options(seed = TRUE),
           seq_along(combinations),
           ~ calculate_combination_resistance(combinations[[.x]])
         )
-
+        
+        # cleanup of heavy parallel and raster objects
+        rm(combinations, calculate_combination_resistance, baseline_mean_res)
+        gc()
+        
         # Store the result
         calculation_result <- results
-
+        
         # Close parallel processing
         plan(sequential)
+        rm(results)
+        gc()
+        
       },
       error = function(e) {
         # Handle errors by displaying a notification to the user
@@ -3020,18 +3055,18 @@ output$degradedSourcesPlot <- renderPlotly({
         plan(sequential)
       }
     ) # Close tryCatch block here
-
+    
     # Report the result outside the tryCatch block (if no errors or warnings occurred)
     if (!is.null(calculation_result)) {
       result_connectivity(calculation_result)
     }
-
+    
     removeNotification(notification_id_con)
-
+    
     # Calculate the elapsed time
     end_time <- Sys.time()
     elapsed_time(end_time - start_time)
-
+    
     format_elapsed_time <- function(time_diff) {
       # Convert the difftime object to numeric seconds
       total_seconds <- as.numeric(time_diff, units = "secs")
@@ -3051,12 +3086,12 @@ output$degradedSourcesPlot <- renderPlotly({
       }
     }
     
-
+    
     # Display the elapsed time in the UI
     output$conTime <- renderText({
       paste("Elapsed time:", format_elapsed_time(elapsed_time()))
     })
-
+    
     # Display the results in the UI
     output$connectivityTable <- renderDataTable({
       req(result_connectivity())
@@ -3069,31 +3104,31 @@ output$degradedSourcesPlot <- renderPlotly({
       if("reduced_resistance" %in% names(rounded_data)) {
         names(rounded_data)[names(rounded_data) == 'reduced_resistance'] <- 'Change in path resistance'
       }
-        
-        # Rename 'combination' column to 'Candidate area'
-        names(rounded_data)[names(rounded_data) == 'combination'] <- 'Candidate area'
-        # Get the total number of rows
-        total_rows <- nrow(rounded_data)
-        # Determine the number of zeros needed based on the total number of rows
-        num_zeros <- nchar(as.character(total_rows))
-        # Generate the new values for the 'Candidate area' column
-        rounded_data$`Candidate area` <- sapply(1:total_rows, function(i) {
-          # Count the number of '-' in the original entry
-          original_value <- rounded_data$`Candidate area`[i]
-          num_pixels <- str_count(original_value, "-") + 1
-          # Generate the CA number with leading zeros
-          ca_number <- sprintf(paste0("CA_%0", num_zeros, "d"), i)
-          # Combine CA number with pixel information
-          paste0(ca_number, " (", num_pixels, " pixels)")
-        })
+      
+      # Rename 'combination' column to 'Candidate area'
+      names(rounded_data)[names(rounded_data) == 'combination'] <- 'Candidate area'
+      # Get the total number of rows
+      total_rows <- nrow(rounded_data)
+      # Determine the number of zeros needed based on the total number of rows
+      num_zeros <- nchar(as.character(total_rows))
+      # Generate the new values for the 'Candidate area' column
+      rounded_data$`Candidate area` <- sapply(1:total_rows, function(i) {
+        # Count the number of '-' in the original entry
+        original_value <- rounded_data$`Candidate area`[i]
+        num_pixels <- str_count(original_value, "-") + 1
+        # Generate the CA number with leading zeros
+        ca_number <- sprintf(paste0("CA_%0", num_zeros, "d"), i)
+        # Combine CA number with pixel information
+        paste0(ca_number, " (", num_pixels, " pixels)")
+      })
       
       datatable(rounded_data, rownames = FALSE, options = list(scrollX = TRUE),
                 caption = htmltools::tags$caption(
                   style = 'caption-side: top; text-align: left; white-space: pre-wrap; width: auto;',
                   HTML("<br><strong style='font-size: 16px;'>Difference in mean path resistance between original and restored landscape for each candidate area. Positive values indicate less resistance in the restored landscape.</strong>")))
     })
-
-     output$subtitleText2 <- renderUI({
+    
+    output$subtitleText2 <- renderUI({
       req(result_connectivity())  # Ensure that the table data is ready
       HTML("<p style='font-size: 14px; text-align: left;'>**Each candidate area has a unique ID (e.g, CA-001 (3 pixels) means candidate area 1, containing 3 pixels of degraded land).</p>")
     })
@@ -3102,7 +3137,7 @@ output$degradedSourcesPlot <- renderPlotly({
     shinyjs::enable("calculate_pca")
     shinyjs::enable("calculate_connectivity")
   })
-
+  
   # Linked to UI Segment 12, generating the environmental PCA raster ----
 
   observeEvent(input$calculate_pca, {
@@ -4825,15 +4860,8 @@ output$degradedSourcesPlot <- renderPlotly({
           contiguous_regions <- find_contiguous(valid_locations, restored_land_values[], nrow(restored_land_values), ncol(restored_land_values))
           
           # Create a matrix to store the indices for each group (as integers)
-          max_length <- max(lengths(contiguous_regions))
-          result_matrix <- matrix(NA_integer_, nrow = max_length, ncol = length(contiguous_regions))
-          
-          # Fill the matrix with indices for each group as integers
-          for (i in seq_along(contiguous_regions)) {
-            result_matrix[1:length(contiguous_regions[[i]]), i] <- as.integer(contiguous_regions[[i]])
-          }
-          
-          combinations <- result_matrix
+          combinations <- lapply(contiguous_regions, as.integer)
+          combinations_react(combinations)
           
           # Function to convert columns to list elements and remove NA values (so they can be used properly in future steps)
           convert_to_list <- function(mat) {
@@ -4849,13 +4877,16 @@ output$degradedSourcesPlot <- renderPlotly({
           
           combinations <- convert_to_list(combinations)
           combinations_react(combinations)
+          
+          # Clean up large objects no longer needed
+          rm()
+          gc(verbose = FALSE)
 
         # Calculate the habitat metrics
         
         # Precompute values to save on overhead in the parallel process
         restored_values <- values(restored_land_values)
         degraded_patch_size <- lsm_c_area_mn(sample_degraded_land_values)
-        
         calculate_metrics <- function(combination, degraded_raster) {
           # Create a copy of the degraded raster and add the values from restored_land
           modified_raster <- degraded_raster
@@ -4898,6 +4929,7 @@ output$degradedSourcesPlot <- renderPlotly({
         
         # Close parallel processing
         plan(sequential)
+        
         
         
         # Mapping from class numbers to class names
@@ -4991,6 +5023,7 @@ output$degradedSourcesPlot <- renderPlotly({
           plan(sequential)
           
           
+          
           # combine this patch size metric with the other results table
           hab_result_combined <- merge(result_habitat_data(), protected_result, by = "combination")
           
@@ -5026,7 +5059,7 @@ output$degradedSourcesPlot <- renderPlotly({
             
             combinations <- combinations_react()
             
-            movement_cost_raster <- raster(movement_cost_calc)
+            movement_cost_con <- raster(movement_cost_calc)
             # Initialize a variable to store the result
             calculation_result <- NULL
             
@@ -5042,7 +5075,7 @@ output$degradedSourcesPlot <- renderPlotly({
                 }
                 
                 # Calculate baseline mean resistance
-                baseline_mean_res <- calculate_mean_resistance(movement_cost_raster)
+                baseline_mean_res <- calculate_mean_resistance(movement_cost_con)
                 
                 # Initialize a data frame to store the results
                 results <- data.frame()
@@ -5052,12 +5085,12 @@ output$degradedSourcesPlot <- renderPlotly({
                 
                 # Function to apply a combination and calculate the difference in resistance
                 calculate_combination_resistance <- function(combination) {
-                  modified_raster <- movement_cost_raster
+                  modified_raster <- movement_cost_con
                   modified_raster[combination] <- 1
                   new_mean_res <- calculate_mean_resistance(modified_raster)
-                  reduced_resistance <- baseline_mean_res - new_mean_res
-                  c(list(combination = paste(combination, collapse = "-")),
-                    reduced_resistance = reduced_resistance
+                  tibble::tibble(
+                    combination = paste(combination, collapse = "-"),
+                    reduced_resistance = baseline_mean_res - new_mean_res
                   )
                 }
                 
@@ -5068,11 +5101,18 @@ output$degradedSourcesPlot <- renderPlotly({
                   ~ calculate_combination_resistance(combinations[[.x]])
                 )
                 
+                # cleanup of heavy parallel and raster objects
+                rm(combinations, calculate_combination_resistance, baseline_mean_res)
+                gc()
+                
                 # Store the result
                 calculation_result <- results
                 
                 # Close parallel processing
                 plan(sequential)
+                rm(results)
+                gc()
+                
                 
               result_connectivity(calculation_result)
             
@@ -5181,6 +5221,7 @@ output$degradedSourcesPlot <- renderPlotly({
                 
                 # Close parallel processing
                 plan(sequential)
+                
                 
                 
                 # Combine the results into one data frame
