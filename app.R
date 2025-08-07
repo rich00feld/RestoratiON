@@ -2714,30 +2714,26 @@ output$degradedSourcesPlot <- renderPlotly({
     }
 
 
-    ## Parallel processing with furrr ----
-    library(furrr)
-    plan(multisession(workers = 2)) # Set the number of workers - 3 was most stable on the systems we tested on, but this could be set to anything
-
+    ## Sequential processing with purrr ----
+    library(purrr)
+    
     calculate_metrics_parallel <- function(combination) {
       excluded_classes <- as.numeric(selected_habitats)
       metrics <- calculate_metrics(combination, sample_degraded_land_values, excluded_classes)
-
+      
       # Extract patch size and cohesion differences
       patch_size_diffs <- metrics[names(metrics) %in% paste0("patch_size_diff_class", degraded_patch_size$class)]
-
+      
       # Combine results into a data frame
       data.frame(combination = metrics$combination, patch_size_diffs)
     }
-
-    # Use future_map_dfr to parallelize the computation for all combinations
-    calculated_habitat_data <- future_map_dfr(
+    
+    # Use map_dfr to sequentially compute for all combinations
+    calculated_habitat_data <- map_dfr(
       seq_along(combinations),
-      .options = furrr_options(seed = TRUE),
       ~ calculate_metrics_parallel(combinations[[.x]])
     )
-
-    # Close parallel processing
-    plan(sequential)
+    
     # Filter out the selected classes
     if (length(selected_habitats) > 0) {
       cols_to_exclude <- c()
@@ -2815,37 +2811,32 @@ output$degradedSourcesPlot <- renderPlotly({
         return(list(patch_size = Protected_patch_size_difference, raster = modified_raster))
       }
 
-      library(furrr)
-
-      plan(multisession(workers = 2)) # Adjust the number of workers as needed
-
-      # Define a function for parallel computation
+      library(purrr)
+      library(dplyr)
+      
+      # Define a function for sequential computation
       calculate_metrics_parallel <- function(combination, degraded_raster) {
         metrics <- calculate_metrics(combination, degraded_raster)
         patch_size_difference <- sum(abs(metrics$patch_size))
         return(data.frame(combination = paste(combination, collapse = "-"), patch_size_difference))
       }
-
-
-      # Use future_map_dfr to parallelize the computation for all combinations
-      protected_result <- future_map_dfr(
+      
+      # Use map_dfr to compute sequentially for all combinations
+      protected_result <- map_dfr(
         seq_along(combinations),
-        .options = furrr_options(seed = TRUE),
         ~ calculate_metrics_parallel(combinations[[.x]], degraded_protected)
       )
-
+      
       protected_result <- protected_result %>%
         rename(protected_patch_size_difference = patch_size_difference)
-
-      # Close parallel processing
-      plan(sequential)
-
-      # combine this patch size metric with the other results table
+      
+      # Combine this patch size metric with the other results table
       hab_result_combined <- merge(result_habitat_data(), protected_result, by = "combination")
-
-
+      
+      # Store result
       result_habitat_data(hab_result_combined)
       
+      # Clean up
       rm(calculate_metrics, calculate_metrics_parallel, protected_result, protected_restored, degraded_protected, degraded_patch_size)
       gc()
     }
@@ -3015,9 +3006,6 @@ output$degradedSourcesPlot <- renderPlotly({
         # Initialize a dataframe to store the results
         results <- data.frame()
         
-        # Set up parallel processing
-        plan(multisession(workers = 2))
-        
         # Function to apply a combination and calculate the difference in resistance
         calculate_combination_resistance <- function(combination) {
           modified_raster <- movement_cost_con
@@ -3029,36 +3017,30 @@ output$degradedSourcesPlot <- renderPlotly({
           )
         }
         
-        # Calculate the differences using parallel processing for all combinations
-        results <- future_map_dfr(
-          .options = furrr_options(seed = TRUE),
+        # Calculate the differences
+        results <- purrr::map_dfr(
           seq_along(combinations),
           ~ calculate_combination_resistance(combinations[[.x]])
         )
         
-        # cleanup of heavy parallel and raster objects
+        # cleanup
         rm(combinations, calculate_combination_resistance, baseline_mean_res)
         gc()
         
-        # Store the result
-        calculation_result <- results
         
-        # Close parallel processing
-        plan(sequential)
-        rm(results)
+        result_connectivity(results)
         gc()
         
       },
       error = function(e) {
         # Handle errors by displaying a notification to the user
         showNotification(paste("An error occurred during calculation: ", e$message), type = "error", duration = NULL)
-        plan(sequential)
       }
     ) # Close tryCatch block here
     
     # Report the result outside the tryCatch block (if no errors or warnings occurred)
-    if (!is.null(calculation_result)) {
-      result_connectivity(calculation_result)
+    if (!is.null(results)) {
+      result_connectivity(results)
     }
     
     removeNotification(notification_id_con)
@@ -3248,55 +3230,53 @@ output$degradedSourcesPlot <- renderPlotly({
       return(list(sa = sa_metric))
     }
 
-    # Load the furrr library for parallel processing
-    library(furrr)
-    # Set up parallel processing with 3 workers
-    plan(multisession(workers = 2))
-
-    # Loop over for the number of principal components selected
+    # Loop over the number of principal components selected
     for (i in 1:num_pcs) {
       # Begin to set up the comparison of the degraded vs the restored raster
       Env_PCA <- pca_rasters[[i]]
       Deg_PCA <- pca_rasters[[i]]
-
-      Deg_PCA[!is.na(degraded_pixels())] <- NA # We are treating degraded pixels as having no environmental heterogeneity
-
+      
+      Deg_PCA[!is.na(degraded_pixels())] <- NA  # Treat degraded pixels as NA
+      
       # Extract pixel values from each raster
       env_values <- values(Env_PCA)
       Deg_PCA_values <- values(Deg_PCA)
+      
       # Calculate environmental heterogeneity for the degraded landscape
       degraded_sa <- sa(Deg_PCA_values)
-
+      
       # Get the pixel combinations from storage
       combinations <- combinations_react()
-
-      # function to calculate metrics for each combination
+      
+      # Function to calculate metrics for each combination
       calculate_metrics_parallel <- function(combination) {
         metrics <- calculate_metrics(combination, Deg_PCA_values, env_values)
-        # Calculate the difference in environmental heterogeneity between the degraded and restored landscapes
         sa_diff <- as.numeric(metrics$sa) - as.numeric(degraded_sa)
-        # Return a data frame with the principal component, given combination, and heterogeneity difference
-        return(data.frame(PC = paste0("Env_PC", i), combination = paste(combination, collapse = "-"), sa_diff = sa_diff))
+        data.frame(
+          PC = paste0("Env_PC", i),
+          combination = paste(combination, collapse = "-"),
+          sa_diff = sa_diff
+        )
       }
-
-      # Use future_map_dfr for parallelization
-      calculated_env_data <- future_map_dfr(seq_along(combinations), ~ calculate_metrics_parallel(combinations[[.x]]))
+      
+      # Use map_dfr for sequential processing
+      calculated_env_data <- map_dfr(
+        seq_along(combinations),
+        ~ calculate_metrics_parallel(combinations[[.x]])
+      )
+      
       # Store the results
       calculated_env_data_list[[i]] <- calculated_env_data
+      
     }
-
-    # Close parallel processing
-    plan(sequential)
-
-
+    
     # Combine the results into one data frame
     combined_calculated_env_data <- do.call(rbind, calculated_env_data_list)
-
+    
     combined_calculated_env_data <- combined_calculated_env_data %>%
       spread(key = PC, value = sa_diff) %>%
       rename_with(~ paste0(., "_sa_diff"), -combination)
-
-
+    
     # Update the reactiveVal with the computed data
     result_env_data(combined_calculated_env_data)
 
@@ -4906,11 +4886,9 @@ output$degradedSourcesPlot <- renderPlotly({
           )
         }
         
-        library(furrr)
-        plan(multisession(workers = 2)) # Set the number of workers - 3 was most stable on the systems we tested on, but this could be set to anything
+        library(purrr)
         
         calculate_metrics_parallel <- function(combination) {
-          
           metrics <- calculate_metrics(combination, sample_degraded_land_values)
           
           # Extract patch size and cohesion differences
@@ -4920,16 +4898,11 @@ output$degradedSourcesPlot <- renderPlotly({
           data.frame(combination = metrics$combination, patch_size_diffs)
         }
         
-        # Use future_map_dfr to parallelize the computation for all combinations
-        calculated_habitat_data <- future_map_dfr(
+        # Use map_dfr to compute sequentially for all combinations
+        calculated_habitat_data <- map_dfr(
           seq_along(combinations),
-          .options = furrr_options(seed = TRUE),
           ~ calculate_metrics_parallel(combinations[[.x]])
         )
-        
-        # Close parallel processing
-        plan(sequential)
-        
         
         
         # Mapping from class numbers to class names
@@ -4997,30 +4970,24 @@ output$degradedSourcesPlot <- renderPlotly({
             return(list(patch_size = Protected_patch_size_difference, raster = modified_raster))
           }
           
-          library(furrr)
+          library(purrr)
+          library(dplyr)
           
-          plan(multisession(workers = 2)) # Adjust the number of workers as needed
-          
-          # Define a function for parallel computation
+          # Define a function for sequential computation
           calculate_metrics_parallel <- function(combination, degraded_raster) {
             metrics <- calculate_metrics(combination, degraded_raster)
             patch_size_difference <- sum(abs(metrics$patch_size))
-            return(data.frame(combination = paste(combination, collapse = "-"), patch_size_difference))
+            data.frame(combination = paste(combination, collapse = "-"), patch_size_difference)
           }
           
-          
-          # Use future_map_dfr to parallelize the computation for all combinations
-          protected_result <- future_map_dfr(
+          # Use map_dfr to compute sequentially for all combinations
+          protected_result <- map_dfr(
             seq_along(combinations),
-            .options = furrr_options(seed = TRUE),
             ~ calculate_metrics_parallel(combinations[[.x]], degraded_protected)
           )
           
           protected_result <- protected_result %>%
             rename(protected_patch_size_difference = patch_size_difference)
-          
-          # Close parallel processing
-          plan(sequential)
           
           
           
@@ -5080,9 +5047,6 @@ output$degradedSourcesPlot <- renderPlotly({
                 # Initialize a data frame to store the results
                 results <- data.frame()
                 
-                # Set up parallel processing
-                plan(multisession(workers = 2))
-                
                 # Function to apply a combination and calculate the difference in resistance
                 calculate_combination_resistance <- function(combination) {
                   modified_raster <- movement_cost_con
@@ -5094,27 +5058,20 @@ output$degradedSourcesPlot <- renderPlotly({
                   )
                 }
                 
-                # Calculate the differences using parallel processing for all combinations
-                results <- future_map_dfr(
-                  .options = furrr_options(seed = TRUE),
+                # Calculate the differences
+                results <- purrr::map_dfr(
                   seq_along(combinations),
                   ~ calculate_combination_resistance(combinations[[.x]])
                 )
                 
-                # cleanup of heavy parallel and raster objects
+                # cleanup
                 rm(combinations, calculate_combination_resistance, baseline_mean_res)
                 gc()
+          
                 
-                # Store the result
-                calculation_result <- results
-                
-                # Close parallel processing
-                plan(sequential)
-                rm(results)
-                gc()
-                
-                
-              result_connectivity(calculation_result)
+              result_connectivity(results)
+              gc()
+              
             
           
               # Linked to UI Segment 12, generating the environmental PCA raster 
@@ -5182,47 +5139,40 @@ output$degradedSourcesPlot <- renderPlotly({
                   return(list(sa = sa_metric))
                 }
                 
-                # Load the furrr library for parallel processing
-                library(furrr)
-                # Set up parallel processing with 3 workers
-                plan(multisession(workers = 2))
-                
-                # Loop over for the number of principal components selected
+                # Loop over the number of principal components selected
                 for (i in 1:num_pcs) {
                   # Begin to set up the comparison of the degraded vs the restored raster
                   Env_PCA <- pca_rasters[[i]]
                   Deg_PCA <- pca_rasters[[i]]
                   
-                  Deg_PCA[!is.na(degraded_pixels())] <- NA # We are treating degraded pixels as having no environmental heterogeneity
+                  Deg_PCA[!is.na(degraded_pixels())] <- NA  # Treat degraded pixels as NA (no env heterogeneity)
                   
                   # Extract pixel values from each raster
                   env_values <- values(Env_PCA)
                   Deg_PCA_values <- values(Deg_PCA)
+                  
                   # Calculate environmental heterogeneity for the degraded landscape
                   degraded_sa <- sa(Deg_PCA_values)
                   
                   # Get the pixel combinations from storage
                   combinations <- combinations_react()
                   
-                  # function to calculate metrics for each combination
+                  # Function to calculate metrics for each combination
                   calculate_metrics_parallel <- function(combination) {
                     metrics <- calculate_metrics(combination, Deg_PCA_values, env_values)
-                    # Calculate the difference in environmental heterogeneity between the degraded and restored landscapes
                     sa_diff <- as.numeric(metrics$sa) - as.numeric(degraded_sa)
-                    # Return a data frame with the principal component, given combination, and heterogeneity difference
-                    return(data.frame(PC = paste0("Env_PC", i), combination = paste(combination, collapse = "-"), sa_diff = sa_diff))
+                    data.frame(PC = paste0("Env_PC", i), combination = paste(combination, collapse = "-"), sa_diff = sa_diff)
                   }
                   
-                  # Use future_map_dfr for parallelization
-                  calculated_env_data <- future_map_dfr(seq_along(combinations), ~ calculate_metrics_parallel(combinations[[.x]]))
-                  # Store the results
+                  # Use map_dfr for sequential computation
+                  calculated_env_data <- map_dfr(
+                    seq_along(combinations),
+                    ~ calculate_metrics_parallel(combinations[[.x]])
+                  )
+                  
+                  # Store the result
                   calculated_env_data_list[[i]] <- calculated_env_data
                 }
-                
-                # Close parallel processing
-                plan(sequential)
-                
-                
                 
                 # Combine the results into one data frame
                 combined_calculated_env_data <- do.call(rbind, calculated_env_data_list)
@@ -5231,10 +5181,8 @@ output$degradedSourcesPlot <- renderPlotly({
                   spread(key = PC, value = sa_diff) %>%
                   rename_with(~ paste0(., "_sa_diff"), -combination)
                 
-                
                 # Update the reactiveVal with the computed data
                 result_env_data(combined_calculated_env_data)
-                
                 
                 
               # Linked to UI Segment 14,  Merging all results/metrics together in preparation for weighting
