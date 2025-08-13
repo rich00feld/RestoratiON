@@ -1,76 +1,76 @@
 # Code to install packages ----
-# install.packages('rsconnect')
-# install.packages("sf")
-# install.packages("terra")
+# install.packages("cowplot")
+# install.packages("DT")
+# install.packages("furrr")
+# install.packages("future")
 # install.packages("geodiv")
-# install.packages("raster")
-# install.packages("landscapemetrics")
 # install.packages("grainscape")
-# install.packages("RStoolbox")
-# install.packages("dplyr")
-# install.packages("tidyr")
+# install.packages("gridExtra")
+# install.packages("landscapemetrics")
+# install.packages("leaflet")
+# install.packages("leaflet.extras")
+# install.packages("leaflet.providers")
 # install.packages("pals")
-# install.packages("viridis")
+# install.packages("plotly")
+# install.packages("raster")
+# install.packages("rasterVis")
+# install.packages("renv")
+# install.packages("rsconnect")
+# install.packages("RStoolbox")
+# install.packages("rstudioapi")
+# install.packages("sf")
 # install.packages("shiny")
 # install.packages("shiny.semantic")
 # install.packages("shinyjs")
 # install.packages("shinythemes")
-# install.packages("DT")
-# install.packages("rasterVis")
-# install.packages("rstudioapi")
-# install.packages("ggplot2")
-# install.packages("future")
-# install.packages("furrr")
-# install.packages("stringr")
-# install.packages("leaflet")
-# install.packages("leaflet.extras")
-# install.packages("devtools")
-# library(devtools)
-# options(download.file.method = "wininet")
-# install_github("CRAN/rgdal")
-# install.packages("RStoolbox")
-# install.packages("leaflet.providers")
 # install.packages("stars")
-# install.packages("renv")
+# install.packages("terra")
+# install.packages("tidyterra")
+# install.packages("tidyverse")
+# install.packages("viridis")
 
-# Loading libraries ----
-library(rsconnect)
-library(rgdal)
-library(sf)
-library(terra)
+# Install exact package versions from lockfile ---
+
+# Load renv
+library(renv)
+
+# Restore packages from the lockfile
+renv::restore(prompt = FALSE)
+
+# Load libraries ----
+library(cowplot)
+library(DT)
+library(furrr)
+library(future)
 library(geodiv)
-library(raster)
-library(landscapemetrics)
 library(grainscape)
-library(RStoolbox)
-library(dplyr)
-library(tidyr)
+library(grid)
+library(gridExtra)
+library(landscapemetrics)
+library(leaflet)
+library(leaflet.extras)
+library(leaflet.providers)
 library(pals)
-library(viridis)
+library(plotly)
+library(purrr)
+library(raster)
+library(rasterVis)
+library(renv)
+library(RStoolbox)
+library(rsconnect)
+library(rstudioapi)
+library(sf)
 library(shiny)
 library(shiny.semantic)
 library(shinyjs)
 library(shinythemes)
-library(DT)
-library(rasterVis)
-library(rstudioapi)
-library(ggplot2)
-library(future)
-library(furrr)
-library(stringr)
-library(leaflet)
-library(leaflet.extras)
-library(leaflet.providers)
 library(stars)
-library(readr)
-library(tidyverse)
-library(plotly)
+library(terra)
 library(tidyterra)
-library(cowplot)
-library(grid)
-library(gridExtra)
-library(shinya11y)
+library(tidyverse)
 library(tools)
+library(viridis)
+
 
 # Prepare the workspace ----
 # This is here to close any multiprocesses that may not have closed properly if the app crashed and is then re-run
@@ -80,12 +80,10 @@ rm(list = ls())
 gc()
 
 
-
 # setting the working directory to the location of the script
+script_path <- getActiveDocumentContext()$path
+setwd(dirname(script_path))
 
-# script_path <- getActiveDocumentContext()$path
-# setwd(dirname(script_path))
-# EJN: no need to do this if you package the script as part of a project; this is "best practice" so I've commented these lines out
 
 # Set the options for non-scientific notation (this can always be removed)
 options(scipen = 999)
@@ -6036,7 +6034,7 @@ conditionalPanel(
       downloadButton("downloadDegsources", "Save degradation sources", 
                      style = "height:60px; width:300px; font-size:25px;")),
     segment(
-        p(HTML("If you would like to view this landscape later, you can save an .RDS file to import back into the tool to visualize.<br>")),
+        p(HTML("If you would like to view this landscape later, you can save an .RDS file to import back into the tool to visualize (Please be patient after clicking the download button, it may take several minutes to generate the RDS file).<br>")),
       downloadButton("downloadplotRDS", "Save landscape visualization", 
                      style = "height:60px; width:300px; font-size:25px;")),
     br(),
