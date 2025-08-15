@@ -1680,6 +1680,7 @@ server <- function(input, output, session) {
 
   # Bring in the degraded land rasters ----
   observeEvent(input$preview, {
+    tryCatch({
     cropped_mines <- croppedCHF_mines()
     cropped_AMIS <- croppedAMIS()
     cropped_night_lights <- croppedCHF_night_lights()
@@ -1819,6 +1820,11 @@ server <- function(input, output, session) {
     
     plot_degraded_pixels <- degraded_pixels_temp
     plot_degraded_pixels <- crop(plot_degraded_pixels, sp_polygon_3162_buffered, mask = TRUE)
+    
+    # Check if there are any degraded pixels
+    if (all(is.na(values(plot_degraded_pixels)))) {
+        stop("No degraded pixels found for the current slider settings. Adjust thresholds and try again.")
+      }
 
     # These reactive values are used to store the degraded pixels for plotting later
     plot_degraded_react(plot_degraded_pixels)
@@ -2207,7 +2213,10 @@ output$degradedSourcesPlot <- renderPlotly({
       })
       rm()
       gc()
-    })
+    },         error = function(e) {
+      # Handle errors by displaying a notification to the user
+      showNotification(paste("No degraded pixels found for the current slider settings. Adjust thresholds and try again."), type = "error", duration = 5)
+    })})
 
 
 
@@ -4605,7 +4614,6 @@ output$degradedSourcesPlot <- renderPlotly({
     
     # A final cumulative condition (encompassing all the conditions above) is then used to define degraded pixels
     final_condition <- condition_mines | condition_night_lights | condition_oil_gas | condition_forestry_harvest | condition_AMIS | condition_aggregate_extraction | condition_topsoil_extraction | condition_undifferentiated
-    
     degraded_pixels_temp <- croppedOntario()
     degraded_protected <- croppedProtected_areas()
     
