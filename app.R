@@ -1628,7 +1628,7 @@ server <- function(input, output, session) {
               degraded.<br>8 = Only land within 500 m of an open pit mine is degraded. For more detail on how active mine thresholds are defined, 
               see table 3, <a href='https://www.sciencedirect.com/science/article/abs/pii/S0169204608000637' target='_blank'>Woolmer et al. 2008</a>,
               also accessible as table 5 in <a href='https://www.facetsjournal.com/doi/full/10.1139/facets-2021-0063#tab5' target='_blank'>Hirsh-Pearson et al. 2022</a>.</i><br><br>")),
-          sliderInput("mine_slider", NULL, min = 1, max = 9, value = 2, step = 1),
+          sliderInput("mine_slider", NULL, min = 1, max = 9, value = 8, step = 1),
           tags$p(id = "mine_max_label", "Not included", style = "text-align: right; margin-top: -20px;")
         ),
         div(
@@ -1640,13 +1640,13 @@ server <- function(input, output, session) {
         div(
           tags$label(`for` = "night_lights_slider", HTML("<b>Night lights</b><br><i>1 = Pixels with any amount of night light pollution are degraded.<br>10 = Only pixels with the most severe night light pollution
               are degraded.</i><br><br>")),
-          sliderInput("night_lights_slider", NULL, min = 1, max = 11, value = 1, step = 1),
+          sliderInput("night_lights_slider", NULL, min = 1, max = 11, value = 10, step = 1),
           tags$p(id = "night_lights_max_label", "Not included", style = "text-align: right; margin-top: -20px;")
         ),
         div(
           tags$label(`for` = "oil_gas_slider", HTML("<b>Oil and gas</b><br><i>1 = Any area within 5 km of an active oil and gas field is degraded.<br>10 = Only areas within 300 m of active oil and gas activity
               are degraded.</i><br><br>")),
-          sliderInput("oil_gas_slider", NULL, min = 1, max = 11, value = 6, step = 1),
+          sliderInput("oil_gas_slider", NULL, min = 1, max = 11, value = 10, step = 1),
           tags$p(id = "oil_gas_max_label", "Not included", style = "text-align: right; margin-top: -20px;")
         ),
         div(
