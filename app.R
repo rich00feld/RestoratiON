@@ -1640,7 +1640,7 @@ server <- function(input, output, session) {
         div(
           tags$label(`for` = "night_lights_slider", HTML("<b>Night lights</b><br><i>1 = Pixels with any amount of night light pollution are degraded.<br>10 = Only pixels with the most severe night light pollution
               are degraded.</i><br><br>")),
-          sliderInput("night_lights_slider", NULL, min = 1, max = 11, value = 10, step = 1),
+          sliderInput("night_lights_slider", NULL, min = 1, max = 11, value = 11, step = 1),
           tags$p(id = "night_lights_max_label", "Not included", style = "text-align: right; margin-top: -20px;")
         ),
         div(
