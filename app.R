@@ -89,6 +89,11 @@ gc()
 options(scipen = 999)
 
 # Set up reactive values ----
+run_mode<-reactiveVal(2)
+set_cores<-reactiveVal(2) # Set the number of workers - 2 was most stable on the systems we tested on, but this could hypothetically could be set to anything if RAM is sufficient - a rule of thumb is that this should be set to the system RAM divided by 8 (e.g. 16GB/8 = 2, 32GB /8 = 4) 
+
+
+
 Protected_areas <- reactiveVal()
 movement_cost_protected <- reactiveVal()
 
@@ -2719,10 +2724,18 @@ output$degradedSourcesPlot <- renderPlotly({
         patch_size_diffs
       )
     }
-
-
+    
+    if (run_mode() == 2) {
+    ## Parallel processing with furrr ----
+    library(furrr)
+      set_numcores <- set_cores()
+    plan(multisession, workers = set_numcores) # Set the number of workers - 3 was most stable on the systems we tested on, but this could be set to anything
+    
+    
+    } else {
     ## Sequential processing with purrr ----
     library(purrr)
+    }
     
     calculate_metrics_parallel <- function(combination) {
       excluded_classes <- as.numeric(selected_habitats)
@@ -2735,11 +2748,22 @@ output$degradedSourcesPlot <- renderPlotly({
       data.frame(combination = metrics$combination, patch_size_diffs)
     }
     
+    if (run_mode() == 2) {
+    # Use future_map_dfr to parallelize the computation for all combinations
+    calculated_habitat_data <- future_map_dfr(
+    .options = furrr_options(seed = TRUE),
+    seq_along(combinations),
+    ~ calculate_metrics_parallel(combinations[[.x]])
+    )
+    # Close parallel processing
+    plan(sequential)
+    } else {
     # Use map_dfr to sequentially compute for all combinations
     calculated_habitat_data <- map_dfr(
       seq_along(combinations),
       ~ calculate_metrics_parallel(combinations[[.x]])
     )
+    }
     
     # Filter out the selected classes
     if (length(selected_habitats) > 0) {
@@ -2820,6 +2844,8 @@ output$degradedSourcesPlot <- renderPlotly({
 
       library(purrr)
       library(dplyr)
+      library(furrr)
+      
       
       # Define a function for sequential computation
       calculate_metrics_parallel <- function(combination, degraded_raster) {
@@ -2828,11 +2854,24 @@ output$degradedSourcesPlot <- renderPlotly({
         return(data.frame(combination = paste(combination, collapse = "-"), patch_size_difference))
       }
       
+      if (run_mode() == 2) {
+        set_numcores <- set_cores()
+      plan(multisession, workers = set_numcores)
+      # Use future_map_dfr to parallelize the computation for all combinations
+      protected_result <- future_map_dfr(
+        .options = furrr_options(seed = TRUE),
+        seq_along(combinations),
+        ~ calculate_metrics_parallel(combinations[[.x]], degraded_protected))
+        ## Close parallel processing
+        plan(sequential)
+      } else {
+
       # Use map_dfr to compute sequentially for all combinations
       protected_result <- map_dfr(
         seq_along(combinations),
         ~ calculate_metrics_parallel(combinations[[.x]], degraded_protected)
       )
+      }
       
       protected_result <- protected_result %>%
         rename(protected_patch_size_difference = patch_size_difference)
@@ -3025,18 +3064,31 @@ output$degradedSourcesPlot <- renderPlotly({
         }
         
         # Calculate the differences
+        if (run_mode() == 2) {
+          # Calculate the differences using parallel processing for all combinations
+          set_numcores <- set_cores()
+          plan(multisession, workers = set_numcores)
+          results <- future_map_dfr(
+            .options = furrr_options(seed = TRUE),
+            seq_along(combinations),
+            ~ calculate_combination_resistance(combinations[[.x]]))
+          # cleanup of heavy parallel and raster objects
+          rm(combinations, calculate_combination_resistance, baseline_mean_res)
+          gc()
+        } else {
+          
         results <- purrr::map_dfr(
           seq_along(combinations),
           ~ calculate_combination_resistance(combinations[[.x]])
         )
-        
         # cleanup
         rm(combinations, calculate_combination_resistance, baseline_mean_res)
         gc()
-        
+        }
         
         result_connectivity(results)
         gc()
+        plan(sequential)
         
       },
       error = function(e) {
@@ -3258,7 +3310,9 @@ output$degradedSourcesPlot <- renderPlotly({
       # Function to calculate metrics for each combination
       calculate_metrics_parallel <- function(combination) {
         metrics <- calculate_metrics(combination, Deg_PCA_values, env_values)
+        # Calculate the difference in environmental heterogeneity between the degraded and restored landscapes
         sa_diff <- as.numeric(metrics$sa) - as.numeric(degraded_sa)
+        # A data frame with the principal component, given combination, and heterogeneity difference
         data.frame(
           PC = paste0("Env_PC", i),
           combination = paste(combination, collapse = "-"),
@@ -3266,16 +3320,26 @@ output$degradedSourcesPlot <- renderPlotly({
         )
       }
       
+      if (run_mode() == 2) {
+        # Use future_map_dfr for parallelization
+        set_numcores <- set_cores()
+        plan(multisession, workers = set_numcores)
+        calculated_env_data <- future_map_dfr(seq_along(combinations), ~ calculate_metrics_parallel(combinations[[.x]]))
+      } else {
       # Use map_dfr for sequential processing
       calculated_env_data <- map_dfr(
         seq_along(combinations),
         ~ calculate_metrics_parallel(combinations[[.x]])
       )
+      }
       
       # Store the results
       calculated_env_data_list[[i]] <- calculated_env_data
       
     }
+    
+    # Close parallel processing
+    plan(sequential)
     
     # Combine the results into one data frame
     combined_calculated_env_data <- do.call(rbind, calculated_env_data_list)
@@ -5907,7 +5971,7 @@ conditionalPanel(
       p(HTML("Next, we will measure connectivity metrics for each candidate area. Connectivity can be defined as the ease of movement across a landscape due to connectedness of habitat types. Other ways to view this are the amount of resistance a landscape has to the movement of species or how much energy is required for species to move across the landscape (i.e., movement cost). <br><br>
       To get an idea of connectivity within each restored landscape, we measure the movement cost of many potential movement paths across the landscape and take an average of the cost of those paths as an indication of the resistance of that landscape; this is referred to as ‘mean path resistance’. These resistance paths are measured between all ‘nodes’ or ‘clusters’ of either contiguous areas of natural habitat, or areas of conservation concern (depending on the focus of the analysis) that occur in the landscape. <br><br>
       The mean path resistance for each restored landscape is then subtracted from the mean path resistance of the degraded landscape – to get a measure of how much resistance was reduced (or connectivity increased) by restoring each candidate area. Positive values denote reduced resistance and better movement in a landscape, whereas negative values denote increased resistance and more difficult movement. Results for each combination are output in a table. <br><br>
-      NOTE: We assigned a movement cost value to each 300 x 300 metre pixel in the province, following Pither et al. 2023  (a full breakdown of the cost values for each pixel type are given
+      We assigned a movement cost value to each 300 x 300 metre pixel in the province, following Pither et al. 2023  (a full breakdown of the cost values for each pixel type are given
       <a href='https://figshare.com/articles/journal_contribution/Land_cover_layers_and_their_sources_used_to_construct_a_movement_cost_layer_for_Canada_/22143033' target='_blank'>here</a>). We modify cost values for some pixels: any degraded pixels are given a high cost value (1000), whereas restored pixels and natural habitat are given the lowest cost value (1).  
       <br><br> 
      If the option to focus on areas of conservation concern is selected, these areas, and any pixels restored within them, are given a cost value of 1, with other natural  habitat given a cost value of 10, and costs for all other pixel types scaled up by a magnitude of 10 (e.g. degraded pixels = 10000).
