@@ -33,7 +33,7 @@ When the app first runs, it may take a while to install dependent packages. This
 
 ### Optional: Set the App Run Mode
 
-The app has the option to run calculations **sequentially** (slower but less memory intensive) or in **parallel** (faster but more memory intensive). By default, the app is set to run in sequential mode. If your system has multiple CPU cores and sufficient RAM, the app can use parallelization instead. 
+The app has the option to run calculations **sequentially** (slower but less memory intensive) or in **parallel** (faster but more memory intensive). By default, the app is set to run **sequentially**. If your system has multiple CPU cores and sufficient RAM, the app can use parallelization instead. 
 
 7. To enable parallel mode, change the integer at `run_mode <- reactiveVal(1)` to `2` so it reads:
 
