@@ -1,4 +1,4 @@
-# Code to install packages ----
+# Code to install packages ---- (can be un-commented and used if renv fails for whatever reason)
 # install.packages("cowplot")
 # install.packages("DT")
 # install.packages("furrr")
@@ -29,11 +29,13 @@
 # install.packages("tidyverse")
 # install.packages("viridis")
 
-# Install exact package versions from lockfile ---
+# creating a lockfile
+# options(renv.download.override = utils::download.file) # sometimes renv struggles with firewalls, this is a workaround
+# renv::init()
 
+# Install exact package versions from lockfile ---
 # Load renv
 library(renv)
-
 # Restore packages from the lockfile
 renv::restore(prompt = FALSE)
 
@@ -89,8 +91,8 @@ gc()
 options(scipen = 999)
 
 # Set up reactive values ----
-run_mode<-reactiveVal(2)
-set_cores<-reactiveVal(2) # Set the number of workers - 2 was most stable on the systems we tested on, but this could hypothetically could be set to anything if RAM is sufficient - a rule of thumb is that this should be set to the system RAM divided by 8 (e.g. 16GB/8 = 2, 32GB /8 = 4) 
+run_mode<-reactiveVal(1) # 1 = sequential, 2 = parallel
+set_cores<-reactiveVal(2) # Set the number of parallel workers, 2 was most stable on the systems we tested on, but this could hypothetically could be set to anything if RAM is sufficient - a rule of thumb is that this should be set to the system RAM divided by 8 (e.g. 16GB/8 = 2, 32GB /8 = 4) 
 
 
 
@@ -334,12 +336,14 @@ server <- function(input, output, session) {
         
         div(class = "splash-text-container", style = "border: none; padding: 0; box-shadow: none;",
             # Styling for the descriptive text with rounded corners
-            div(class = "splash-text", style = "color: black; background-color: white; padding: 15px; font-size: 18px; border: none; box-shadow: none; border-radius: 10px;",
-                "In this tool, you locate areas of degraded land within a chosen geographic area in Ontario to identify candidate areas for ecosystem restoration. 
+            div(class = "splash-text", style = "color: black; background-color: white; padding: 15px; font-size: 18px; border: none; box-shadow: none; border-radius: 10px; text-align: justify;",
+                HTML("In this tool, you locate areas of degraded land within a chosen geographic area in Ontario to identify candidate areas for ecosystem restoration. 
                 You measure the potential biodiversity benefits that restoring each candidate area has on the landscape, and you rank the candidate areas based on those benefits.
                 In a landscape, biodiversity benefits include increases to the average size of habitat patches (patch size), an organism’s ability to disperse and move from one area of 
-                habitat to another (connectivity), and the diversity of ecological conditions (environmental heterogeneity)."
-            )
+                habitat to another (connectivity), and the diversity of ecological conditions (environmental heterogeneity). <br><br>
+                Some calculations in the app can take a long time to process – larger landscapes can take 30 + minutes to calculate connectivity metrics, for example. 
+                The online app is limited in how fast it can process data. If you would like to run the application locally, visit our github site for directions <a href='https://github.com/rich00feld/RestoratiON' target='_blank'> here </a>"
+            ))
         ),
         
         actionButton("go_button", "Let's go!", class = "go-button"),
@@ -2045,7 +2049,7 @@ output$degradedSourcesPlot <- renderPlotly({
     left_join(percent_landcover, by = "value") %>%
     mutate(
       percentage = if_else(is.na(percentage), 0, percentage),
-      Label = paste0(Land_Class, " (", percentage, "%)")
+      Label = paste0(" ", Land_Class, " (", percentage, "%)", "              ")
     ) %>%
     arrange(desc(percentage))
   
@@ -2065,17 +2069,14 @@ output$degradedSourcesPlot <- renderPlotly({
       na.value = "white"
     ) +
     geom_sf(data = sp_polygon_3162_buffered,
-            aes(color = "Buffer extent"), fill = NA, linewidth = 1) +
+            aes(color = "Buffer extent\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0"), fill = NA, linewidth = 1) +
     geom_sf(data = target_landscape,
             aes(color = "Target landscape"), fill = NA, linewidth = 1) +
-    scale_color_manual(
-      name = "",
-      values = c("Buffer extent" = "lightgrey", "Target landscape" = "black")
-    ) +
+      scale_color_manual(name = "", values = c("lightgrey", "black")) +
     labs(title = "\nTarget landscape showing degraded pixels\nand contributing degradation sources\n") +
     theme_minimal() +
     theme(
-      panel.grid = element_blank(),
+      panel.grid = element_blank(), legend.margin = margin(c(0,0,0,0)),
       legend.key.size = unit(1.5, "cm"),
       legend.text = element_text(size = 12, face = "bold"),
       legend.title = element_text(size = 16, face = "bold"),
@@ -3816,13 +3817,25 @@ output$degradedSourcesPlot <- renderPlotly({
   output$downloadKML <- downloadHandler(
     filename = function() {
       if (!is.null(export_sf())) {
-        paste0(input$landscape_name, "_top_combination", Sys.Date(), ".kml", sep = "")
+        paste0(input$landscape_name, "_top_combination", Sys.Date(), ".kml")
       }
     },
     content = function(file) {
       if (!is.null(export_sf())) {
-        # Write sf object to KML file
-        sf::st_write(export_sf(), dsn = file, driver = "kml")
+        kml_data <- export_sf()
+        
+        # Add Name and Description using label column
+        kml_data$Name <- paste("Candidate Area", kml_data$label)
+        kml_data$Description <- paste("Candidate Area", kml_data$label)
+        
+        # Drop the label column
+        kml_data$label <- NULL
+        
+        # Drop all-NA columns to clean up
+        kml_data <- kml_data[, colSums(!is.na(sf::st_drop_geometry(kml_data))) > 0]
+        
+        # Write to KML
+        sf::st_write(kml_data, dsn = file, driver = "kml")
       }
     }
   )
@@ -3831,13 +3844,25 @@ output$degradedSourcesPlot <- renderPlotly({
   output$downloadDegsources <- downloadHandler(
     filename = function() {
       if (!is.null(export_sf())) {
-        paste0(input$landscape_name, "_degradation_sources", Sys.Date(), ".kml", sep = "")
+        paste0(input$landscape_name, "_degradation_sources", Sys.Date(), ".kml")
       }
     },
     content = function(file) {
       if (!is.null(export_sf_deg_sources())) {
-        # Write sf object to KML file
-        sf::st_write(export_sf_deg_sources(), dsn = file, driver = "kml")
+        deg_sources <- export_sf_deg_sources()
+        
+        # Add Name + Description
+        deg_sources$Name <- deg_sources$class_label
+        deg_sources$Description <- deg_sources$class_label
+        
+        # Drop 'class_label' since it's duplicated now
+        deg_sources$class_label <- NULL
+        
+        # Drop all-NA columns
+        deg_sources <- deg_sources[, colSums(!is.na(sf::st_drop_geometry(deg_sources))) > 0]
+        
+        # Write to KML
+        sf::st_write(deg_sources, dsn = file, driver = "kml")
       }
     }
   )
@@ -5977,7 +6002,7 @@ conditionalPanel(
      If the option to focus on areas of conservation concern is selected, these areas, and any pixels restored within them, are given a cost value of 1, with other natural  habitat given a cost value of 10, and costs for all other pixel types scaled up by a magnitude of 10 (e.g. degraded pixels = 10000).
              <br><br>
              Note: When accessing this tool online, if a disconnection from the server occurs during this calculation, please reduce the size of a landscape or divide it into parts to avoid exceeding the server memory limit")),
-      actionButton("calculate_connectivity", "Calculate connectivity", style = "margin-top: 15px;"),
+      actionButton("calculate_connectivity", "Calculate connectivity (may take a while!)", style = "margin-top: 15px;"),
       br(),
       br(),
       textOutput("conTime"),
