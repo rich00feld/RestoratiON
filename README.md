@@ -17,7 +17,9 @@ In order to run the app locally on your own machine you first need to download a
 
 5. To ensure you are using the most up-to-date version of the app script, download the `app.R` file from this repository and place it in the base directory you just unzipped, overwriting the existing `app.R` in the folder.  
    **[Latest release](https://github.com/rich00feld/RestoratiON/blob/main/app.R)**
-
+   
+    ![App Folder](images/download-app.png)
+   
     ![App Folder](images/app-folder.png)
 
 ---
