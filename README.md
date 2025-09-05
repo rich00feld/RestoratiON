@@ -24,7 +24,6 @@ In order to run the app locally on your own machine you first need to download a
 
 6. Open `app.R` in RStudio and click **Run App** in the top-right of the script pane.
 
-   `![Run App button](images/run-app.png)`
 
 When the app first runs, it may take a while to install dependent packages. This happens only once per installation.
 
