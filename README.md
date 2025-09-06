@@ -26,7 +26,7 @@ In order to run the app locally on your own machine you first need to download a
 
 ## Running the App
 
-6. Open `app.R` in RStudio and click **Run App** in the top-right of the script pane.
+6. Open `app.R` in RStudio and press **Ctrl + Shift + Enter** to run the app code. Alternatively, click **Run App** in the top-right of the script pane.
 
    ![Run App](images/run-app.png)
 
