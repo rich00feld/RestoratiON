@@ -1,43 +1,112 @@
-# Code to install packages ---- (can be un-commented and used if renv fails for whatever reason)
-# install.packages("cowplot")
-# install.packages("DT")
-# install.packages("furrr")
-# install.packages("future")
-# install.packages("geodiv")
-# install.packages("grainscape")
-# install.packages("gridExtra")
-# install.packages("landscapemetrics")
-# install.packages("leaflet")
-# install.packages("leaflet.extras")
-# install.packages("leaflet.providers")
-# install.packages("pals")
-# install.packages("plotly")
-# install.packages("raster")
-# install.packages("rasterVis")
-# install.packages("renv")
-# install.packages("rsconnect")
-# install.packages("RStoolbox")
-# install.packages("rstudioapi")
-# install.packages("sf")
-# install.packages("shiny")
-# install.packages("shiny.semantic")
-# install.packages("shinyjs")
-# install.packages("shinythemes")
-# install.packages("stars")
-# install.packages("terra")
-# install.packages("tidyterra")
-# install.packages("tidyverse")
-# install.packages("viridis")
+# Code to install packages ---- (can be un-commented and used for whatever reason)
+# List of packages
+pkgs <- c(
+  "cowplot", "DT", "furrr", "future", "geodiv", "grainscape",
+  "gridExtra", "landscapemetrics", "leaflet", "leaflet.extras",
+  "leaflet.providers", "pals", "plotly", "raster", "rasterVis",
+  "renv", "RcppArmadillo", "RcppEigen", "rsconnect", "RStoolbox",
+  "rstudioapi", "sf", "shiny", "shiny.semantic", "shinyjs",
+  "shinythemes", "stars", "terra", "tidyterra", "tidyverse", "viridis"
+)
 
-# creating a lockfile
-# options(renv.download.override = utils::download.file) # sometimes renv struggles with firewalls, this is a workaround
-# renv::init()
+# Install only missing ones, binary preferred, source fallback
+for (p in pkgs) {
+  if (!requireNamespace(p, quietly = TRUE)) {
+    message(sprintf("Installing %s (binary preferred) ...", p))
+    tryCatch(
+      install.packages(p, type = "binary"),
+      error = function(e) {
+        message(sprintf("Binary not available for %s, trying source ...", p))
+        install.packages(p, type = "source")
+      }
+    )
+  } else {
+    message(sprintf("%s already installed, skipping.", p))
+  }
+}
 
-# Install exact package versions from lockfile ---
-# Load renv
-library(renv)
-# Restore packages from the lockfile
-renv::restore(prompt = FALSE)
+# # Version control script contains last confirmed working package versions - can be used to install these versions if future package versions fail
+# # Ensure remotes is installed
+# if (!requireNamespace("remotes", quietly = TRUE)) {
+#   install.packages("remotes")
+# }
+# 
+# # Desired package versions
+# packages <- list(
+#     cowplot          = "1.2.0",
+#     DT               = "0.34.0",
+#     furrr            = "0.3.1",
+#     future           = "1.67.0",
+#     geodiv           = "1.1.0",
+#     grainscape       = "0.5.0",
+#     gridExtra        = "2.3",
+#     landscapemetrics = "2.2.1",
+#     leaflet          = "2.2.3",
+#     leaflet.extras   = "2.0.1",
+#     leaflet.providers= "2.0.0",
+#     pals             = "1.10",
+#     plotly           = "4.11.0",
+#     purrr            = "1.1.0",
+#     raster           = "3.6-32",
+#     rasterVis        = "0.51.7",
+#     renv             = "1.1.5",
+#     RcppArmadillo    = "15.0.1-1",
+#     RcppEigen        = "0.3.4.0.2",
+#     rsconnect        = "1.5.1",
+#     RStoolbox        = "1.0.2.1",
+#     rstudioapi       = "0.17.1",
+#     sf               = "1.0-21",
+#     shiny.semantic   = "0.5.1",
+#     shinyjs          = "2.1.0",
+#     shinythemes      = "1.2.0",
+#     stars            = "0.6-8",
+#     terra            = "1.8-60",
+#     tidyterra        = "0.7.2",
+#     tidyverse        = "2.0.0",
+#     viridis          = "0.6.5"
+# )
+# 
+# # Get CRAN versions table once
+# cran_versions <- available.packages()[, "Version"]
+# 
+# install_pkg <- function(pkg, ver) {
+#   # If already installed and correct version → skip
+#   if (requireNamespace(pkg, quietly = TRUE)) {
+#     installed_ver <- as.character(utils::packageVersion(pkg))
+#     if (installed_ver == ver) {
+#       message(sprintf("%s %s already installed, skipping.", pkg, ver))
+#       return(invisible())
+#     } else {
+#       message(sprintf("%s %s is installed, but %s is required. Reinstalling...",
+#                       pkg, installed_ver, ver))
+#     }
+#   } else {
+#     message(sprintf("%s not installed. Installing %s...", pkg, ver))
+#   }
+#   
+#   # Check if requested version matches CRAN's current version
+#   current_ver <- cran_versions[pkg]
+#   if (!is.na(current_ver) && ver == current_ver) {
+#     # Install binary if it's the current CRAN version
+#     message(sprintf("Installing %s %s from CRAN binary...", pkg, ver))
+#     install.packages(c(pkg), type = "binary", dependencies = TRUE)
+#   } else {
+#     # Otherwise fall back to source
+#     message(sprintf("Installing %s %s from source...", pkg, ver))
+#     remotes::install_version(pkg, version = ver, upgrade = "never", type = "source")
+#   }
+# }
+# 
+# # Loop over all packages
+# for (pkg in names(packages)) {
+#   ver <- packages[[pkg]]
+#   tryCatch({
+#     install_pkg(pkg, ver)
+#     message(sprintf("%s %s installed successfully.", pkg, ver))
+#   }, error = function(e) {
+#     message(sprintf("Failed to install %s %s: %s", pkg, ver, e$message))
+#   })
+# }
 
 # Load libraries ----
 library(cowplot)
@@ -58,6 +127,8 @@ library(purrr)
 library(raster)
 library(rasterVis)
 library(renv)
+library(RcppArmadillo)
+library(RcppEigen)
 library(RStoolbox)
 library(rsconnect)
 library(rstudioapi)
