@@ -26,9 +26,13 @@ In order to run the app locally on your own machine you first need to download a
 
 ## Running the App
 
-6. Open `app.R` in RStudio and click **Run App** in the top-right of the script pane.
+6. Open `app.R` in RStudio and press **CTRL + SHIFT + ENTER** or alternatively click **Run App** in the top-right of the script pane.
 
    ![Run App](images/run-app.png)
+
+The app will initialize and ask if you want to install the **Shiny** package, click yes.
+
+ ![Shiny Yes](images/shiny-yes.png)
 
 
 When the app first runs it may take a while to install all the dependent packages, but this will only occur once in a given installation, and not occur if the app is re-run. 
