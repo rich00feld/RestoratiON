@@ -34,12 +34,12 @@ We provide instructions on how to run the tool in a Windows environment. This to
 
    ![Run App](images/run-app.png)
 
-The app will initialize and ask if you want to install the **Shiny** package, click yes.
+The app will initialize and may ask if you want to install the **Shiny** package, click yes.
 
  ![Shiny Yes](images/shiny-yes.png)
 
 
-When the app first runs it may take a while to install all the dependent packages, but this will only occur once in a given installation, and not occur if the app is re-run. 
+When the app first runs it may take a while to install all the dependent packages, but this will only occur once in a given installation, and not occur if the app is re-run. If you experience errors, sometimes closing RStudio and repeating step 6 can resolve issues.
 
 ---
 
