@@ -1,24 +1,28 @@
 # RestoratiON
-OMNR Landscape Ecology restoration prioritization project. This application aims to identify degraded land areas within a chosen geographic region and determine which areas, when restored to nearby natural habitat types, will provide the greatest benefit based on user-selected criteria.
+Ontario Ministry of Natural Resources (OMNR) Landscape Ecology restoration prioritization project. This application aims to identify degraded land areas within a chosen geographic region and determine which areas, when restored to nearby natural habitat types, will provide the greatest benefit to biodiversity based on user-selected criteria.
 
 ## Prerequisites
 
-In order to run the app locally on your own machine you first need to download and install:
+We provide instructions on how to run the tool in a Windows environment. This tool has not been tested on Mac or Linux. In order to run the app locally on your own machine you first need to download and install:
 
-1. **R:** <https://cran.rstudio.com/>
-2. **Rtools (Windows):** <https://cran.rstudio.com/bin/windows/Rtools/>
-3. **RStudio:** <https://posit.co/download/rstudio-desktop/>
+1. **R:** <https://cran.rstudio.com/> (Click 'Download R for Windows' and install to your machine).
+2. **Rtools (Windows):** <https://cran.rstudio.com/bin/windows/Rtools/> (Download RTools 4.4).
+3. **RStudio:** <https://posit.co/download/rstudio-desktop/> (Click 'Download RStudio Desktop for Windows').
 
 ### Get the Base Files
 
-4. Download the base files from:  
+4. Download the base files that contain the spatial data to run the tool from:  
    <https://sobr.ca/wp-content/uploads/RestoratiON-App.zip>  
-   Unzip this folder to any location of your choice on your local machine.
+   Unzip this folder on your local machine; note where you've placed the folder.
 
-5. To ensure you are using the most up-to-date version of the app script, download the `app.R` file from this repository and place it in the base directory you just unzipped, overwriting the existing `app.R` in the folder.  
-   **[Latest release](https://github.com/rich00feld/RestoratiON/blob/main/app.R)**
+5. To ensure you are using the most up-to-date version of the tool's scripts, download the `app.R` file from this repository and place it in the base directory you just unzipped, overwriting the existing `app.R` in the folder.  
+   **[Download app.R](https://github.com/rich00feld/RestoratiON/blob/main/app.R)**
+
+   After you have navigated to the app.R page in GitHub, find the 'download raw file' icon at the upper left of the page. It looks like a downward arrow pointing towards an open square box.
    
     ![App Folder](images/download-app.png)
+
+   After downloading app.R, replace the app.R file in the "Restoration App" folder you downloaded and unzipped in step 4. This ensures that you are using the most up-to-date script.
    
     ![App Folder](images/app-folder.png)
 
@@ -30,12 +34,12 @@ In order to run the app locally on your own machine you first need to download a
 
    ![Run App](images/run-app.png)
 
-The app will initialize and ask if you want to install the **Shiny** package, click yes.
+The app will initialize and may ask if you want to install the **Shiny** package, click yes.
 
  ![Shiny Yes](images/shiny-yes.png)
 
 
-When the app first runs it may take a while to install all the dependent packages, but this will only occur once in a given installation, and not occur if the app is re-run. 
+When the app first runs it may take a while to install all the dependent packages, but this will only occur once in a given installation, and not occur if the app is re-run. If you experience errors, sometimes closing RStudio and repeating step 6 can resolve issues.
 
 ---
 
