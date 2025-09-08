@@ -1,7 +1,7 @@
 # Code to install packages ---- (can be un-commented and used for whatever reason)
 # List of packages
 pkgs <- c(
-  "cowplot", "DT", "furrr", "future", "geodiv", "grainscape", "grid", 
+  "cowplot", "DT", "furrr", "future", "geodiv", "grainscape", "grid",
   "gridExtra", "landscapemetrics", "leaflet", "leaflet.extras",
   "leaflet.providers", "pals", "plotly", "purrr", "raster", "rasterVis",
   "renv", "RcppArmadillo", "RcppEigen", "rsconnect", "RStoolbox",
@@ -2133,7 +2133,7 @@ output$degradedSourcesPlot <- renderPlotly({
   
   # Build ggplot
   my_ggplot <- ggplot() +
-    geom_spatraster(data = plot_degraded_sources) +
+    geom_spatraster(data = plot_degraded_sources, aes(text = after_stat(value))) +
     scale_fill_manual(
       name = "\nDegradation source and percent cover\n",
       values = setNames(land_cover_labels_df$color, land_cover_labels_df$Label),
