@@ -1,5 +1,6 @@
 # Code to install packages ---- (can be un-commented and used for whatever reason)
 # List of packages
+
 pkgs <- c(
   "cowplot", "DT", "furrr", "future", "geodiv", "grainscape", "grid",
   "gridExtra", "landscapemetrics", "leaflet", "leaflet.extras",
@@ -401,20 +402,22 @@ server <- function(input, output, session) {
     div(class = "splash-container", style = paste0("background-image: url('", encoded_image, "');"),
         
         # Styling for the splash title with white background and black text
-        div(class = "splash-title", style = "color: black; background-color: white; padding: 20px; font-size: 36px; text-align: center; border: none; box-shadow: none; border-radius: 10px;",
+        div(class = "splash-title", style = "color: black; background-color: white; padding: 20px; font-size: 36px; text-align: center; border: none; box-shadow: none; border-radius: 10px; margin-bottom: 20px;",
             "Welcome to the RestoratiON Tool"
         ),
         
-        div(class = "splash-text-container", style = "border: none; padding: 0; box-shadow: none;",
+        div(class = "splash-text-container", style = "border: none; padding: 0; box-shadow: none; background: transparent;",
             # Styling for the descriptive text with rounded corners
-            div(class = "splash-text", style = "color: black; background-color: white; padding: 15px; font-size: 18px; border: none; box-shadow: none; border-radius: 10px; text-align: justify;",
+            div(class = "splash-text", style = "color: black; background-color: white; padding: 15px; font-size: 18px; border: none; box-shadow: none; border-radius: 10px; text-align: justify; margin-bottom: 20px;",
                 HTML("In this tool, you locate areas of degraded land within a chosen geographic area in Ontario to identify candidate areas for ecosystem restoration. 
                 You measure the potential biodiversity benefits that restoring each candidate area has on the landscape, and you rank the candidate areas based on those benefits.
                 In a landscape, biodiversity benefits include increases to the average size of habitat patches (patch size), an organism’s ability to disperse and move from one area of 
-                habitat to another (connectivity), and the diversity of ecological conditions (environmental heterogeneity). <br><br>
-                Some calculations in the app can take a long time to process – larger landscapes can take 30 + minutes to calculate connectivity metrics, for example. 
+                habitat to another (connectivity), and the diversity of ecological conditions (environmental heterogeneity)."
+            )),
+            div(class = "splash-text", style = "color: black; background-color: white; padding: 15px; font-size: 18px; border: none; box-shadow: none; border-radius: 10px; text-align: justify;",
+                HTML("Some calculations in the app can take a long time to process – larger landscapes can take 30 + minutes to calculate connectivity metrics, for example. 
                 The online app is limited in how fast it can process data. If you would like to run the application locally, visit our github site for directions <a href='https://github.com/rich00feld/RestoratiON' target='_blank'> here </a>"
-            ))
+                ))
         ),
         
         actionButton("go_button", "Let's go!", class = "go-button"),
