@@ -2,6 +2,6 @@
 .Rhistory
 .RData
 .Ruserdata
-
-Zips/
-Analysis/
+rsconnect/
+rasters/
+vectors/
