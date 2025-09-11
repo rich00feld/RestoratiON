@@ -415,8 +415,8 @@ server <- function(input, output, session) {
                 habitat to another (connectivity), and the diversity of ecological conditions (environmental heterogeneity)."
             )),
             div(class = "splash-text", style = "color: black; background-color: white; padding: 15px; font-size: 18px; border: none; box-shadow: none; border-radius: 10px; text-align: justify;",
-                HTML("Some calculations in the app can take a long time to process – larger landscapes can take 30 + minutes to calculate connectivity metrics, for example. 
-                The online app is limited in how fast it can process data. If you would like to run the application locally, visit our github site for directions <a href='https://github.com/rich00feld/RestoratiON' target='_blank'> here </a>"
+                HTML("Some calculations in the tool can take a long time to process – larger landscapes can take 30 + minutes to calculate connectivity metrics, for example. If a landscape is too large - for example, larger than a municipality - the tool may crash.
+                The online app is limited in how fast it can process data. If you would like to run the application locally, visit our github site for directions: <a href='https://github.com/rich00feld/RestoratiON' target='_blank'> RestoratiON github site</a>."
                 ))
         ),
         
@@ -861,7 +861,7 @@ server <- function(input, output, session) {
   # but the user also can set the analyzed landscape extent by clicking on any polygon displayed, or by drawing a box on the map.
 
   # A notification to display while the leaflet map loads
-  notification_loading_shapefiles <- showNotification("Loading and preparing map (this may take a few minutes)...", type = "message", duration = NULL)
+  notification_loading_shapefiles <- showNotification("Loading and preparing map. This may take a few minutes. Your screen may be blank momentarily...", type = "message", duration = NULL)
 
   # Set up the leaflet map ----
   # Set colors for each polygon layer. IDs for each individual polygon are set with layerId =
@@ -5875,7 +5875,7 @@ div(
       br(),
       p(HTML("<b>Set the final extent</b><br>
                Finally, press “Set extent” to confirm the final target landscape to analyze. An image of the selected landscape, including the buffer area, is displayed for you to review, along with the proportion of total area covered by different habitat types.<br><br>
-             When the landscape extent is set, a test is run on that landscape to see if it is large enough to calculate connectivity metrics. A warning message will be displayed if the target landscape is too small. When accessing this tool online, it is also possible that a landscape that is too large or complex will reach the server memory limit during calculations at future steps, resulting in disconnection from the server. This occurs rarely, but can be resolved by reducing the size of a landscape / dividing it into parts for which metrics can be calculated separately.<br>")),
+             When the landscape extent is set, a test is run on that landscape to see if it is large enough to calculate connectivity metrics. A warning message will be displayed if the target landscape is too small. <b>When accessing this tool online, it is also possible that a landscape that is too large or complex will reach the server memory limit during calculations at future steps, resulting in disconnection from the server.</b> This occurs rarely, but can be resolved by reducing the size of a landscape / dividing it into parts for which metrics can be calculated separately.<br>")),
       actionButton("set_extent", "Set extent"),
       br(),
       verbatimTextOutput("extent_values"),
@@ -6008,7 +6008,7 @@ fluidRow(
       div(style = "font-size: 18px; font-weight: bold; margin-bottom: 15px;", "Calculating patch size"),
       p(HTML("Now, we can calculate the effect of restoring candidate areas on habitat patch size (i.e., if restoring particular candidate areas increases the average habitat patch size).<br><br>
       Patch size is calculated as the average size of contiguous areas of a particular habitat type. For each habitat type, the effect of restoration is measured by comparing the average patch size in the original landscape compared against the average patch size with each candidate area restored. In addition, if you selected the option to focus on ‘areas of conservation concern’, the change in patch size within areas of conservation concern is shown as an additional metric. <br><br>
-             Note: When accessing this tool online, if a disconnection from the server occurs during this calculation, please reduce the size of a landscape or divide it into parts to avoid exceeding the server memory limit")),
+             <b>Note: When accessing this tool online, if a disconnection from the server occurs during this calculation, please reduce the size of a landscape or divide it into parts to avoid exceeding the server memory limit.</b>")),
       br(),
       uiOutput("dynamic_checkboxes"),
       br(),
