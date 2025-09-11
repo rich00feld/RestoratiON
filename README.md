@@ -123,7 +123,7 @@ Then save your changes (**Ctrl + S**) before running the tool.
 
 -   If you see a pop-up that asks you if you want to restart R prior to install, select **No.**
 
--   If you get an error message in the 'Console' window that a particular package did not install, you can install it manually. For example, if 'RcppEigen' did not install, look for the proper version in the app.R file, under the section '\# \# Desired package versions'.
+-   If you get an error message in the 'Console' window that a particular package did not install, you can install it manually. For example, if 'RcppEigen' did not install, look for the proper version in the app.R file, under the section `# # Desired package versions`.
 
     -   In the console, type `remotes::install_version("RcppEigen", version = "0.3.4.0.2", upgrade = "never", type = "source")` and then press Enter to run the line of code.
 
