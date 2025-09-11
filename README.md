@@ -87,6 +87,38 @@ Then save your changes (**Ctrl + S**) before running the app.
 
 ## Troubleshooting
 
--   
+*If you experience issues with step 6 (Running the App), please read this section, below.*
+
+[For users who are new to R and have just downloaded R and RStudio to use this tool:]{.underline}
+
+-   Ensure you are running RStudio as an administrator.
+
+-   Inside the app.R file in RStudio, scroll down slightly in the file to look for the text “Version control script contains last confirmed working package versions….”. This should be about 2 ‘paragraphs’ down.
+
+    -   Copy the text, *including the two hashtags*, from that line down to the line immediately before the text ‘# Load libraries ----‘.
+
+    -   Go to the File tab (top menu bar) and press ‘New File’ and choose “R Script”.
+
+    -   Save the file – call it ‘install libraries.R’. Paste the text you just copied into this file, and save again.
+
+-   Under the Session tab (top menu bar) click ‘Clear Workspace…’ and choose ‘Yes’.
+
+-   Under the Session tab (top menu bar) click ‘Restart R’.
+
+-   Now, select all the copied text in the ‘install libraries.R’ file.
+
+    -   Under the Code tab (top menu bar) click “Comment/Uncomment lines”.
+
+-   Select all the code in the file and click the “Run” button at the top right of the file. This will download and install the proper versions of the packages required to run the app.
+
+-   Once you are done this step, go back to the ‘app.R’ file and select ‘Run App’.
+
+[For users who have some experience with R and want to run this tool:]{.underline}
+
+-   During the tool’s inception, we explored using \`renv\` to package library versions with the tool. However, this approach was error-prone and required an inexperienced user to troubleshoot difficult issues. It also required us to package over 1.3 GB of package data along with the tool, which was over the size limit we have available on our host website.
+
+-   Instead, we provide code within the tool (follow steps above) to install (and/or upgrade and downgrade) package versions that were used to create the tool. Installing these versions will ensure that the tool runs smoothly and doesn’t encounter errors due to package upgrades breaking the tool.
+
+    -   **Please be aware that if you choose to run the code using the steps above, libraries currently installed on your machine may be upgraded or downgraded. You may wish to note what versions of each package you have so that you can re-download your desired version as necessary.**
 
 ------------------------------------------------------------------------
