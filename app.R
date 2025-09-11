@@ -1,93 +1,173 @@
-# Code to install packages ----
-# install.packages('rsconnect')
-# install.packages("sf")
-# install.packages("terra")
-# install.packages("geodiv")
-# install.packages("raster")
-# install.packages("landscapemetrics")
-# install.packages("grainscape")
-# install.packages("RStoolbox")
-# install.packages("dplyr")
-# install.packages("tidyr")
-# install.packages("pals")
-# install.packages("viridis")
-# install.packages("shiny")
-# install.packages("shiny.semantic")
-# install.packages("shinyjs")
-# install.packages("shinythemes")
-# install.packages("DT")
-# install.packages("rasterVis")
-# install.packages("rstudioapi")
-# install.packages("ggplot2")
-# install.packages("future")
-# install.packages("furrr")
-# install.packages("stringr")
-# install.packages("leaflet")
-# install.packages("leaflet.extras")
-# install.packages("devtools")
-# library(devtools)
-# options(download.file.method = "wininet")
-# install_github("CRAN/rgdal")
-# install.packages("RStoolbox")
-# install.packages("leaflet.providers")
-# install.packages("stars")
-#install_github("ewenme/shinya11y")
+# Code to install packages ---- (can be un-commented and used for whatever reason)
+# List of packages
 
-# Loading libraries ----
-library(rsconnect)
-#library(rgdal) # EJN: rgdal will be retired during October 2023. What functions in the script below need to be updated so we can remove this library from the required list?
-library(sf)
-library(terra)
+pkgs <- c(
+  "cowplot", "DT", "furrr", "future", "geodiv", "grainscape", "grid",
+  "gridExtra", "landscapemetrics", "leaflet", "leaflet.extras",
+  "leaflet.providers", "pals", "plotly", "purrr", "raster", "rasterVis",
+  "renv", "RcppArmadillo", "RcppEigen", "rsconnect", "RStoolbox",
+  "rstudioapi", "sf", "shiny", "shiny.semantic", "shinyjs",
+  "shinythemes", "stars", "terra", "tidyterra", "tidyverse", "tools", "viridis"
+)
+
+# Install only missing ones, binary preferred, source fallback
+for (p in pkgs) {
+  if (!requireNamespace(p, quietly = TRUE)) {
+    message(sprintf("Installing %s (binary preferred) ...", p))
+    tryCatch(
+      install.packages(p, type = "binary"),
+      error = function(e) {
+        message(sprintf("Binary not available for %s, trying source ...", p))
+        install.packages(p, type = "source")
+      }
+    )
+  } else {
+    message(sprintf("%s already installed, skipping.", p))
+  }
+}
+
+# # Version control script contains last confirmed working package versions - can be used to install these versions if future package versions fail
+# # Ensure remotes is installed
+# if (!requireNamespace("remotes", quietly = TRUE)) {
+#   install.packages("remotes")
+# }
+# 
+# # Desired package versions
+# packages <- list(
+#     cowplot          = "1.2.0",
+#     DT               = "0.34.0",
+#     furrr            = "0.3.1",
+#     future           = "1.67.0",
+#     geodiv           = "1.1.0",
+#     grainscape       = "0.5.0",
+#     gridExtra        = "2.3",
+#     landscapemetrics = "2.2.1",
+#     leaflet          = "2.2.3",
+#     leaflet.extras   = "2.0.1",
+#     leaflet.providers= "2.0.0",
+#     pals             = "1.10",
+#     plotly           = "4.11.0",
+#     purrr            = "1.1.0",
+#     raster           = "3.6-32",
+#     rasterVis        = "0.51.7",
+#     renv             = "1.1.5",
+#     RcppArmadillo    = "15.0.1-1",
+#     RcppEigen        = "0.3.4.0.2",
+#     rsconnect        = "1.5.1",
+#     RStoolbox        = "1.0.2.1",
+#     rstudioapi       = "0.17.1",
+#     sf               = "1.0-21",
+#     shiny.semantic   = "0.5.1",
+#     shinyjs          = "2.1.0",
+#     shinythemes      = "1.2.0",
+#     stars            = "0.6-8",
+#     terra            = "1.8-60",
+#     tidyterra        = "0.7.2",
+#     tidyverse        = "2.0.0",
+#     viridis          = "0.6.5"
+# )
+# 
+# # Get CRAN versions table once
+# cran_versions <- available.packages()[, "Version"]
+# 
+# install_pkg <- function(pkg, ver) {
+#   # If already installed and correct version → skip
+#   if (requireNamespace(pkg, quietly = TRUE)) {
+#     installed_ver <- as.character(utils::packageVersion(pkg))
+#     if (installed_ver == ver) {
+#       message(sprintf("%s %s already installed, skipping.", pkg, ver))
+#       return(invisible())
+#     } else {
+#       message(sprintf("%s %s is installed, but %s is required. Reinstalling...",
+#                       pkg, installed_ver, ver))
+#     }
+#   } else {
+#     message(sprintf("%s not installed. Installing %s...", pkg, ver))
+#   }
+#   
+#   # Check if requested version matches CRAN's current version
+#   current_ver <- cran_versions[pkg]
+#   if (!is.na(current_ver) && ver == current_ver) {
+#     # Install binary if it's the current CRAN version
+#     message(sprintf("Installing %s %s from CRAN binary...", pkg, ver))
+#     install.packages(c(pkg), type = "binary", dependencies = TRUE)
+#   } else {
+#     # Otherwise fall back to source
+#     message(sprintf("Installing %s %s from source...", pkg, ver))
+#     remotes::install_version(pkg, version = ver, upgrade = "never", type = "source")
+#   }
+# }
+# 
+# # Loop over all packages
+# for (pkg in names(packages)) {
+#   ver <- packages[[pkg]]
+#   tryCatch({
+#     install_pkg(pkg, ver)
+#     message(sprintf("%s %s installed successfully.", pkg, ver))
+#   }, error = function(e) {
+#     message(sprintf("Failed to install %s %s: %s", pkg, ver, e$message))
+#   })
+# }
+
+# Load libraries ----
+library(cowplot)
+library(DT)
+library(furrr)
+library(future)
 library(geodiv)
-library(raster) # EJN: probably best to convert any raster functions to terra if possible (maybe it's not - just checking.)
-library(landscapemetrics)
 library(grainscape)
-library(RStoolbox)
-library(dplyr)
-library(tidyr)
+library(grid)
+library(gridExtra)
+library(landscapemetrics)
+library(leaflet)
+library(leaflet.extras)
+library(leaflet.providers)
 library(pals)
-library(viridis)
+library(plotly)
+library(purrr)
+library(raster)
+library(rasterVis)
+library(renv)
+library(RcppArmadillo)
+library(RcppEigen)
+library(RStoolbox)
+library(rsconnect)
+library(rstudioapi)
+library(sf)
 library(shiny)
 library(shiny.semantic)
 library(shinyjs)
 library(shinythemes)
-library(DT)
-library(rasterVis)
-library(rstudioapi)
-library(ggplot2)
-library(future)
-library(furrr)
-library(stringr)
-library(leaflet)
-library(leaflet.extras)
-library(leaflet.providers)
 library(stars)
-library(readr)
-library(tidyverse)
-library(plotly)
+library(terra)
 library(tidyterra)
-library(cowplot)
-library(grid)
-library(gridExtra)
-library(shinya11y)
+library(tidyverse)
+library(tools)
+library(viridis)
 
-
-
-# setting the working directory to the location of the script
-
-# script_path <- getActiveDocumentContext()$path
-# setwd(dirname(script_path))
-# EJN: no need to do this if you package the script as part of a project; this is "best practice" so I've commented these lines out
 
 # Prepare the workspace ----
 # This is here to close any multiprocesses that may not have closed properly if the app crashed and is then re-run
 plan(sequential)
+
+rm(list = ls())
 gc()
+
+
+# # setting the working directory to the location of the script
+# script_path <- getActiveDocumentContext()$path
+# setwd(dirname(script_path))
+
 
 # Set the options for non-scientific notation (this can always be removed)
 options(scipen = 999)
 
 # Set up reactive values ----
+run_mode<-reactiveVal(1) # 1 = sequential, 2 = parallel
+set_cores<-reactiveVal(2) # Set the number of parallel workers, 2 was most stable on the systems we tested on, but this could hypothetically could be set to anything if RAM is sufficient - a rule of thumb is that this should be set to the system RAM divided by 8 (e.g. 16GB/8 = 2, 32GB /8 = 4) 
+
+
+
 Protected_areas <- reactiveVal()
 movement_cost_protected <- reactiveVal()
 
@@ -149,6 +229,7 @@ combinations_react <- reactiveVal()
 values <- reactiveValues(extent = NULL)
 landscape_output <- reactiveVal()
 export_sf <- reactiveVal(NULL)
+export_sf_deg_sources <- reactiveVal(NULL)
 KML_output_react <- reactiveVal()
 selected_sf_react <- reactiveVal()
 temp_dir_react <- reactiveVal()
@@ -214,9 +295,11 @@ sp_plot_polygon <-reactiveVal()
 legend_plot1_react <-reactiveVal()
 legend_plot2_react <-reactiveVal()
 legend_plot3_react <-reactiveVal()
+legend_plot32_react<-reactiveVal()
 legend_plot4_react <-reactiveVal()
 legend_plot5_react <-reactiveVal()
 plot_degraded_react <-reactiveVal()
+plot_degraded_sources_react <-reactiveVal()
 plot_degraded_protected_react <-reactiveVal()
 restored_land_plot_react <-reactiveVal()
 final_data_table <-reactiveVal()
@@ -305,7 +388,8 @@ Other_effective_area_based_conservation_measures <- st_read("vectors/Other_Effec
 options(shiny.maxRequestSize = 500 * 1024^2)
 
 server <- function(input, output, session) {
-
+  rm()
+  gc()
   # Dynamically generate the splash page with the base64-encoded image
   output$splash <- renderUI({
     # Path to the image
@@ -318,18 +402,22 @@ server <- function(input, output, session) {
     div(class = "splash-container", style = paste0("background-image: url('", encoded_image, "');"),
         
         # Styling for the splash title with white background and black text
-        div(class = "splash-title", style = "color: black; background-color: white; padding: 20px; font-size: 36px; text-align: center; border: none; box-shadow: none; border-radius: 10px;",
+        div(class = "splash-title", style = "color: black; background-color: white; padding: 20px; font-size: 36px; text-align: center; border: none; box-shadow: none; border-radius: 10px; margin-bottom: 20px;",
             "Welcome to the RestoratiON Tool"
         ),
         
-        div(class = "splash-text-container", style = "border: none; padding: 0; box-shadow: none;",
+        div(class = "splash-text-container", style = "border: none; padding: 0; box-shadow: none; background: transparent;",
             # Styling for the descriptive text with rounded corners
-            div(class = "splash-text", style = "color: black; background-color: white; padding: 15px; font-size: 18px; border: none; box-shadow: none; border-radius: 10px;",
-                "In this tool, you locate areas of degraded land within a chosen geographic area in Ontario to identify candidate areas for ecosystem restoration. 
+            div(class = "splash-text", style = "color: black; background-color: white; padding: 15px; font-size: 18px; border: none; box-shadow: none; border-radius: 10px; text-align: justify; margin-bottom: 20px;",
+                HTML("In this tool, you locate areas of degraded land within a chosen geographic area in Ontario to identify candidate areas for ecosystem restoration. 
                 You measure the potential biodiversity benefits that restoring each candidate area has on the landscape, and you rank the candidate areas based on those benefits.
                 In a landscape, biodiversity benefits include increases to the average size of habitat patches (patch size), an organism’s ability to disperse and move from one area of 
                 habitat to another (connectivity), and the diversity of ecological conditions (environmental heterogeneity)."
-            )
+            )),
+            div(class = "splash-text", style = "color: black; background-color: white; padding: 15px; font-size: 18px; border: none; box-shadow: none; border-radius: 10px; text-align: justify;",
+                HTML("Some calculations in the tool can take a long time to process – larger landscapes can take 30 + minutes to calculate connectivity metrics, for example. If a landscape is too large - for example, larger than a municipality - the tool may crash.
+                The online app is limited in how fast it can process data. If you would like to run the application locally, visit our github site for directions: <a href='https://github.com/rich00feld/RestoratiON' target='_blank'> RestoratiON github site</a>."
+                ))
         ),
         
         actionButton("go_button", "Let's go!", class = "go-button"),
@@ -421,6 +509,7 @@ server <- function(input, output, session) {
   observe({
     if (length(input$protected_checkboxes) == 0) {
       # Manually call the observeEvent logic
+      rm()
       gc()
       # a notification while the code is run
       notification_id_pro_int <- showNotification("Updating land definitions, please wait...", type = "message", duration = NULL)
@@ -443,11 +532,13 @@ server <- function(input, output, session) {
       movement_cost_protected(defined_movement_cost_protected)
       
       removeNotification(notification_id_pro_int)
+      rm()
       gc()
     }})
   
   # Trigger when the user interacts with the checkboxes
   observeEvent(input$protected_checkboxes, {
+    rm()
     gc()
     # a notification while the code is run
     notification_id_pro <- showNotification("Updating land definitions, please wait...", type = "message", duration = NULL)
@@ -530,6 +621,7 @@ server <- function(input, output, session) {
     movement_cost_protected(defined_movement_cost_protected)
     
     removeNotification(notification_id_pro)
+    rm()
     gc()
   })
   
@@ -769,7 +861,7 @@ server <- function(input, output, session) {
   # but the user also can set the analyzed landscape extent by clicking on any polygon displayed, or by drawing a box on the map.
 
   # A notification to display while the leaflet map loads
-  notification_loading_shapefiles <- showNotification("Loading and preparing map (this may take a few minutes)...", type = "message", duration = NULL)
+  notification_loading_shapefiles <- showNotification("Loading and preparing map. This may take a few minutes. Your screen may be blank momentarily...", type = "message", duration = NULL)
 
   # Set up the leaflet map ----
   # Set colors for each polygon layer. IDs for each individual polygon are set with layerId =
@@ -1556,11 +1648,11 @@ server <- function(input, output, session) {
     # to calculate connectivity metrics successfully.
     movement_cost_con <- croppedmovement_cost()
     movement_cost_con[!is.na(test_degraded_pixels_temp)] <- 1000
-    movement_cost_raster <- raster(movement_cost_con)
+    movement_cost_con <- raster(movement_cost_con)
     tryCatch(
       {
-        patches <- (movement_cost_raster == 1)
-        mpg <- MPG(movement_cost_raster, patch = patches)
+        patches <- (movement_cost_con == 1)
+        mpg <- MPG(movement_cost_con, patch = patches)
         mc_neighbours <- graphdf(mpg)[[1]]$e[, c(1, 2, 4)]
         if (nrow(mc_neighbours) < 5) {
           stop("Error: Insufficient nodes for habitat connectivity metrics. A minimum of 5 nodes are required.")
@@ -1582,11 +1674,11 @@ server <- function(input, output, session) {
 
       movement_cost_con <- croppedmovement_cost_protected()
       movement_cost_con[!is.na(test_degraded_pixels_temp)] <- 10000
-      movement_cost_raster <- raster(movement_cost_con)
+      movement_cost_con <- raster(movement_cost_con)
       tryCatch(
         {
-          patches <- (movement_cost_raster == 1)
-          mpg <- MPG(movement_cost_raster, patch = patches)
+          patches <- (movement_cost_con == 1)
+          mpg <- MPG(movement_cost_con, patch = patches)
           mc_neighbours <- graphdf(mpg)[[1]]$e[, c(1, 2, 4)]
           if (nrow(mc_neighbours) < 5) {
             stop("Error: Insufficient nodes for areas of conservation concern connectivity metrics. A minimum of 5 nodes are required.")
@@ -1602,6 +1694,8 @@ server <- function(input, output, session) {
       )
       removeNotification(notification_id_extent)
       rm(movement_cost_con, patches)
+      rm()
+      gc()
     }
   })
 
@@ -1617,7 +1711,7 @@ server <- function(input, output, session) {
               degraded.<br>8 = Only land within 500 m of an open pit mine is degraded. For more detail on how active mine thresholds are defined, 
               see table 3, <a href='https://www.sciencedirect.com/science/article/abs/pii/S0169204608000637' target='_blank'>Woolmer et al. 2008</a>,
               also accessible as table 5 in <a href='https://www.facetsjournal.com/doi/full/10.1139/facets-2021-0063#tab5' target='_blank'>Hirsh-Pearson et al. 2022</a>.</i><br><br>")),
-          sliderInput("mine_slider", NULL, min = 1, max = 9, value = 2, step = 1),
+          sliderInput("mine_slider", NULL, min = 1, max = 9, value = 8, step = 1),
           tags$p(id = "mine_max_label", "Not included", style = "text-align: right; margin-top: -20px;")
         ),
         div(
@@ -1629,13 +1723,13 @@ server <- function(input, output, session) {
         div(
           tags$label(`for` = "night_lights_slider", HTML("<b>Night lights</b><br><i>1 = Pixels with any amount of night light pollution are degraded.<br>10 = Only pixels with the most severe night light pollution
               are degraded.</i><br><br>")),
-          sliderInput("night_lights_slider", NULL, min = 1, max = 11, value = 1, step = 1),
+          sliderInput("night_lights_slider", NULL, min = 1, max = 11, value = 11, step = 1),
           tags$p(id = "night_lights_max_label", "Not included", style = "text-align: right; margin-top: -20px;")
         ),
         div(
           tags$label(`for` = "oil_gas_slider", HTML("<b>Oil and gas</b><br><i>1 = Any area within 5 km of an active oil and gas field is degraded.<br>10 = Only areas within 300 m of active oil and gas activity
               are degraded.</i><br><br>")),
-          sliderInput("oil_gas_slider", NULL, min = 1, max = 11, value = 6, step = 1),
+          sliderInput("oil_gas_slider", NULL, min = 1, max = 11, value = 10, step = 1),
           tags$p(id = "oil_gas_max_label", "Not included", style = "text-align: right; margin-top: -20px;")
         ),
         div(
@@ -1669,6 +1763,7 @@ server <- function(input, output, session) {
 
   # Bring in the degraded land rasters ----
   observeEvent(input$preview, {
+    tryCatch({
     cropped_mines <- croppedCHF_mines()
     cropped_AMIS <- croppedAMIS()
     cropped_night_lights <- croppedCHF_night_lights()
@@ -1703,8 +1798,98 @@ server <- function(input, output, session) {
     mask <- degraded_pixels_temp %in% unfit_values
     unfit_raster <- degraded_pixels_temp * mask
     unfit_raster[!mask] <- NA
-
-
+    
+    ##Create raster preserving degradation sources
+    # Assign a unique power-of-2 flag to each degradation source
+    flags <- list(
+      mines = 1,
+      night_lights = 2,
+      oil_gas = 4,
+      forestry_harvest = 8,
+      AMIS = 16,
+      aggregate_extraction = 32,
+      topsoil_extraction = 64,
+      undifferentiated = 128
+    )
+    
+    # Create a new raster for tracking degradation sources
+    degradation_sources <- degraded_pixels_temp
+    values(degradation_sources) <- 0  # Start with all zeros
+    
+    # Add flags where the condition is met
+    degradation_sources[condition_mines] <- degradation_sources[condition_mines] + flags$mines
+    degradation_sources[condition_night_lights] <- degradation_sources[condition_night_lights] + flags$night_lights
+    degradation_sources[condition_oil_gas] <- degradation_sources[condition_oil_gas] + flags$oil_gas
+    degradation_sources[condition_forestry_harvest] <- degradation_sources[condition_forestry_harvest] + flags$forestry_harvest
+    degradation_sources[condition_AMIS] <- degradation_sources[condition_AMIS] + flags$AMIS
+    degradation_sources[condition_aggregate_extraction] <- degradation_sources[condition_aggregate_extraction] + flags$aggregate_extraction
+    degradation_sources[condition_topsoil_extraction] <- degradation_sources[condition_topsoil_extraction] + flags$topsoil_extraction
+    degradation_sources[condition_undifferentiated] <- degradation_sources[condition_undifferentiated] + flags$undifferentiated
+    
+    # mask unfit areas
+    degradation_sources[!is.na(unfit_raster)] <- NA
+    
+    # Generate all 256 possible combinations of degradation sources
+    combinations <- 1:255
+    decode_sources <- function(value, flags) {
+      names(flags)[as.logical(bitwAnd(value, unlist(flags)))]
+    }
+    
+    # Replace underscores with spaces, then capitalize only first letter of each source
+    acronyms <- c("AMIS")  # Add more acronyms here if needed
+    
+    format_label <- function(sources) {
+      formatted <- gsub("_", " ", sources)
+      formatted <- sapply(formatted, function(x) {
+        if (x %in% tolower(acronyms)) {
+          acronyms[match(x, tolower(acronyms))]
+        } else if (x %in% acronyms) {
+          x
+        } else {
+          paste0(toupper(substring(x, 1, 1)), tolower(substring(x, 2)))
+        }
+      })
+      paste(formatted, collapse = " + ")
+    }
+    
+    # Build a named vector of descriptions
+    combination_labels <- sapply(combinations, function(val) {
+      format_label(decode_sources(val, flags))
+    })
+    names(combination_labels) <- combinations
+    
+    # filter to only used combinations
+    used_values <- sort(unique(values(degradation_sources)))
+    used_values <- used_values[!is.na(used_values) & used_values != 0]  # remove NA and 0
+    labelled_values <- combination_labels[as.character(used_values)]
+    
+    
+    sp_polygon_3162_buffered <- st_buffer(sp_plot_polygon(), buffer_value())
+    
+    
+    # Create exportable .kml
+    degradation_polygons <- crop(degradation_sources, sp_polygon_3162_buffered)
+    degradation_polygons <- mask(degradation_polygons, sp_polygon_3162_buffered)
+    degradation_polygons[degradation_polygons == 0] <- NA
+    # Convert to polygons — dissolve pixels by class (value)
+    degradation_polygons <- as.polygons(degradation_polygons, dissolve = TRUE, na.rm = TRUE)
+    names(degradation_polygons) <- "value"
+    
+    # Convert to sf for labeling and export
+    degradation_sf <- st_as_sf(degradation_polygons)
+    
+    # Attach human-readable labels
+    label_df <- data.frame(
+      value = as.integer(names(labelled_values)),
+      class_label = labelled_values
+    )
+    degradation_sf <- degradation_sf %>%
+      left_join(label_df, by = "value")
+    
+    export_sf_deg_sources(degradation_sf)
+    
+    plot_degraded_sources <- crop(degradation_sources, sp_polygon_3162_buffered, mask = TRUE)
+    
     degraded_pixels_temp[final_condition] <- 100 # Pixels that meet the cumulative condition are set to degraded
     degraded_pixels_temp[!is.na(unfit_raster)] <- NA
 
@@ -1712,18 +1897,22 @@ server <- function(input, output, session) {
     degraded_protected[is.na(degraded_pixels_temp)] <- NA
     degraded_protected_react(degraded_protected)
     
-    sp_polygon_3162_buffered <- st_buffer(sp_plot_polygon(), buffer_value())
-    
     plot_degraded_protected <- degraded_protected
     plot_degraded_protected <- crop(plot_degraded_protected, sp_polygon_3162_buffered, mask = TRUE)
     plot_degraded_protected[!(plot_degraded_protected[] %in% c(1, 100))] <- NA
     
     plot_degraded_pixels <- degraded_pixels_temp
     plot_degraded_pixels <- crop(plot_degraded_pixels, sp_polygon_3162_buffered, mask = TRUE)
+    
+    # Check if there are any degraded pixels
+    if (all(is.na(values(plot_degraded_pixels)))) {
+        stop("No degraded pixels found for the current slider settings. Adjust thresholds and try again.")
+      }
 
     # These reactive values are used to store the degraded pixels for plotting later
     plot_degraded_react(plot_degraded_pixels)
     plot_degraded_protected_react(plot_degraded_protected)
+    plot_degraded_sources_react(plot_degraded_sources)
 
     degraded_pixels_temp[degraded_pixels_temp != 100] <- NA
 
@@ -1745,7 +1934,7 @@ server <- function(input, output, session) {
     degraded_pixels(degraded_pixels_temp) # a reactive values stores the degraded pixels raster for use later
 
     # Plot target landscape with degraded pixels ----
-    # a plot is output showing the landscape with non-tolerable pixels excluded and degraded pixels in orange
+    # a plot is output showing the landscape with non-restorable pixels excluded and degraded pixels in orange
     
     # Get the target landscape
     target_landscape <- sp_plot_polygon()
@@ -1854,6 +2043,141 @@ server <- function(input, output, session) {
       grid.newpage()
       grid.draw(legend_plot3)
     })
+    
+    
+    
+    
+# Plot target landscape with sources of degradation ----
+# Get the target landscape
+    target_landscape <- sp_plot_polygon()
+    
+output$degradedSourcesPlot <- renderPlotly({
+  plot_degraded_sources <- plot_degraded_sources_react()
+  target_landscape <- sp_plot_polygon()
+  
+  # Get unique values in raster (excluding NA)
+  unique_values <- unique(values(plot_degraded_sources))
+  unique_values <- unique_values[!is.na(unique_values)]
+  
+  # Prepare label formatting function
+  acronyms <- c("AMIS")
+  format_label <- function(sources) {
+    formatted <- gsub("_", " ", sources)
+    formatted <- sapply(formatted, function(x) {
+      if (x %in% tolower(acronyms)) {
+        acronyms[match(x, tolower(acronyms))]
+      } else if (x %in% acronyms) {
+        x
+      } else {
+        paste0(toupper(substring(x, 1, 1)), tolower(substring(x, 2)))
+      }
+    })
+    paste(formatted, collapse = " + ")
+  }
+  
+  # Decode flag combinations and assign labels
+  flags <- list(
+    mines = 1,
+    night_lights = 2,
+    oil_gas = 4,
+    forestry_harvest = 8,
+    AMIS = 16,
+    aggregate_extraction = 32,
+    topsoil_extraction = 64,
+    undifferentiated = 128
+  )
+  
+  decode_sources <- function(value, flags) {
+    names(flags)[as.logical(bitwAnd(value, unlist(flags)))]
+  }
+  
+  labelled_values <- sapply(unique_values, function(val) {
+    if (val == 0) {
+      "Not degraded"
+    } else {
+      format_label(decode_sources(val, flags))
+    }
+  })
+  names(labelled_values) <- unique_values
+  
+  # Assign colors
+  land_cover_labels_df <- data.frame(
+    value = unique_values,
+    Land_Class = labelled_values,
+    color = magma(length(unique_values))
+  )
+  
+  # Override the color for "Not degraded"
+  land_cover_labels_df$color[land_cover_labels_df$Land_Class == "Not degraded"] <- "#D3D3D3"
+  
+  # Get percentage coverage of each class
+  percent_landcover <- as.data.frame(plot_degraded_sources, xy = FALSE, cells = FALSE) %>%
+    rename(value = 1) %>%
+    filter(!is.na(value)) %>%
+    count(value) %>%
+    mutate(percentage = round(n / sum(n) * 100, 2)) %>%
+    select(-n)
+  
+  # Merge label and percentage
+  land_cover_labels_df <- land_cover_labels_df %>%
+    left_join(percent_landcover, by = "value") %>%
+    mutate(
+      percentage = if_else(is.na(percentage), 0, percentage),
+      Label = paste0(" ", Land_Class, " (", percentage, "%)", "              ")
+    ) %>%
+    arrange(desc(percentage))
+  
+  # Assign factor levels to raster
+  plot_degraded_sources <- as.factor(plot_degraded_sources)
+  levels(plot_degraded_sources) <- data.frame(
+    value = land_cover_labels_df$value,
+    Label = land_cover_labels_df$Label
+  )
+  
+  # Build ggplot
+  my_ggplot <- ggplot() +
+    geom_spatraster(data = plot_degraded_sources, aes(text = after_stat(value))) +
+    scale_fill_manual(
+      name = "\nDegradation source and percent cover\n",
+      values = setNames(land_cover_labels_df$color, land_cover_labels_df$Label),
+      na.value = "white"
+    ) +
+    geom_sf(data = sp_polygon_3162_buffered,
+            aes(color = "Buffer extent\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0"), fill = NA, linewidth = 1) +
+    geom_sf(data = target_landscape,
+            aes(color = "Target landscape"), fill = NA, linewidth = 1) +
+      scale_color_manual(name = "", values = c("lightgrey", "black")) +
+    labs(title = "\nTarget landscape showing degraded pixels\nand contributing degradation sources\n") +
+    theme_minimal() +
+    theme(
+      panel.grid = element_blank(), legend.margin = margin(c(0,0,0,0)),
+      legend.key.size = unit(1.5, "cm"),
+      legend.text = element_text(size = 12, face = "bold"),
+      legend.title = element_text(size = 16, face = "bold"),
+      legend.box.spacing = unit(0.5, "cm")
+    ) +
+    guides(
+      fill = guide_legend(ncol = 2, label.position = "right", label.hjust = 0, order = 2),
+      color = guide_legend(direction = "horizontal", label.position = "right", label.hjust = 0, order = 1)
+    )
+  
+  # Extract and save legend for separate rendering
+  legend_plot32 <- cowplot::get_plot_component(my_ggplot, 'guide-box-right', return_all = TRUE)
+  grid.newpage()
+  grid.draw(legend_plot32)
+  legend_plot32_react(legend_plot32)
+  
+  # Return interactive plotly map (without the legend)
+  ggplotly(my_ggplot + theme(legend.position = "none",
+                             axis.text = element_blank()), 
+           tooltip = "text")
+})
+    
+  output$rasterPlot32legend <- renderPlot({
+    legend_plot32<-legend_plot32_react()
+    grid.newpage()
+    grid.draw(legend_plot32)
+  })
     
     
     # A plot for 'areas of conservation concern' if that option is selected in UI segment 2
@@ -1967,7 +2291,12 @@ server <- function(input, output, session) {
         grid.newpage()
         grid.draw(legend_plot4)
       })
-    })
+      rm()
+      gc()
+    },         error = function(e) {
+      # Handle errors by displaying a notification to the user
+      showNotification(paste("No degraded pixels found for the current slider settings. Adjust thresholds and try again."), type = "error", duration = 5)
+    })})
 
 
 
@@ -2172,6 +2501,8 @@ server <- function(input, output, session) {
     shinyjs::enable("simulate_restoration")
     shinyjs::enable("automatic_combination")
     shinyjs::enable("manual_combination")
+    rm()
+    gc()
   })
 
   # Linked to UI Segment 7, choosing how to set the combinations of restored pixels for metric calculations ----
@@ -2288,7 +2619,7 @@ server <- function(input, output, session) {
 
 
   result_habitat_data <- reactiveVal(data.frame()) # a reactive value to store results
-
+  
   # Code that runs when the calculate_metrics button is clicked in the UI
   observeEvent(input$calculate_metrics, {
     # Buttons are disabled while the calculation is running
@@ -2304,8 +2635,7 @@ server <- function(input, output, session) {
     restored_land_values <- restored_land()
     restored_land_values <- rast(restored_land_values)
 
-    sample_degraded_land_values <- restored_land_values
-    sample_degraded_land_values[!is.na(degraded_pixels())] <- NA
+    sample_degraded_land_values <- mask(restored_land_values, degraded_pixels(), inverse = TRUE)
     sample_degraded_land_values <- raster(sample_degraded_land_values)
     
     cropped_polygon<-cropped_polyrast()
@@ -2388,48 +2718,54 @@ server <- function(input, output, session) {
       contiguous_regions <- find_contiguous(valid_locations, restored_land_values[], nrow(restored_land_values), ncol(restored_land_values))
 
       # Create a matrix to store the indices for each group (as integers)
-      max_length <- max(lengths(contiguous_regions))
-      result_matrix <- matrix(NA_integer_, nrow = max_length, ncol = length(contiguous_regions))
-
-      # Fill the matrix with indices for each group as integers
-      for (i in seq_along(contiguous_regions)) {
-        result_matrix[1:length(contiguous_regions[[i]]), i] <- as.integer(contiguous_regions[[i]])
-      }
-
-      combinations <- result_matrix
+      combinations <- lapply(contiguous_regions, as.integer)
+      combinations_react(combinations)
 
       # Function to convert columns to list elements and remove NA values (so they can be used properly in future steps)
-      convert_to_list <- function(mat) {
-        list_of_matrices <- list()
-        for (i in 1:ncol(mat)) {
-          col_values <- mat[, i]
-          col_values <- col_values[!is.na(col_values)]
-          dim(col_values) <- c(length(col_values), 1)
-          list_of_matrices[[i]] <- col_values
-        }
-        return(list_of_matrices)
-      }
-
-      combinations <- convert_to_list(combinations)
-      combinations_react(combinations)
+      # convert_to_list <- function(mat) {
+      #   list_of_matrices <- list()
+      #   for (i in 1:ncol(mat)) {
+      #     col_values <- mat[, i]
+      #     col_values <- col_values[!is.na(col_values)]
+      #     dim(col_values) <- c(length(col_values), 1)
+      #     list_of_matrices[[i]] <- col_values
+      #   }
+      #   return(list_of_matrices)
+      # }
+      # 
+      # combinations <- convert_to_list(combinations)
+      # combinations_react(combinations)
+      
+      # Clean up large objects no longer needed
+      rm(find_contiguous, contiguous_regions)
+      gc()
       # saveRDS(combinations, file = "combinations.rds") - for troubleshooting
+      
     } else {
-      convert_to_list <- function(mat) {
-        list_of_matrices <- list()
-        for (i in 1:ncol(mat)) {
-          col_values <- mat[, i]
-          col_values <- col_values[!is.na(col_values)]
-          dim(col_values) <- c(length(col_values), 1)
-          list_of_matrices[[i]] <- col_values
-        }
-        return(list_of_matrices)
-      }
+      # convert_to_list <- function(mat) {
+      #   list_of_matrices <- list()
+      #   for (i in 1:ncol(mat)) {
+      #     col_values <- mat[, i]
+      #     col_values <- col_values[!is.na(col_values)]
+      #     dim(col_values) <- c(length(col_values), 1)
+      #     list_of_matrices[[i]] <- col_values
+      #   }
+      #   return(list_of_matrices)
+      # }
 
       # Get the number of combinations from the input
       num_combined_pixels <- as.numeric(input$num_combined_pixels)
-      combinations <- combn(valid_locations, num_combined_pixels)
-      combinations <- convert_to_list(combinations)
+      combinations <- apply(
+        combn(valid_locations, num_combined_pixels),
+        2,
+        function(x) matrix(x, ncol = 1)
+      )
       combinations_react(combinations)
+      
+      
+      # Clean up large objects no longer needed
+      rm(num_combined_pixels)
+      gc()
       # saveRDS(combinations, file = "combinations.rds") - for troubleshooting
     }
 
@@ -2463,32 +2799,47 @@ server <- function(input, output, session) {
         patch_size_diffs
       )
     }
-
-
+    
+    if (run_mode() == 2) {
     ## Parallel processing with furrr ----
     library(furrr)
-    plan(multisession(workers = 2)) # Set the number of workers - 3 was most stable on the systems we tested on, but this could be set to anything
-
+      set_numcores <- set_cores()
+    plan(multisession, workers = set_numcores) # Set the number of workers - 3 was most stable on the systems we tested on, but this could be set to anything
+    
+    
+    } else {
+    ## Sequential processing with purrr ----
+    library(purrr)
+    }
+    
     calculate_metrics_parallel <- function(combination) {
       excluded_classes <- as.numeric(selected_habitats)
       metrics <- calculate_metrics(combination, sample_degraded_land_values, excluded_classes)
-
+      
       # Extract patch size and cohesion differences
       patch_size_diffs <- metrics[names(metrics) %in% paste0("patch_size_diff_class", degraded_patch_size$class)]
-
+      
       # Combine results into a data frame
       data.frame(combination = metrics$combination, patch_size_diffs)
     }
-
+    
+    if (run_mode() == 2) {
     # Use future_map_dfr to parallelize the computation for all combinations
     calculated_habitat_data <- future_map_dfr(
-      seq_along(combinations),
-      .options = furrr_options(seed = TRUE),
-      ~ calculate_metrics_parallel(combinations[[.x]])
+    .options = furrr_options(seed = TRUE),
+    seq_along(combinations),
+    ~ calculate_metrics_parallel(combinations[[.x]])
     )
-
     # Close parallel processing
     plan(sequential)
+    } else {
+    # Use map_dfr to sequentially compute for all combinations
+    calculated_habitat_data <- map_dfr(
+      seq_along(combinations),
+      ~ calculate_metrics_parallel(combinations[[.x]])
+    )
+    }
+    
     # Filter out the selected classes
     if (length(selected_habitats) > 0) {
       cols_to_exclude <- c()
@@ -2531,6 +2882,9 @@ server <- function(input, output, session) {
 
     # Update the reactiveVal with the computed data
     result_habitat_data(calculated_habitat_data)
+    
+    rm(calculate_metrics, calculate_metrics_parallel, restored_values, degraded_patch_size, class_mapping)
+    gc()
 
 
     if (input$protected_based_calculations > 0) { # if the 'areas of conservation concern' option is selected in segment 2,
@@ -2551,7 +2905,7 @@ server <- function(input, output, session) {
       restored_values <- values(protected_restored)
       degraded_patch_size <- lsm_c_area_mn(degraded_protected)$value
 
-      # Create a function to calculate metrics for a given combination of 4 pixels added to Sample_degraded_land
+      # Create a function to calculate metrics for a given combination of pixels added to Sample_degraded_land
       calculate_metrics <- function(combination, degraded_raster) {
         # Create a copy of the degraded raster
         modified_raster <- degraded_raster
@@ -2563,36 +2917,49 @@ server <- function(input, output, session) {
         return(list(patch_size = Protected_patch_size_difference, raster = modified_raster))
       }
 
+      library(purrr)
+      library(dplyr)
       library(furrr)
-
-      plan(multisession(workers = 2)) # Adjust the number of workers as needed
-
-      # Define a function for parallel computation
+      
+      
+      # Define a function for sequential computation
       calculate_metrics_parallel <- function(combination, degraded_raster) {
         metrics <- calculate_metrics(combination, degraded_raster)
         patch_size_difference <- sum(abs(metrics$patch_size))
         return(data.frame(combination = paste(combination, collapse = "-"), patch_size_difference))
       }
-
-
+      
+      if (run_mode() == 2) {
+        set_numcores <- set_cores()
+      plan(multisession, workers = set_numcores)
       # Use future_map_dfr to parallelize the computation for all combinations
       protected_result <- future_map_dfr(
-        seq_along(combinations),
         .options = furrr_options(seed = TRUE),
+        seq_along(combinations),
+        ~ calculate_metrics_parallel(combinations[[.x]], degraded_protected))
+        ## Close parallel processing
+        plan(sequential)
+      } else {
+
+      # Use map_dfr to compute sequentially for all combinations
+      protected_result <- map_dfr(
+        seq_along(combinations),
         ~ calculate_metrics_parallel(combinations[[.x]], degraded_protected)
       )
-
+      }
+      
       protected_result <- protected_result %>%
         rename(protected_patch_size_difference = patch_size_difference)
-
-      # Close parallel processing
-      plan(sequential)
-
-      # combine this patch size metric with the other results table
+      
+      # Combine this patch size metric with the other results table
       hab_result_combined <- merge(result_habitat_data(), protected_result, by = "combination")
-
-
+      
+      # Store result
       result_habitat_data(hab_result_combined)
+      
+      # Clean up
+      rm(calculate_metrics, calculate_metrics_parallel, protected_result, protected_restored, degraded_protected, degraded_patch_size)
+      gc()
     }
 
     # Calculate the elapsed time
@@ -2623,9 +2990,14 @@ server <- function(input, output, session) {
       paste("Elapsed time:", format_elapsed_time(elapsed_time()))
     })
     
+    
+    
     removeNotification(notification_id_hab)
     shinyjs::enable("perform_merge")
     shinyjs::enable("calculate_metrics")
+    
+    rm(valid_locations, sample_degraded_land_values, restored_land_values, cropped_polygon, combinations)
+    gc()
   })
 
 
@@ -2719,7 +3091,7 @@ server <- function(input, output, session) {
     shinyjs::disable("calculate_connectivity")
     notification_id_con <- showNotification("Calculating connectivity metrics...", type = "message", duration = NULL)
     start_time <- Sys.time()
-
+    
     # Define the initial state of movement_cost with 1000 where degraded_pixels are not NA
     if (input$habitat_based_calculations > 0) {
       movement_cost_con <- croppedmovement_cost()
@@ -2729,13 +3101,13 @@ server <- function(input, output, session) {
       movement_cost_con <- croppedmovement_cost_protected()
       movement_cost_con[!is.na(degraded_pixels())] <- 10000
     }
-
+    
     combinations <- combinations_react()
-
-    movement_cost_raster <- raster(movement_cost_con)
+    
+    movement_cost_con <- raster(movement_cost_con)
     # Initialize a variable to store the result
     calculation_result <- NULL
-
+    
     # Wrapping in a tryCatch block to capture errors and prevent crashes
     tryCatch(
       {
@@ -2748,58 +3120,69 @@ server <- function(input, output, session) {
           colnames(mc_neighbours_df) <- c("Node 1", "Node 2", "Path distance (Resistance)")
           mean(mc_neighbours_df$`Path distance (Resistance)`)
         }
-
+        
         # Calculate baseline mean resistance
-        baseline_mean_res <- calculate_mean_resistance(movement_cost_raster)
-
+        baseline_mean_res <- calculate_mean_resistance(movement_cost_con)
+        
         # Initialize a dataframe to store the results
         results <- data.frame()
-
-        # Set up parallel processing
-        plan(multisession(workers = 2))
-
+        
         # Function to apply a combination and calculate the difference in resistance
         calculate_combination_resistance <- function(combination) {
-          modified_raster <- movement_cost_raster
+          modified_raster <- movement_cost_con
           modified_raster[combination] <- 1
           new_mean_res <- calculate_mean_resistance(modified_raster)
-          reduced_resistance <- baseline_mean_res - new_mean_res
-          c(list(combination = paste(combination, collapse = "-")),
-            reduced_resistance = reduced_resistance
+          tibble::tibble(
+            combination = paste(combination, collapse = "-"),
+            reduced_resistance = baseline_mean_res - new_mean_res
           )
         }
-
-        # Calculate the differences using parallel processing for all combinations
-        results <- future_map_dfr(
-          .options = furrr_options(seed = TRUE),
+        
+        # Calculate the differences
+        if (run_mode() == 2) {
+          # Calculate the differences using parallel processing for all combinations
+          set_numcores <- set_cores()
+          plan(multisession, workers = set_numcores)
+          results <- future_map_dfr(
+            .options = furrr_options(seed = TRUE),
+            seq_along(combinations),
+            ~ calculate_combination_resistance(combinations[[.x]]))
+          # cleanup of heavy parallel and raster objects
+          rm(combinations, calculate_combination_resistance, baseline_mean_res)
+          gc()
+        } else {
+          
+        results <- purrr::map_dfr(
           seq_along(combinations),
           ~ calculate_combination_resistance(combinations[[.x]])
         )
-
-        # Store the result
-        calculation_result <- results
-
-        # Close parallel processing
+        # cleanup
+        rm(combinations, calculate_combination_resistance, baseline_mean_res)
+        gc()
+        }
+        
+        result_connectivity(results)
+        gc()
         plan(sequential)
+        
       },
       error = function(e) {
         # Handle errors by displaying a notification to the user
         showNotification(paste("An error occurred during calculation: ", e$message), type = "error", duration = NULL)
-        plan(sequential)
       }
     ) # Close tryCatch block here
-
+    
     # Report the result outside the tryCatch block (if no errors or warnings occurred)
-    if (!is.null(calculation_result)) {
-      result_connectivity(calculation_result)
+    if (!is.null(results)) {
+      result_connectivity(results)
     }
-
+    
     removeNotification(notification_id_con)
-
+    
     # Calculate the elapsed time
     end_time <- Sys.time()
     elapsed_time(end_time - start_time)
-
+    
     format_elapsed_time <- function(time_diff) {
       # Convert the difftime object to numeric seconds
       total_seconds <- as.numeric(time_diff, units = "secs")
@@ -2819,12 +3202,12 @@ server <- function(input, output, session) {
       }
     }
     
-
+    
     # Display the elapsed time in the UI
     output$conTime <- renderText({
       paste("Elapsed time:", format_elapsed_time(elapsed_time()))
     })
-
+    
     # Display the results in the UI
     output$connectivityTable <- renderDataTable({
       req(result_connectivity())
@@ -2837,31 +3220,31 @@ server <- function(input, output, session) {
       if("reduced_resistance" %in% names(rounded_data)) {
         names(rounded_data)[names(rounded_data) == 'reduced_resistance'] <- 'Change in path resistance'
       }
-        
-        # Rename 'combination' column to 'Candidate area'
-        names(rounded_data)[names(rounded_data) == 'combination'] <- 'Candidate area'
-        # Get the total number of rows
-        total_rows <- nrow(rounded_data)
-        # Determine the number of zeros needed based on the total number of rows
-        num_zeros <- nchar(as.character(total_rows))
-        # Generate the new values for the 'Candidate area' column
-        rounded_data$`Candidate area` <- sapply(1:total_rows, function(i) {
-          # Count the number of '-' in the original entry
-          original_value <- rounded_data$`Candidate area`[i]
-          num_pixels <- str_count(original_value, "-") + 1
-          # Generate the CA number with leading zeros
-          ca_number <- sprintf(paste0("CA_%0", num_zeros, "d"), i)
-          # Combine CA number with pixel information
-          paste0(ca_number, " (", num_pixels, " pixels)")
-        })
+      
+      # Rename 'combination' column to 'Candidate area'
+      names(rounded_data)[names(rounded_data) == 'combination'] <- 'Candidate area'
+      # Get the total number of rows
+      total_rows <- nrow(rounded_data)
+      # Determine the number of zeros needed based on the total number of rows
+      num_zeros <- nchar(as.character(total_rows))
+      # Generate the new values for the 'Candidate area' column
+      rounded_data$`Candidate area` <- sapply(1:total_rows, function(i) {
+        # Count the number of '-' in the original entry
+        original_value <- rounded_data$`Candidate area`[i]
+        num_pixels <- str_count(original_value, "-") + 1
+        # Generate the CA number with leading zeros
+        ca_number <- sprintf(paste0("CA_%0", num_zeros, "d"), i)
+        # Combine CA number with pixel information
+        paste0(ca_number, " (", num_pixels, " pixels)")
+      })
       
       datatable(rounded_data, rownames = FALSE, options = list(scrollX = TRUE),
                 caption = htmltools::tags$caption(
                   style = 'caption-side: top; text-align: left; white-space: pre-wrap; width: auto;',
                   HTML("<br><strong style='font-size: 16px;'>Difference in mean path resistance between original and restored landscape for each candidate area. Positive values indicate less resistance in the restored landscape.</strong>")))
     })
-
-     output$subtitleText2 <- renderUI({
+    
+    output$subtitleText2 <- renderUI({
       req(result_connectivity())  # Ensure that the table data is ready
       HTML("<p style='font-size: 14px; text-align: left;'>**Each candidate area has a unique ID (e.g, CA-001 (3 pixels) means candidate area 1, containing 3 pixels of degraded land).</p>")
     })
@@ -2870,7 +3253,7 @@ server <- function(input, output, session) {
     shinyjs::enable("calculate_pca")
     shinyjs::enable("calculate_connectivity")
   })
-
+  
   # Linked to UI Segment 12, generating the environmental PCA raster ----
 
   observeEvent(input$calculate_pca, {
@@ -2981,55 +3364,65 @@ server <- function(input, output, session) {
       return(list(sa = sa_metric))
     }
 
-    # Load the furrr library for parallel processing
-    library(furrr)
-    # Set up parallel processing with 3 workers
-    plan(multisession(workers = 2))
-
-    # Loop over for the number of principal components selected
+    # Loop over the number of principal components selected
     for (i in 1:num_pcs) {
       # Begin to set up the comparison of the degraded vs the restored raster
       Env_PCA <- pca_rasters[[i]]
       Deg_PCA <- pca_rasters[[i]]
-
-      Deg_PCA[!is.na(degraded_pixels())] <- NA # We are treating degraded pixels as having no environmental heterogeneity
-
+      
+      Deg_PCA[!is.na(degraded_pixels())] <- NA  # Treat degraded pixels as NA
+      
       # Extract pixel values from each raster
       env_values <- values(Env_PCA)
       Deg_PCA_values <- values(Deg_PCA)
+      
       # Calculate environmental heterogeneity for the degraded landscape
       degraded_sa <- sa(Deg_PCA_values)
-
+      
       # Get the pixel combinations from storage
       combinations <- combinations_react()
-
-      # function to calculate metrics for each combination
+      
+      # Function to calculate metrics for each combination
       calculate_metrics_parallel <- function(combination) {
         metrics <- calculate_metrics(combination, Deg_PCA_values, env_values)
         # Calculate the difference in environmental heterogeneity between the degraded and restored landscapes
         sa_diff <- as.numeric(metrics$sa) - as.numeric(degraded_sa)
-        # Return a data frame with the principal component, given combination, and heterogeneity difference
-        return(data.frame(PC = paste0("Env_PC", i), combination = paste(combination, collapse = "-"), sa_diff = sa_diff))
+        # A data frame with the principal component, given combination, and heterogeneity difference
+        data.frame(
+          PC = paste0("Env_PC", i),
+          combination = paste(combination, collapse = "-"),
+          sa_diff = sa_diff
+        )
       }
-
-      # Use future_map_dfr for parallelization
-      calculated_env_data <- future_map_dfr(seq_along(combinations), ~ calculate_metrics_parallel(combinations[[.x]]))
+      
+      if (run_mode() == 2) {
+        # Use future_map_dfr for parallelization
+        set_numcores <- set_cores()
+        plan(multisession, workers = set_numcores)
+        calculated_env_data <- future_map_dfr(seq_along(combinations), ~ calculate_metrics_parallel(combinations[[.x]]))
+      } else {
+      # Use map_dfr for sequential processing
+      calculated_env_data <- map_dfr(
+        seq_along(combinations),
+        ~ calculate_metrics_parallel(combinations[[.x]])
+      )
+      }
+      
       # Store the results
       calculated_env_data_list[[i]] <- calculated_env_data
+      
     }
-
+    
     # Close parallel processing
     plan(sequential)
-
-
+    
     # Combine the results into one data frame
     combined_calculated_env_data <- do.call(rbind, calculated_env_data_list)
-
+    
     combined_calculated_env_data <- combined_calculated_env_data %>%
       spread(key = PC, value = sa_diff) %>%
       rename_with(~ paste0(., "_sa_diff"), -combination)
-
-
+    
     # Update the reactiveVal with the computed data
     result_env_data(combined_calculated_env_data)
 
@@ -3498,13 +3891,52 @@ server <- function(input, output, session) {
   output$downloadKML <- downloadHandler(
     filename = function() {
       if (!is.null(export_sf())) {
-        paste0(input$landscape_name, "_top_combination", Sys.Date(), ".kml", sep = "")
+        paste0(input$landscape_name, "_top_combination", Sys.Date(), ".kml")
       }
     },
     content = function(file) {
       if (!is.null(export_sf())) {
-        # Write sf object to KML file
-        sf::st_write(export_sf(), dsn = file, driver = "kml")
+        kml_data <- export_sf()
+        
+        # Add Name and Description using label column
+        kml_data$Name <- paste("Candidate Area", kml_data$label)
+        kml_data$Description <- paste("Candidate Area", kml_data$label)
+        
+        # Drop the label column
+        kml_data$label <- NULL
+        
+        # Drop all-NA columns to clean up
+        kml_data <- kml_data[, colSums(!is.na(sf::st_drop_geometry(kml_data))) > 0]
+        
+        # Write to KML
+        sf::st_write(kml_data, dsn = file, driver = "kml")
+      }
+    }
+  )
+  
+  
+  output$downloadDegsources <- downloadHandler(
+    filename = function() {
+      if (!is.null(export_sf())) {
+        paste0(input$landscape_name, "_degradation_sources", Sys.Date(), ".kml")
+      }
+    },
+    content = function(file) {
+      if (!is.null(export_sf_deg_sources())) {
+        deg_sources <- export_sf_deg_sources()
+        
+        # Add Name + Description
+        deg_sources$Name <- deg_sources$class_label
+        deg_sources$Description <- deg_sources$class_label
+        
+        # Drop 'class_label' since it's duplicated now
+        deg_sources$class_label <- NULL
+        
+        # Drop all-NA columns
+        deg_sources <- deg_sources[, colSums(!is.na(sf::st_drop_geometry(deg_sources))) > 0]
+        
+        # Write to KML
+        sf::st_write(deg_sources, dsn = file, driver = "kml")
       }
     }
   )
@@ -4345,7 +4777,6 @@ server <- function(input, output, session) {
     
     # A final cumulative condition (encompassing all the conditions above) is then used to define degraded pixels
     final_condition <- condition_mines | condition_night_lights | condition_oil_gas | condition_forestry_harvest | condition_AMIS | condition_aggregate_extraction | condition_topsoil_extraction | condition_undifferentiated
-    
     degraded_pixels_temp <- croppedOntario()
     degraded_protected <- croppedProtected_areas()
     
@@ -4578,15 +5009,8 @@ server <- function(input, output, session) {
           contiguous_regions <- find_contiguous(valid_locations, restored_land_values[], nrow(restored_land_values), ncol(restored_land_values))
           
           # Create a matrix to store the indices for each group (as integers)
-          max_length <- max(lengths(contiguous_regions))
-          result_matrix <- matrix(NA_integer_, nrow = max_length, ncol = length(contiguous_regions))
-          
-          # Fill the matrix with indices for each group as integers
-          for (i in seq_along(contiguous_regions)) {
-            result_matrix[1:length(contiguous_regions[[i]]), i] <- as.integer(contiguous_regions[[i]])
-          }
-          
-          combinations <- result_matrix
+          combinations <- lapply(contiguous_regions, as.integer)
+          combinations_react(combinations)
           
           # Function to convert columns to list elements and remove NA values (so they can be used properly in future steps)
           convert_to_list <- function(mat) {
@@ -4602,13 +5026,16 @@ server <- function(input, output, session) {
           
           combinations <- convert_to_list(combinations)
           combinations_react(combinations)
+          
+          # Clean up large objects no longer needed
+          rm()
+          gc(verbose = FALSE)
 
         # Calculate the habitat metrics
         
         # Precompute values to save on overhead in the parallel process
         restored_values <- values(restored_land_values)
         degraded_patch_size <- lsm_c_area_mn(sample_degraded_land_values)
-        
         calculate_metrics <- function(combination, degraded_raster) {
           # Create a copy of the degraded raster and add the values from restored_land
           modified_raster <- degraded_raster
@@ -4628,11 +5055,9 @@ server <- function(input, output, session) {
           )
         }
         
-        library(furrr)
-        plan(multisession(workers = 2)) # Set the number of workers - 3 was most stable on the systems we tested on, but this could be set to anything
+        library(purrr)
         
         calculate_metrics_parallel <- function(combination) {
-          
           metrics <- calculate_metrics(combination, sample_degraded_land_values)
           
           # Extract patch size and cohesion differences
@@ -4642,15 +5067,11 @@ server <- function(input, output, session) {
           data.frame(combination = metrics$combination, patch_size_diffs)
         }
         
-        # Use future_map_dfr to parallelize the computation for all combinations
-        calculated_habitat_data <- future_map_dfr(
+        # Use map_dfr to compute sequentially for all combinations
+        calculated_habitat_data <- map_dfr(
           seq_along(combinations),
-          .options = furrr_options(seed = TRUE),
           ~ calculate_metrics_parallel(combinations[[.x]])
         )
-        
-        # Close parallel processing
-        plan(sequential)
         
         
         # Mapping from class numbers to class names
@@ -4718,30 +5139,25 @@ server <- function(input, output, session) {
             return(list(patch_size = Protected_patch_size_difference, raster = modified_raster))
           }
           
-          library(furrr)
+          library(purrr)
+          library(dplyr)
           
-          plan(multisession(workers = 2)) # Adjust the number of workers as needed
-          
-          # Define a function for parallel computation
+          # Define a function for sequential computation
           calculate_metrics_parallel <- function(combination, degraded_raster) {
             metrics <- calculate_metrics(combination, degraded_raster)
             patch_size_difference <- sum(abs(metrics$patch_size))
-            return(data.frame(combination = paste(combination, collapse = "-"), patch_size_difference))
+            data.frame(combination = paste(combination, collapse = "-"), patch_size_difference)
           }
           
-          
-          # Use future_map_dfr to parallelize the computation for all combinations
-          protected_result <- future_map_dfr(
+          # Use map_dfr to compute sequentially for all combinations
+          protected_result <- map_dfr(
             seq_along(combinations),
-            .options = furrr_options(seed = TRUE),
             ~ calculate_metrics_parallel(combinations[[.x]], degraded_protected)
           )
           
           protected_result <- protected_result %>%
             rename(protected_patch_size_difference = patch_size_difference)
           
-          # Close parallel processing
-          plan(sequential)
           
           
           # combine this patch size metric with the other results table
@@ -4779,7 +5195,7 @@ server <- function(input, output, session) {
             
             combinations <- combinations_react()
             
-            movement_cost_raster <- raster(movement_cost_calc)
+            movement_cost_con <- raster(movement_cost_calc)
             # Initialize a variable to store the result
             calculation_result <- NULL
             
@@ -4795,39 +5211,36 @@ server <- function(input, output, session) {
                 }
                 
                 # Calculate baseline mean resistance
-                baseline_mean_res <- calculate_mean_resistance(movement_cost_raster)
+                baseline_mean_res <- calculate_mean_resistance(movement_cost_con)
                 
                 # Initialize a data frame to store the results
                 results <- data.frame()
                 
-                # Set up parallel processing
-                plan(multisession(workers = 2))
-                
                 # Function to apply a combination and calculate the difference in resistance
                 calculate_combination_resistance <- function(combination) {
-                  modified_raster <- movement_cost_raster
+                  modified_raster <- movement_cost_con
                   modified_raster[combination] <- 1
                   new_mean_res <- calculate_mean_resistance(modified_raster)
-                  reduced_resistance <- baseline_mean_res - new_mean_res
-                  c(list(combination = paste(combination, collapse = "-")),
-                    reduced_resistance = reduced_resistance
+                  tibble::tibble(
+                    combination = paste(combination, collapse = "-"),
+                    reduced_resistance = baseline_mean_res - new_mean_res
                   )
                 }
                 
-                # Calculate the differences using parallel processing for all combinations
-                results <- future_map_dfr(
-                  .options = furrr_options(seed = TRUE),
+                # Calculate the differences
+                results <- purrr::map_dfr(
                   seq_along(combinations),
                   ~ calculate_combination_resistance(combinations[[.x]])
                 )
                 
-                # Store the result
-                calculation_result <- results
+                # cleanup
+                rm(combinations, calculate_combination_resistance, baseline_mean_res)
+                gc()
+          
                 
-                # Close parallel processing
-                plan(sequential)
-                
-              result_connectivity(calculation_result)
+              result_connectivity(results)
+              gc()
+              
             
           
               # Linked to UI Segment 12, generating the environmental PCA raster 
@@ -4895,46 +5308,40 @@ server <- function(input, output, session) {
                   return(list(sa = sa_metric))
                 }
                 
-                # Load the furrr library for parallel processing
-                library(furrr)
-                # Set up parallel processing with 3 workers
-                plan(multisession(workers = 2))
-                
-                # Loop over for the number of principal components selected
+                # Loop over the number of principal components selected
                 for (i in 1:num_pcs) {
                   # Begin to set up the comparison of the degraded vs the restored raster
                   Env_PCA <- pca_rasters[[i]]
                   Deg_PCA <- pca_rasters[[i]]
                   
-                  Deg_PCA[!is.na(degraded_pixels())] <- NA # We are treating degraded pixels as having no environmental heterogeneity
+                  Deg_PCA[!is.na(degraded_pixels())] <- NA  # Treat degraded pixels as NA (no env heterogeneity)
                   
                   # Extract pixel values from each raster
                   env_values <- values(Env_PCA)
                   Deg_PCA_values <- values(Deg_PCA)
+                  
                   # Calculate environmental heterogeneity for the degraded landscape
                   degraded_sa <- sa(Deg_PCA_values)
                   
                   # Get the pixel combinations from storage
                   combinations <- combinations_react()
                   
-                  # function to calculate metrics for each combination
+                  # Function to calculate metrics for each combination
                   calculate_metrics_parallel <- function(combination) {
                     metrics <- calculate_metrics(combination, Deg_PCA_values, env_values)
-                    # Calculate the difference in environmental heterogeneity between the degraded and restored landscapes
                     sa_diff <- as.numeric(metrics$sa) - as.numeric(degraded_sa)
-                    # Return a data frame with the principal component, given combination, and heterogeneity difference
-                    return(data.frame(PC = paste0("Env_PC", i), combination = paste(combination, collapse = "-"), sa_diff = sa_diff))
+                    data.frame(PC = paste0("Env_PC", i), combination = paste(combination, collapse = "-"), sa_diff = sa_diff)
                   }
                   
-                  # Use future_map_dfr for parallelization
-                  calculated_env_data <- future_map_dfr(seq_along(combinations), ~ calculate_metrics_parallel(combinations[[.x]]))
-                  # Store the results
+                  # Use map_dfr for sequential computation
+                  calculated_env_data <- map_dfr(
+                    seq_along(combinations),
+                    ~ calculate_metrics_parallel(combinations[[.x]])
+                  )
+                  
+                  # Store the result
                   calculated_env_data_list[[i]] <- calculated_env_data
                 }
-                
-                # Close parallel processing
-                plan(sequential)
-                
                 
                 # Combine the results into one data frame
                 combined_calculated_env_data <- do.call(rbind, calculated_env_data_list)
@@ -4943,10 +5350,8 @@ server <- function(input, output, session) {
                   spread(key = PC, value = sa_diff) %>%
                   rename_with(~ paste0(., "_sa_diff"), -combination)
                 
-                
                 # Update the reactiveVal with the computed data
                 result_env_data(combined_calculated_env_data)
-                
                 
                 
               # Linked to UI Segment 14,  Merging all results/metrics together in preparation for weighting
@@ -5204,7 +5609,7 @@ div(class = "ui top fixed menu",
     # Add right-aligned "Leave Feedback" button
     div(class = "right menu",
         a(class = "item", 
-          href = "https://forms.office.com/Pages/ResponsePage.aspx?id=KRLczSqsl0u3ig5crLWGXNRxs3qV961EgSoYMvAfZJ5UODdBUFlaNVpLU0wyRVRBQURPMFNGR0U3Sy4u",
+          href = "https://forms.office.com/Pages/ResponsePage.aspx?id=KRLczSqsl0u3ig5crLWGXIs1bK-xWwVAv5numo8PiyFUOUhaQUk4QTBYUlNDN1FZVVpRVFY3NUpUNy4u",
           target = "_blank",
           icon("edit"), 
           span(style = "color: dodgerblue; font-size: 1.2em; font-weight: bold;", "Leave Feedback"))
@@ -5470,8 +5875,7 @@ div(
       br(),
       p(HTML("<b>Set the final extent</b><br>
                Finally, press “Set extent” to confirm the final target landscape to analyze. An image of the selected landscape, including the buffer area, is displayed for you to review, along with the proportion of total area covered by different habitat types.<br><br>
-             When the landscape extent is set, a test is run on that landscape to see if it is large enough to calculate connectivity metrics. A warning message will be displayed if the target landscape is too small. This will be explained in more detail as you progress through the tool.<br>
-               ")),
+             When the landscape extent is set, a test is run on that landscape to see if it is large enough to calculate connectivity metrics. A warning message will be displayed if the target landscape is too small. <b>When accessing this tool online, it is also possible that a landscape that is too large or complex will reach the server memory limit during calculations at future steps, resulting in disconnection from the server.</b> This occurs rarely, but can be resolved by reducing the size of a landscape / dividing it into parts for which metrics can be calculated separately.<br>")),
       actionButton("set_extent", "Set extent"),
       br(),
       verbatimTextOutput("extent_values"),
@@ -5517,7 +5921,11 @@ fluidRow(
         column(width = 6, plotlyOutput("degradedPlot", height = "800px")),
         column(width = 6, div(style = "overflow-x: auto; white-space: nowrap; margin: 0 auto; text-align: center;",
                                                       div(style = "display: inline-block; width: 1000px;",
-                                                          plotOutput("rasterPlot3legend", height = "800px"))))),
+                                                          plotOutput("rasterPlot3legend", height = "800px")))),
+        column(width = 6, plotlyOutput("degradedSourcesPlot", height = "800px")),
+        column(width = 6, div(style = "overflow-x: auto; white-space: nowrap; margin: 0 auto; text-align: center;",
+                              div(style = "display: inline-block; width: 1000px;",
+                                  plotOutput("rasterPlot32legend", height = "800px"))))),
       conditionalPanel(
         condition = "input.protected_based_calculations > 0",
         fluidRow(
@@ -5599,7 +6007,8 @@ fluidRow(
       br(),
       div(style = "font-size: 18px; font-weight: bold; margin-bottom: 15px;", "Calculating patch size"),
       p(HTML("Now, we can calculate the effect of restoring candidate areas on habitat patch size (i.e., if restoring particular candidate areas increases the average habitat patch size).<br><br>
-      Patch size is calculated as the average size of contiguous areas of a particular habitat type. For each habitat type, the effect of restoration is measured by comparing the average patch size in the original landscape compared against the average patch size with each candidate area restored. In addition, if you selected the option to focus on ‘areas of conservation concern’, the change in patch size within areas of conservation concern is shown as an additional metric.")),
+      Patch size is calculated as the average size of contiguous areas of a particular habitat type. For each habitat type, the effect of restoration is measured by comparing the average patch size in the original landscape compared against the average patch size with each candidate area restored. In addition, if you selected the option to focus on ‘areas of conservation concern’, the change in patch size within areas of conservation concern is shown as an additional metric. <br><br>
+             <b>Note: When accessing this tool online, if a disconnection from the server occurs during this calculation, please reduce the size of a landscape or divide it into parts to avoid exceeding the server memory limit.</b>")),
       br(),
       uiOutput("dynamic_checkboxes"),
       br(),
@@ -5661,11 +6070,13 @@ conditionalPanel(
       p(HTML("Next, we will measure connectivity metrics for each candidate area. Connectivity can be defined as the ease of movement across a landscape due to connectedness of habitat types. Other ways to view this are the amount of resistance a landscape has to the movement of species or how much energy is required for species to move across the landscape (i.e., movement cost). <br><br>
       To get an idea of connectivity within each restored landscape, we measure the movement cost of many potential movement paths across the landscape and take an average of the cost of those paths as an indication of the resistance of that landscape; this is referred to as ‘mean path resistance’. These resistance paths are measured between all ‘nodes’ or ‘clusters’ of either contiguous areas of natural habitat, or areas of conservation concern (depending on the focus of the analysis) that occur in the landscape. <br><br>
       The mean path resistance for each restored landscape is then subtracted from the mean path resistance of the degraded landscape – to get a measure of how much resistance was reduced (or connectivity increased) by restoring each candidate area. Positive values denote reduced resistance and better movement in a landscape, whereas negative values denote increased resistance and more difficult movement. Results for each combination are output in a table. <br><br>
-      NOTE: We assigned a movement cost value to each 300 x 300 metre pixel in the province, following Pither et al. 2023  (a full breakdown of the cost values for each pixel type are given
+      We assigned a movement cost value to each 300 x 300 metre pixel in the province, following Pither et al. 2023  (a full breakdown of the cost values for each pixel type are given
       <a href='https://figshare.com/articles/journal_contribution/Land_cover_layers_and_their_sources_used_to_construct_a_movement_cost_layer_for_Canada_/22143033' target='_blank'>here</a>). We modify cost values for some pixels: any degraded pixels are given a high cost value (1000), whereas restored pixels and natural habitat are given the lowest cost value (1).  
       <br><br> 
-     If the option to focus on areas of conservation concern is selected, these areas, and any pixels restored within them, are given a cost value of 1, with other natural  habitat given a cost value of 10, and costs for all other pixel types scaled up by a magnitude of 10 (e.g. degraded pixels = 10000).")),
-      actionButton("calculate_connectivity", "Calculate connectivity", style = "margin-top: 15px;"),
+     If the option to focus on areas of conservation concern is selected, these areas, and any pixels restored within them, are given a cost value of 1, with other natural  habitat given a cost value of 10, and costs for all other pixel types scaled up by a magnitude of 10 (e.g. degraded pixels = 10000).
+             <br><br>
+             Note: When accessing this tool online, if a disconnection from the server occurs during this calculation, please reduce the size of a landscape or divide it into parts to avoid exceeding the server memory limit")),
+      actionButton("calculate_connectivity", "Calculate connectivity (may take a while!)", style = "margin-top: 15px;"),
       br(),
       br(),
       textOutput("conTime"),
@@ -5789,8 +6200,12 @@ conditionalPanel(
       segment(
         p(HTML("If you would like to export a KML file to view the top candidate areas chosen in the analysis outside this tool (e.g., in Google Earth or ArcGIS), click 'Export top candidate area(s) to .KML'.<br>")),
         downloadButton("downloadKML", "Export top candidate area(s) to .KML", style = "height:60px; width:300px; font-size:25px;")),
-      segment(
-        p(HTML("If you would like to view this landscape later, you can save an .RDS file to import back into the tool to visualize.<br>")),
+    segment(
+      p(HTML("If you would like to view the degradation sources used to define degraded pixels in the selected landscape, they can be exported in .KML<br>")),
+      downloadButton("downloadDegsources", "Save degradation sources", 
+                     style = "height:60px; width:300px; font-size:25px;")),
+    segment(
+        p(HTML("If you would like to view this landscape later, you can save an .RDS file to import back into the tool to visualize (Please be patient after clicking the download button, it may take several minutes to generate the RDS file).<br>")),
       downloadButton("downloadplotRDS", "Save landscape visualization", 
                      style = "height:60px; width:300px; font-size:25px;")),
     br(),
