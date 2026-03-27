@@ -1,6 +1,6 @@
 # RestoratiON
 
-Ontario Ministry of Natural Resources (OMNR) Landscape Ecology restoration prioritization project. This tool aims to identify degraded land areas within a chosen geographic region and determine which areas, when restored to nearby natural habitat types, will provide the greatest benefit to biodiversity based on user-selected criteria. For more information about the tool or to try it out, users can access it here: [RestoratiON](#0). Documentation is available within the website (links here: [background](#0), [data sources](#0), and [glossary](#0)); and step-by-step instructions are available as you progress through the tool. There is also a [video tutorial](#0) available (accessible version here: [described video version](#0)).
+Ontario Ministry of Natural Resources (OMNR) Landscape Ecology restoration prioritization project. This tool aims to identify degraded land areas within a chosen geographic region and determine which areas, when restored to nearby natural habitat types, will provide the greatest benefit to biodiversity based on user-selected criteria. For more information about the tool or to try it out, users can access it here: [RestoratiON](https://mnrf-cflpb.shinyapps.io/restoration_app/). Documentation is available within the website (links here: [background](#0), [data sources](#0), and [glossary](#0)); and step-by-step instructions are available as you progress through the tool. There is also a [video tutorial](#0) available (accessible version here: [described video version](#0)).
 
 ## Prerequisites
 
