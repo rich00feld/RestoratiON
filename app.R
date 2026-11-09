@@ -135,6 +135,7 @@ library(rsconnect)
 library(rstudioapi)
 library(sf)
 library(shiny)
+library(shinycssloaders) # Erica added this July 29 for 'withSpinner' function
 library(shiny.semantic)
 library(shinyjs)
 library(shinythemes)
@@ -3255,6 +3256,8 @@ output$degradedSourcesPlot <- renderPlotly({
   })
   
   # Linked to UI Segment 12, generating the environmental PCA raster ----
+  
+
 
   observeEvent(input$calculate_pca, {
     # Lockout buttons
@@ -3262,6 +3265,7 @@ output$degradedSourcesPlot <- renderPlotly({
     shinyjs::disable("calculate_pca")
     notification_id_PCA <- showNotification("PCA calculation is running...", type = "message", duration = NULL)
     # Get all the environmental rasters from the reactive values
+    # browser()
     CLASS_00_env <- croppedCLASS_00()
     CLASS_05_env <- croppedCLASS_05()
     CLASS_06_env <- croppedCLASS_06()
@@ -3294,7 +3298,11 @@ output$degradedSourcesPlot <- renderPlotly({
     )
 
     # create a rasterPCA with the raster stack (RStoolbox function)
-    pca_result_temp <- rasterPCA(raster_stack, maskCheck=FALSE)
+    
+    # ERICA CHANGE: VAL ORIGINALLY USED MASKCHECK=FALSE BELOW, BUT SOME OF THE CLASS_ RASTERS HAD NAN CELLS FOR SOME CALCULATIONS, WHICH BROKE THE APP (try Pelee or Essex). I'M CHANGING THIS HERE FOR NOW SO THAT IT DOESN'T BREAK. TRY sum(is.nan(values(CLASS_00_env)))... VALUES SHOULD BE NUMBERS OR NA
+    # pca_result_temp <- rasterPCA(raster_stack, maskCheck=FALSE)
+    
+    pca_result_temp <- rasterPCA(raster_stack, maskCheck=TRUE)
     # Store the PCA result in the reactive value
     pca_result(pca_result_temp)
 
@@ -4011,6 +4019,10 @@ output$degradedSourcesPlot <- renderPlotly({
 
       # Read and store data, skipping the first two lines (the extent information)
       df <- read.csv(file, skip = 2, stringsAsFactors = FALSE, sep = ",", check.names = FALSE)
+      # ERICA CHANGE
+      # Ensure the 'Pixels' column is always read as a character, because combining multiple csvs is problematic when some only have 1 pixel ID for each candidate area - gets read as an integer.
+      df$Pixels <- as.character(df$Pixels)
+      
       df <- df[, names(df) != "Sum weighted"]
       if (nrow(df) == 0) {
         stop("One of the files is empty: ", file)
@@ -5278,7 +5290,7 @@ output$degradedSourcesPlot <- renderPlotly({
               )
               
               # create a rasterPCA with the raster stack (RStoolbox function)
-              pca_result_temp <- rasterPCA(raster_stack, maskCheck=FALSE)
+              pca_result_temp <- rasterPCA(raster_stack, maskCheck=TRUE)
               # Store the PCA result in the reactive value
               pca_result(pca_result_temp)
               
@@ -5861,7 +5873,9 @@ div(
   br(),
   br()
 ),
-      leafletOutput("map", height = 600),
+      withSpinner(
+        leafletOutput("map", height = 600)
+      ),
       br(),
       br(),
       p(HTML("<b>Add a buffer around the target landscape</b><br>
@@ -6086,7 +6100,6 @@ conditionalPanel(
       uiOutput("subtitleText2")
     )
   ),
-
 
   ## Segment 12: Generating the environmental PCA ----
   conditionalPanel(
